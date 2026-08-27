@@ -2,94 +2,204 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Normal UI</title>
+    <title>Course & Enrollment Management</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        body { margin: 0; min-height: auto; background: transparent; }
-        .app-shell { max-width: none; padding: 0; }
-    </style>
 </head>
+
 <body>
+
 <main class="app-shell">
-    <section class="card">
-        <h2>Students</h2>
+<section class="card">
 
-        <button id="toggle-students-btn" type="button">
-            Show All Students
-        </button>
+<h2>Course Management</h2>
 
-        <div id="students-result" class="panel is-hidden"></div>
+<button onclick="loadCourses()">Show All Courses</button>
+<div id="courses-result" class="panel"></div>
 
-        <h2>Find Student by ID</h2>
+<h3>Add Course</h3>
 
-        <form id="student-by-id-form">
-            <label for="student_id">Student ID</label>
-            <input id="student_id" name="student_id" type="number" min="1" placeholder="Enter student ID">
-            <button type="submit">Get Student</button>
-        </form>
+<form id="add-course-form">
+    <input name="course_code" placeholder="Course Code" required>
+    <input name="course_name" placeholder="Course Name" required>
+    <input name="credits" type="number" placeholder="Credits" required>
+    <input name="capacity" type="number" placeholder="Capacity" required>
+    <button type="submit">Add Course</button>
+</form>
 
-        <div id="student-result" class="panel"></div>
+<h3>Update Course</h3>
 
-        <h2>Find Students by Subject Code</h2>
+<form id="update-course-form">
+    <input name="course_id" type="number" placeholder="Course ID" required>
+    <input name="course_code" placeholder="Course Code" required>
+    <input name="course_name" placeholder="Course Name" required>
+    <input name="credits" type="number" placeholder="Credits" required>
+    <input name="capacity" type="number" placeholder="Capacity" required>
+    <button type="submit">Update Course</button>
+</form>
 
-        <form id="students-by-subject-form">
-            <label for="subject_code">Subject Code</label>
-            <input id="subject_code" name="subject_code" type="text" placeholder="Example: ASD101">
-            <button type="submit">Find Students</button>
-        </form>
+<h3>Delete Course</h3>
 
-        <div id="subject-result" class="panel"></div>
-    </section>
+<form id="delete-course-form">
+    <input name="course_id" type="number" placeholder="Course ID" required>
+    <button type="submit">Delete Course</button>
+</form>
+
+<div id="course-message" class="panel"></div>
+
+
+<hr>
+
+
+<h2>Enrollment Management</h2>
+
+<button onclick="loadEnrolments()">Show All Enrollments</button>
+<div id="enrolments-result" class="panel"></div>
+
+<h3>Enroll Student</h3>
+
+<form id="add-enrolment-form">
+    <input name="student_id" type="number" placeholder="Student ID" required>
+    <input name="course_id" type="number" placeholder="Course ID" required>
+
+    <select name="status">
+        <option>Active</option>
+        <option>Completed</option>
+        <option>Withdrawn</option>
+    </select>
+
+    <button type="submit">Enroll Student</button>
+</form>
+
+<h3>Update Enrollment</h3>
+
+<form id="update-enrolment-form">
+    <input name="enrolment_id" type="number" placeholder="Enrollment ID" required>
+    <input name="student_id" type="number" placeholder="Student ID" required>
+    <input name="course_id" type="number" placeholder="Course ID" required>
+
+    <select name="status">
+        <option>Active</option>
+        <option>Completed</option>
+        <option>Withdrawn</option>
+    </select>
+
+    <button type="submit">Update Enrollment</button>
+</form>
+
+<h3>Delete Enrollment</h3>
+
+<form id="delete-enrolment-form">
+    <input name="enrolment_id" type="number" placeholder="Enrollment ID" required>
+    <button type="submit">Delete Enrollment</button>
+</form>
+
+<div id="enrolment-message" class="panel"></div>
+
+</section>
 </main>
 
+
 <script>
-const toggleStudentsBtn = document.getElementById("toggle-students-btn");
-const studentsPanel = document.getElementById("students-result");
-const studentByIdForm = document.getElementById("student-by-id-form");
-const studentsBySubjectForm = document.getElementById("students-by-subject-form");
 
-async function renderIntoPanel(panelId, url, options = {}) {
-    const panel = document.getElementById(panelId);
+const API = "http://localhost:5001";
 
-    try {
-        const response = await fetch(url, options);
-        const body = await response.text();
-        panel.innerHTML = body;
-    } catch (error) {
-        panel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
-    }
+
+async function send(url, options = {}) {
+    const response = await fetch(url, options);
+    return await response.text();
 }
 
-toggleStudentsBtn.addEventListener("click", () => {
-    const isHidden = studentsPanel.classList.contains("is-hidden");
 
-    if (isHidden) {
-        studentsPanel.classList.remove("is-hidden");
-        toggleStudentsBtn.textContent = "Hide All Students";
+async function loadCourses() {
+    document.getElementById("courses-result").innerHTML =
+        await send(`${API}/courses`);
+}
 
-        if (!studentsPanel.dataset.loaded) {
-            renderIntoPanel("students-result", "http://localhost:5001/students");
-            studentsPanel.dataset.loaded = "true";
-        }
-    } else {
-        studentsPanel.classList.add("is-hidden");
-        toggleStudentsBtn.textContent = "Show All Students";
-    }
-});
 
-studentByIdForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new FormData(studentByIdForm);
-    const query = new URLSearchParams(formData).toString();
-    renderIntoPanel("student-result", `http://localhost:5001/students/by-id?${query}`);
-});
+async function loadEnrolments() {
+    document.getElementById("enrolments-result").innerHTML =
+        await send(`${API}/enrolments`);
+}
 
-studentsBySubjectForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new FormData(studentsBySubjectForm);
-    const query = new URLSearchParams(formData).toString();
-    renderIntoPanel("subject-result", `http://localhost:5001/students/by-subject?${query}`);
-});
+
+document.getElementById("add-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("update-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses/update`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("delete-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses/delete`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("add-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
+
+document.getElementById("update-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments/update`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
+
+document.getElementById("delete-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments/delete`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
 </script>
+
 </body>
 </html>

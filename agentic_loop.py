@@ -1,18 +1,29 @@
 import os
-import sqlite3
 from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 
-# ============================= Agents Env Setup =============================
+
+# =========================================================
+# ENVIRONMENT
+# =========================================================
+
 ENV_PATH = Path(__file__).with_name(".env")
 load_dotenv(dotenv_path=ENV_PATH)
 
 PROMPT_DIR = Path(__file__).with_name("prompts")
 
-DATABASE_NAME = Path(__file__).with_name("enrolment.db")
+DATABASE_SERVICE_URL = os.getenv(
+    "DATABASE_SERVICE_URL",
+    "http://127.0.0.1:5002"
+)
+
+ENROLMENT_SERVICE_URL = os.getenv(
+    "ENROLMENT_SERVICE_URL",
+    "http://127.0.0.1:5001"
+)
 
 OLLAMA_BASE_URL = os.getenv(
     "OLLAMA_BASE_URL",
@@ -29,197 +40,303 @@ REVIEW_MODEL = os.getenv(
     "llama3.1:8b"
 )
 
-# ==================================== Plan ====================================
+
+# =========================================================
+# PLAN
+# =========================================================
+
 PLAN = {
-    "goal": "Validate Student Enrolment App behavior using a local multi-agent workflow",
-    "db_plan": [
-        "Check student data quality (10 records, valid required fields)",
-        "Check subject-code search returns matching students"
+    "goal": (
+        "Validate Course and Enrollment Management "
+        "using a local Agentic AI workflow"
+    ),
+
+    "database_plan": [
+        "Check that at least 10 course records exist",
+        "Check that at least 10 enrolment records exist",
+        "Validate required course fields",
+        "Validate required enrolment fields",
     ],
-    "endpoints_plan": [
-        "GET /students - get all students",
-        "GET /students/by-id - get student by id",
-        "GET /students/by-subject - get students by subject code"
-    ]
+
+    "endpoint_plan": [
+        "GET /courses",
+        "GET /enrolments",
+        "POST /ask",
+        "POST /ask-with-context",
+    ],
 }
 
-# ================================ Observe: Database ================================
-def validate_student(student):
-    student_id, student_name, subject_code = student
 
-    if not isinstance(student_id, int):
-        return False, "student_id must be an integer"
+# =========================================================
+# OBSERVE - DATABASE DATA
+# =========================================================
 
-    if not student_name:
-        return False, "student_name is required"
+def get_courses():
+    response = requests.get(
+        f"{DATABASE_SERVICE_URL}/courses",
+        timeout=5
+    )
 
-    if not subject_code:
-        return False, "subject_code is required"
+    response.raise_for_status()
+
+    return response.json()
+
+
+def get_enrolments():
+    response = requests.get(
+        f"{DATABASE_SERVICE_URL}/enrolments",
+        timeout=5
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+def validate_course(course):
+    required_fields = [
+        "course_id",
+        "course_code",
+        "course_name",
+        "credits",
+        "capacity",
+    ]
+
+    for field in required_fields:
+        if field not in course:
+            return False, f"Missing field: {field}"
+
+    if not course["course_code"]:
+        return False, "course_code is required"
+
+    if not course["course_name"]:
+        return False, "course_name is required"
+
+    if course["credits"] <= 0:
+        return False, "credits must be greater than 0"
+
+    if course["capacity"] <= 0:
+        return False, "capacity must be greater than 0"
+
+    return True, "ok"
+
+
+def validate_enrolment(enrolment):
+    required_fields = [
+        "enrolment_id",
+        "student_id",
+        "course_id",
+        "status",
+    ]
+
+    for field in required_fields:
+        if field not in enrolment:
+            return False, f"Missing field: {field}"
+
+    if not enrolment["student_id"]:
+        return False, "student_id is required"
+
+    if not enrolment["course_id"]:
+        return False, "course_id is required"
+
+    if not enrolment["status"]:
+        return False, "status is required"
 
     return True, "ok"
 
 
 def observe_data_quality():
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
+    try:
+        courses = get_courses()
+        enrolments = get_enrolments()
 
-    students = cursor.execute(
-        """
-        SELECT
-            student_id,
-            student_name,
-            subject_code
-        FROM students
-        """
-    ).fetchall()
-
-    conn.close()
-
-    if len(students) != 10:
-        return False, "Expected 10 students"
+    except requests.RequestException as exc:
+        return False, (
+            f"Database-service unavailable: {exc}"
+        )
 
     all_ok = True
 
-    for student in students:
-        ok, msg = validate_student(student)
+    print(f"  Courses found: {len(courses)}")
+
+    if len(courses) < 10:
+        print("  FAIL: fewer than 10 courses")
+        all_ok = False
+
+    for course in courses:
+        ok, msg = validate_course(course)
+
         status = "OK" if ok else f"FAIL: {msg}"
-        print(f"  Checked student_id={student[0]} -> {status}")
+
+        print(
+            f"  Course {course.get('course_code')} -> {status}"
+        )
 
         if not ok:
             all_ok = False
 
-    if not all_ok:
-        return False, "One or more student records failed validation"
 
-    return True, "Data validation passed"
+    print(f"  Enrolments found: {len(enrolments)}")
 
+    if len(enrolments) < 10:
+        print("  FAIL: fewer than 10 enrolments")
+        all_ok = False
 
-def observe_subject_search(subject_code):
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
+    for enrolment in enrolments:
+        ok, msg = validate_enrolment(enrolment)
 
-    students = cursor.execute(
-        """
-        SELECT
-            student_id,
-            student_name,
-            subject_code
-        FROM students
-        WHERE subject_code = ?
-        """,
-        (subject_code,)
-    ).fetchall()
+        status = "OK" if ok else f"FAIL: {msg}"
 
-    conn.close()
-
-    if not students:
-        print(f"  Checked subject_code={subject_code} -> FAIL: no students found")
-        return False, (
-            f"No students found for subject code {subject_code}"
+        print(
+            f"  Enrolment "
+            f"{enrolment.get('enrolment_id')} -> {status}"
         )
 
-    for student in students:
-        status = (
-            "OK" if student[2] == subject_code
-            else f"FAIL: unexpected subject code {student[2]}"
+        if not ok:
+            all_ok = False
+
+
+    if all_ok:
+        return True, (
+            "Course and enrolment data validation passed"
         )
-        print(f"  Checked student_id={student[0]} -> {status}")
 
-        if student[2] != subject_code:
-            return False, (
-                f"Unexpected subject code found: {student[2]}"
-            )
-
-    return True, (
-        f"Subject search validation passed for {subject_code}"
+    return False, (
+        "One or more database validation checks failed"
     )
 
 
-def get_sample_student():
-    conn = sqlite3.connect(DATABASE_NAME)
-    cursor = conn.cursor()
+# =========================================================
+# OBSERVE - COURSE AVAILABILITY
+# =========================================================
 
-    row = cursor.execute(
-        """
-        SELECT student_id, subject_code
-        FROM students
-        LIMIT 1
-        """
-    ).fetchone()
+def observe_course_availability():
+    try:
+        courses = get_courses()
+        enrolments = get_enrolments()
 
-    conn.close()
+    except requests.RequestException as exc:
+        return False, (
+            f"Unable to check course availability: {exc}"
+        )
 
-    return row
-
-
-# ============================= Observe: Live Endpoints ==============================
-def observe_live_endpoints(sample_student):
     results = []
 
-    student_id, subject_code = (
-        sample_student if sample_student else (None, None)
-    )
+    for course in courses:
+
+        active_enrolments = sum(
+            1
+            for enrolment in enrolments
+            if enrolment["course_id"] == course["course_id"]
+            and enrolment["status"].lower() == "active"
+        )
+
+        available_seats = (
+            course["capacity"] - active_enrolments
+        )
+
+        line = (
+            f"{course['course_code']}: "
+            f"capacity={course['capacity']}, "
+            f"active={active_enrolments}, "
+            f"available={available_seats}"
+        )
+
+        print(f"  {line}")
+
+        results.append(line)
+
+    return True, "; ".join(results)
+
+
+# =========================================================
+# OBSERVE - LIVE ENDPOINTS
+# =========================================================
+
+def observe_live_endpoints():
+    results = []
 
     def check(label, method, url, **kwargs):
+
         try:
             response = requests.request(
-                method, url, timeout=5, **kwargs
+                method,
+                url,
+                timeout=30,
+                **kwargs
             )
-            content_ok = bool(response.text and response.text.strip())
+
+            content_ok = bool(
+                response.text
+                and response.text.strip()
+            )
+
             line = (
-                f"{label} -> HTTP {response.status_code}, "
+                f"{label} -> "
+                f"HTTP {response.status_code}, "
                 f"content_ok={content_ok}"
             )
+
         except Exception as exc:
             line = f"{label} -> error: {exc}"
 
         print(f"  Checked {line}")
+
         results.append(line)
 
-    check("/students", "GET", "http://127.0.0.1:5000/students")
 
-    if student_id is not None:
-        check(
-            "/students/<student_id>",
-            "GET",
-            f"http://127.0.0.1:5000/students/{student_id}"
-        )
-        check(
-            "/students/by-id",
-            "GET",
-            f"http://127.0.0.1:5000/students/by-id?student_id={student_id}"
-        )
-    else:
-        skipped_id = "/students/<student_id> -> skipped: no sample student found"
-        skipped_by_id = "/students/by-id -> skipped: no sample student found"
-        print(f"  Checked {skipped_id}")
-        print(f"  Checked {skipped_by_id}")
-        results.append(skipped_id)
-        results.append(skipped_by_id)
+    # Database APIs
+    check(
+        "/courses",
+        "GET",
+        f"{DATABASE_SERVICE_URL}/courses"
+    )
 
-    if subject_code is not None:
-        check(
-            "/students/by-subject",
-            "GET",
-            f"http://127.0.0.1:5000/students/by-subject?subject_code={subject_code}"
-        )
-    else:
-        skipped_subject = "/students/by-subject -> skipped: no sample student found"
-        print(f"  Checked {skipped_subject}")
-        results.append(skipped_subject)
+    check(
+        "/enrolments",
+        "GET",
+        f"{DATABASE_SERVICE_URL}/enrolments"
+    )
 
+
+    # Basic AI Mode
     check(
         "/ask",
         "POST",
-        "http://127.0.0.1:5000/ask",
-        data={"question": "What does this app do?"}
+        f"{ENROLMENT_SERVICE_URL}/ask",
+        data={
+            "question":
+                "What does the Course and Enrollment "
+                "Management system do?"
+        }
+    )
+
+
+    # AI with database context
+    check(
+        "/ask-with-context",
+        "POST",
+        f"{ENROLMENT_SERVICE_URL}/ask-with-context",
+        data={
+            "question":
+                "What courses have available seats?"
+        }
     )
 
     return results
 
 
-# =============================== Model Call Helper ================================
-def call_model( model_name, system_prompt, user_prompt, max_tokens=120):
+# =========================================================
+# MODEL CALL
+# =========================================================
+
+def call_model(
+    model_name,
+    system_prompt,
+    user_prompt,
+    max_tokens=120
+):
+
     try:
         client = OpenAI(
             base_url=OLLAMA_BASE_URL,
@@ -229,6 +346,7 @@ def call_model( model_name, system_prompt, user_prompt, max_tokens=120):
 
         response = client.chat.completions.create(
             model=model_name,
+
             messages=[
                 {
                     "role": "system",
@@ -239,11 +357,17 @@ def call_model( model_name, system_prompt, user_prompt, max_tokens=120):
                     "content": user_prompt
                 }
             ],
+
             max_tokens=max_tokens,
             temperature=0.1
         )
 
-        content = response.choices[0].message.content
+        content = (
+            response
+            .choices[0]
+            .message
+            .content
+        )
 
         if content and content.strip():
             return content.strip(), None
@@ -251,54 +375,112 @@ def call_model( model_name, system_prompt, user_prompt, max_tokens=120):
         return "No response generated.", None
 
     except Exception as exc:
+
         return None, (
-            f"{model_name} unavailable or timed out ({exc})"
+            f"{model_name} unavailable or "
+            f"timed out ({exc})"
         )
 
 
-# TASK 2: ======================== Implementation & Review Agents ===========================
+# =========================================================
+# PROMPTS
+# =========================================================
 
 def load_prompt(filename):
+
     prompt_path = PROMPT_DIR / filename
-    return prompt_path.read_text(encoding="utf-8").strip()
 
-# TASK 2: Implement the implementation-agent and review-agent advice
-# functions. Each must load its task/system prompt files, substitute the
-# evidence placeholders, and call call_model() with the correct model,
-# system prompt, task prompt, and max_tokens.
-def get_implementation_agent_advice(observe_message):
-    # TODO: Load "implementation_task_prompt.txt" and replace the
-    #       "{{VALIDATION_EVIDENCE}}" placeholder with observe_message.
-    implementation_task_prompt = load_prompt("implementation_task_prompt.txt").replace("{{VALIDATION_EVIDENCE}}", observe_message)
-
-    # TODO: Call call_model() using IMPLEMENTATION_MODEL, the loaded
-    #       "implementation_system_prompt.txt", the task prompt, and
-    #       max_tokens=120. Return its result.
-    return call_model(IMPLEMENTATION_MODEL, load_prompt("implementation_system_prompt.txt"), implementation_task_prompt, max_tokens=120)
+    return prompt_path.read_text(
+        encoding="utf-8"
+    ).strip()
 
 
-def get_review_agent_advice(implementation_message, observe_message):
-    # TODO: Load "review_task_prompt.txt" and replace both the
-    #       "{{IMPLEMENTATION_RECOMMENDATION}}" and "{{VALIDATION_EVIDENCE}}"
-    #       placeholders.
+# =========================================================
+# IMPLEMENTATION AGENT
+# =========================================================
 
-    # TODO: Call call_model() using REVIEW_MODEL, the loaded
-    #       "review_system_prompt.txt", the task prompt, and
-    #       max_tokens=150. Return its result.
-    
-    review_task_prompt = load_prompt("review_task_prompt.txt").replace("{{IMPLEMENTATION_RECOMMENDATION}}", implementation_message).replace("{{VALIDATION_EVIDENCE}}", observe_message)
-    return call_model(REVIEW_MODEL, load_prompt("review_system_prompt.txt"), review_task_prompt, max_tokens=150)
+def get_implementation_agent_advice(
+    observe_message
+):
+
+    implementation_task_prompt = (
+        load_prompt(
+            "implementation_task_prompt.txt"
+        )
+        .replace(
+            "{{VALIDATION_EVIDENCE}}",
+            observe_message
+        )
+    )
+
+    return call_model(
+        IMPLEMENTATION_MODEL,
+
+        load_prompt(
+            "implementation_system_prompt.txt"
+        ),
+
+        implementation_task_prompt,
+
+        max_tokens=120
+    )
 
 
-# =============================== Human Review & Adapt ================================
+# =========================================================
+# REVIEW AGENT
+# =========================================================
+
+def get_review_agent_advice(
+    implementation_message,
+    observe_message
+):
+
+    review_task_prompt = (
+        load_prompt(
+            "review_task_prompt.txt"
+        )
+
+        .replace(
+            "{{IMPLEMENTATION_RECOMMENDATION}}",
+            implementation_message
+        )
+
+        .replace(
+            "{{VALIDATION_EVIDENCE}}",
+            observe_message
+        )
+    )
+
+    return call_model(
+        REVIEW_MODEL,
+
+        load_prompt(
+            "review_system_prompt.txt"
+        ),
+
+        review_task_prompt,
+
+        max_tokens=150
+    )
+
+
+# =========================================================
+# HUMAN REVIEW
+# =========================================================
+
 def human_review():
+
     print()
+
     print("HUMAN REVIEW")
+
     print("1 - Accept")
     print("2 - Partially Accept")
     print("3 - Reject")
 
-    decision = input("Decision: ").strip()
+    decision = input(
+        "Decision: "
+    ).strip()
 
     if decision == "1":
         return "Accept"
@@ -309,93 +491,157 @@ def human_review():
     return "Reject"
 
 
+# =========================================================
+# ADAPT
+# =========================================================
+
 def adapt(decision):
+
     print()
 
     if decision == "Accept":
+
         print(
-            "ADAPT: Apply recommendation and rerun validation."
+            "ADAPT: Apply recommendation "
+            "and rerun validation."
         )
 
     elif decision == "Partially Accept":
+
         print(
-            "ADAPT: Apply selected recommendations and "
-            "rerun validation."
+            "ADAPT: Apply selected recommendations "
+            "and rerun validation."
         )
 
     else:
+
         print(
-            "ADAPT: Keep current implementation and "
-            "document rationale."
+            "ADAPT: Keep current implementation "
+            "and document rationale."
         )
 
 
-# ================================= Main / Loop Entry ================================
+# =========================================================
+# MAIN LOOP
+# =========================================================
+
 def main():
-    print("=" * 60)
-    print("ASD LAB 02 AGENTIC LOOP")
-    print("=" * 60)
+
+    print("=" * 65)
+
+    print(
+        "COURSE & ENROLLMENT MANAGEMENT "
+        "AGENTIC AI LOOP"
+    )
+
+    print("=" * 65)
+
+
+    # ---------------- PLAN ----------------
 
     print()
     print("PLAN")
+
+    print(
+        "Validate Course and Enrollment "
+        "Management microservices."
+    )
+
     print(PLAN)
+
+
+    # ---------------- ACT ----------------
 
     print()
     print("ACT")
-    print("Check local database records")
+
+    print(
+        "Run database, API, availability "
+        "and AI validation checks."
+    )
+
+
+    # ---------------- OBSERVE: DATA ----------------
 
     print()
     print("OBSERVE: Database Check")
-    ok_data, msg_data = observe_data_quality()
+
+    ok_data, msg_data = (
+        observe_data_quality()
+    )
+
     print(msg_data)
 
-    sample_student = get_sample_student()
-    sample_subject_code = sample_student[1] if sample_student else "ASD101"
+
+    # ---------------- OBSERVE: AVAILABILITY ----------------
 
     print()
-    print("OBSERVE: Subject Search Check")
-    subject_codes_to_check = ["ASD101", "WEB201", "DBS101", "NET201", "SEC301"]
-    subject_results = []
-    for code in subject_codes_to_check:
-        ok, msg = observe_subject_search(code)
-        subject_results.append(msg)
+    print("OBSERVE: Course Availability")
 
-    msg_subject = "; ".join(subject_results)    
-    print(msg_subject)
+    ok_availability, msg_availability = (
+        observe_course_availability()
+    )
+
+
+    # ---------------- OBSERVE: ENDPOINTS ----------------
 
     print()
     print("OBSERVE: Live Endpoint Check")
-    live_results = observe_live_endpoints(sample_student)
 
-    observe_message = (
-        f"{msg_data}. "
-        f"{msg_subject}. "
-        f"Live endpoint checks: " + "; ".join(live_results)
+    live_results = (
+        observe_live_endpoints()
     )
+
+
+    # Combine evidence
+    observe_message = (
+        f"Database validation: {msg_data}. "
+        f"Course availability: "
+        f"{msg_availability}. "
+        f"Live endpoint checks: "
+        + "; ".join(live_results)
+    )
+
+
+    # ---------------- IMPLEMENTATION AGENT ----------------
 
     print()
     print("IMPLEMENTATION AGENT")
-    print(f"Model: {IMPLEMENTATION_MODEL}")
 
-    implementation_advice, implementation_error = (
-        get_implementation_agent_advice(
-            observe_message
-        )
+    print(
+        f"Model: {IMPLEMENTATION_MODEL}"
+    )
+
+    (
+        implementation_advice,
+        implementation_error
+    ) = get_implementation_agent_advice(
+        observe_message
     )
 
     if implementation_advice:
+
         print()
         print(implementation_advice)
+
     else:
+
         print()
         print(implementation_error)
+
         implementation_advice = (
             "Implementation agent unavailable."
         )
 
+
+    # ---------------- REVIEW AGENT ----------------
+
     print()
     print("REVIEW AGENT")
-    print(f"Model: {REVIEW_MODEL}")
+
+    print(
+        f"Model: {REVIEW_MODEL}"
+    )
 
     review_advice, review_error = (
         get_review_agent_advice(
@@ -405,11 +651,17 @@ def main():
     )
 
     if review_advice:
+
         print()
         print(review_advice)
+
     else:
+
         print()
         print(review_error)
+
+
+    # ---------------- HUMAN DECISION ----------------
 
     print()
     print("HUMAN DECISION")
@@ -417,9 +669,15 @@ def main():
     decision = human_review()
 
     print()
-    print(f"Decision: {decision}")
+    print(
+        f"Decision: {decision}"
+    )
+
+
+    # ---------------- ADAPT ----------------
 
     adapt(decision)
+
 
     print()
     print("LOOP COMPLETE")
