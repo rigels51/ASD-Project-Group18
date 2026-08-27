@@ -46,17 +46,26 @@ jobs:
 
       - name: Build frontend service
         run: |
-          docker build -t student2-frontend ./frontend-service
+          docker build \
+            -f frontend-service/Dockerfile \
+            -t yi-course-frontend \
+            .
 
 
       - name: Build enrolment service
         run: |
-          docker build -t student2-enrolment ./enrolment-service
+          docker build \
+            -f enrolment-service/Dockerfile \
+            -t yi-course-enrolment \
+            .
 
 
       - name: Build database service
         run: |
-          docker build -t student2-database ./database-service
+          docker build \
+            -f database-service/Dockerfile \
+            -t yi-course-database \
+            .
 
 
       - name: Validate Docker Compose
