@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS staff (
     family_name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     department TEXT NOT NULL,
-    employment_type TEXT NOT NULL,
+    employment_type TEXT NOT NULL
 )
 """)
 

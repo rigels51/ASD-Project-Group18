@@ -22,3 +22,15 @@ def get_staff_by_department_response(department):
         params={"department": department},
         timeout=5,
     )
+
+
+def create_staff_response(payload):
+    return requests.post(f"{DATABASE_SERVICE_URL}/staff", data=payload, timeout=5)
+
+
+def update_staff_response(staff_id, payload):
+    return requests.put(f"{DATABASE_SERVICE_URL}/staff/{staff_id}", data=payload, timeout=5)
+
+
+def delete_staff_response(staff_id):
+    return requests.delete(f"{DATABASE_SERVICE_URL}/staff/{staff_id}", timeout=5)

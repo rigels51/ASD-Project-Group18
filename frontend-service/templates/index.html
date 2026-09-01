@@ -7,373 +7,90 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
+<script src="https://unpkg.com/htmx.org@2.0.3"></script>
 </head>
 <body>
 <main class="app-shell">
-
+ 
   <header class="app-header">
     <div>
-      <span class="eyebrow">University Management · Personnel</span>
+      <span class="eyebrow">University Management &middot; Personnel</span>
       <h1>Staff Registry</h1>
-      <p class="sub">Faculty and administrative staff records</p>
+      <p class="sub">Live data from enrolment-service &rarr; database-service</p>
     </div>
-    <span class="term-badge" id="term-badge">Autumn Term 2026</span>
+    <span class="term-badge">Autumn Term 2026</span>
   </header>
-
-  <div class="layout">
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="panel">
-        <h3>Overview</h3>
-        <div class="stat-row"><span class="l">Total staff</span><span class="n" id="stat-total">0</span></div>
-        <div class="stat-row"><span class="l">Active</span><span class="n" id="stat-active">0</span></div>
-        <div class="stat-row"><span class="l">On leave</span><span class="n" id="stat-leave">0</span></div>
-      </div>
-
-      <div class="panel">
-        <h3>Departments</h3>
-        <ul class="dept-list" id="dept-list"></ul>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <section class="main">
-      <div class="toolbar">
-        <div class="search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="search-input" placeholder="Search by name, ID, or role">
-        </div>
-        <select class="status-filter" id="status-filter">
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="leave">On leave</option>
-          <option value="former">Former</option>
+ 
+  <section class="panel add-staff-panel">
+    <h3>Add staff member</h3>
+    <form id="add-staff-form"
+          hx-post="http://localhost:5001/staff"
+          hx-target="#form-feedback"
+          hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful) this.reset()">
+      <div class="add-form-grid">
+        <input type="text" name="given_name" placeholder="Given name" required>
+        <input type="text" name="family_name" placeholder="Family name" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="text" name="department" placeholder="Dept code (e.g. ASD)" required>
+        <select name="employment_type" required>
+          <option value="" disabled selected>Employment type</option>
+          <option value="Full-time">Full-time</option>
+          <option value="Part-time">Part-time</option>
         </select>
-        <button class="btn btn-primary" id="add-staff-btn">+ Add staff</button>
+        <button type="submit" class="btn btn-primary">+ Add staff</button>
       </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Staff member</th>
-              <th>Department</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Email</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="staff-tbody"></tbody>
-        </table>
-        <div class="empty-state" id="empty-state" style="display:none;">
-          <h3>No staff match this view</h3>
-          <p>Try a different search term, or clear the department and status filters.</p>
-        </div>
-      </div>
-    </section>
-  </div>
+      <div id="form-feedback"></div>
+    </form>
+  </section>
+ 
+  <section class="main">
+    <form class="toolbar"
+          hx-get="http://localhost:5001/staff/by-department"
+          hx-target="#staff-tbody"
+          hx-swap="innerHTML">
+      <input type="text" name="department_id" placeholder="Filter by department code (e.g. ASD)">
+      <button type="submit" class="btn btn-ghost">Filter</button>
+      <button type="button" class="btn btn-ghost"
+              hx-get="http://localhost:5001/staff"
+              hx-target="#staff-tbody"
+              hx-swap="innerHTML">Show all</button>
+    </form>
+ 
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Staff member</th>
+            <th>Department</th>
+            <th>Employment</th>
+            <th>Email</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="staff-tbody"
+               hx-get="http://localhost:5001/staff"
+               hx-trigger="load, staff-changed from:body"
+               hx-swap="innerHTML">
+          <tr><td colspan="5" class="empty-row">Loading staff&hellip;</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </main>
-
-<div class="scrim" id="scrim"></div>
-<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-  <div class="drawer-head">
-    <h2 id="drawer-title">Add staff member</h2>
-    <button id="drawer-close" aria-label="Close">&times;</button>
-  </div>
-  <div class="drawer-body">
-    <div class="field">
-      <label for="f-name">Full name</label>
-      <input type="text" id="f-name" placeholder="e.g. Priya Anand">
-      <div class="field-error" id="err-name"></div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label for="f-dept">Department</label>
-        <select id="f-dept"></select>
-      </div>
-      <div class="field">
-        <label for="f-status">Status</label>
-        <select id="f-status">
-          <option value="active">Active</option>
-          <option value="leave">On leave</option>
-          <option value="former">Former</option>
-        </select>
-      </div>
-    </div>
-    <div class="field">
-      <label for="f-role">Role / title</label>
-      <input type="text" id="f-role" placeholder="e.g. Senior Lecturer">
-      <div class="field-error" id="err-role"></div>
-    </div>
-    <div class="field">
-      <label for="f-email">Email</label>
-      <input type="email" id="f-email" placeholder="name@university.edu">
-      <div class="field-error" id="err-email"></div>
-    </div>
-    <div class="field">
-      <label for="f-phone">Phone (optional)</label>
-      <input type="text" id="f-phone" placeholder="+61 4xx xxx xxx">
-    </div>
-  </div>
-  <div class="drawer-foot">
-    <button class="btn btn-ghost" id="drawer-cancel">Cancel</button>
-    <button class="btn btn-primary" id="drawer-save">Save staff member</button>
-  </div>
-</div>
-
+ 
 <script>
-(function(){
-
-  // ---------- Departments (name -> accent color) ----------
-  const DEPARTMENTS = [
-    { id:"cs",   name:"Computer Science", color:"#2c3a5e" },
-    { id:"math", name:"Mathematics",      color:"#a9812f" },
-    { id:"bio",  name:"Biology",          color:"#3f6c51" },
-    { id:"lit",  name:"Literature",       color:"#a2632a" },
-    { id:"admin",name:"Administration",   color:"#8a3c3c" },
-    { id:"phys", name:"Physics",          color:"#4a5a78" },
-  ];
-
-  const STATUS_LABEL = { active:"Active", leave:"On leave", former:"Former" };
-
-  // ---------- Seed data (in-memory only) ----------
-  let staff = [
-    { id:"STF-1001", name:"Priya Anand",     dept:"cs",    role:"Senior Lecturer",        status:"active", email:"p.anand@uni.edu",    phone:"+61 412 555 021" },
-    { id:"STF-1002", name:"Marcus Webb",      dept:"math",  role:"Associate Professor",    status:"active", email:"m.webb@uni.edu",     phone:"+61 412 555 088" },
-    { id:"STF-1003", name:"Elena Sorensen",   dept:"bio",   role:"Lab Coordinator",        status:"leave",  email:"e.sorensen@uni.edu", phone:"" },
-    { id:"STF-1004", name:"Daniel Okafor",    dept:"lit",   role:"Professor",              status:"active", email:"d.okafor@uni.edu",   phone:"+61 412 555 132" },
-    { id:"STF-1005", name:"Grace Liu",        dept:"admin", role:"Registrar's Officer",    status:"active", email:"g.liu@uni.edu",      phone:"" },
-    { id:"STF-1006", name:"Tom Fitzgerald",   dept:"phys",  role:"Research Fellow",        status:"former", email:"t.fitzgerald@uni.edu", phone:"" },
-    { id:"STF-1007", name:"Amara Chukwu",     dept:"cs",    role:"Teaching Assistant",     status:"active", email:"a.chukwu@uni.edu",   phone:"" },
-    { id:"STF-1008", name:"Sven Kallio",      dept:"math",  role:"Lecturer",               status:"leave",  email:"s.kallio@uni.edu",   phone:"" },
-  ];
-  let nextIdNum = 1009;
-
-  let activeDept = "all";
-  let activeStatus = "all";
-  let searchTerm = "";
-  let editingId = null; // null = add mode
-
-  // ---------- Helpers ----------
-  const deptById = id => DEPARTMENTS.find(d => d.id === id);
-  const initials = name => name.trim().split(/\s+/).map(w => w[0]).slice(0,2).join("").toUpperCase();
-
-  function populateDeptSelect(){
-    const sel = document.getElementById("f-dept");
-    sel.innerHTML = DEPARTMENTS.map(d => `<option value="${d.id}">${d.name}</option>`).join("");
-  }
-
-  function renderDeptList(){
-    const list = document.getElementById("dept-list");
-    const counts = {};
-    staff.forEach(s => counts[s.dept] = (counts[s.dept]||0) + 1);
-
-    let html = `<li><button data-dept="all" class="${activeDept==='all' ? 'is-active':''}">
-        <span>All departments</span><span class="count">${staff.length}</span>
-      </button></li>`;
-
-    DEPARTMENTS.forEach(d => {
-      const c = counts[d.id] || 0;
-      html += `<li><button data-dept="${d.id}" class="${activeDept===d.id ? 'is-active':''}">
-          <span><span class="dept-dot" style="background:${d.color}"></span>${d.name}</span>
-          <span class="count">${c}</span>
-        </button></li>`;
-    });
-    list.innerHTML = html;
-
-    list.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        activeDept = btn.dataset.dept;
-        renderAll();
-      });
-    });
-  }
-
-  function renderStats(){
-    document.getElementById("stat-total").textContent = staff.length;
-    document.getElementById("stat-active").textContent = staff.filter(s => s.status === "active").length;
-    document.getElementById("stat-leave").textContent = staff.filter(s => s.status === "leave").length;
-  }
-
-  function getFiltered(){
-    return staff.filter(s => {
-      if (activeDept !== "all" && s.dept !== activeDept) return false;
-      if (activeStatus !== "all" && s.status !== activeStatus) return false;
-      if (searchTerm){
-        const hay = `${s.name} ${s.id} ${s.role}`.toLowerCase();
-        if (!hay.includes(searchTerm.toLowerCase())) return false;
-      }
-      return true;
-    });
-  }
-
-  function renderTable(){
-    const rows = getFiltered();
-    const tbody = document.getElementById("staff-tbody");
-    const empty = document.getElementById("empty-state");
-
-    if (rows.length === 0){
-      tbody.innerHTML = "";
-      empty.style.display = "block";
-      return;
+  // Some routes return non-2xx (404/503) with an HTML fragment describing the
+  // problem (e.g. "Staff member not found"). By default htmx only swaps in
+  // 2xx responses; this makes those error fragments visible too instead of
+  // silently doing nothing.
+  document.body.addEventListener('htmx:beforeSwap', function (evt) {
+    if (evt.detail.xhr.status >= 400) {
+      evt.detail.shouldSwap = true;
     }
-    empty.style.display = "none";
-
-    tbody.innerHTML = rows.map(s => {
-      const d = deptById(s.dept);
-      return `
-      <tr data-id="${s.id}">
-        <td>
-          <div class="staff-id-cell">
-            <div class="badge" style="background:${d.color}">${initials(s.name)}</div>
-            <div class="name-block">
-              <div class="name">${escapeHtml(s.name)}</div>
-              <div class="id mono">${s.id}</div>
-            </div>
-          </div>
-        </td>
-        <td>${d.name}</td>
-        <td>${escapeHtml(s.role)}</td>
-        <td><span class="pill ${s.status}">${STATUS_LABEL[s.status]}</span></td>
-        <td>${escapeHtml(s.email)}</td>
-        <td>
-          <div class="row-actions">
-            <button class="icon-btn" data-action="edit" title="Edit">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-            </button>
-            <button class="icon-btn" data-action="delete" title="Remove">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
-            </button>
-          </div>
-        </td>
-      </tr>`;
-    }).join("");
-
-    tbody.querySelectorAll('[data-action="edit"]').forEach(btn => {
-      btn.addEventListener("click", e => openDrawer(e.target.closest("tr").dataset.id));
-    });
-    tbody.querySelectorAll('[data-action="delete"]').forEach(btn => {
-      btn.addEventListener("click", e => {
-        const id = e.target.closest("tr").dataset.id;
-        const person = staff.find(s => s.id === id);
-        if (confirm(`Remove ${person.name} from the staff registry?`)){
-          staff = staff.filter(s => s.id !== id);
-          renderAll();
-        }
-      });
-    });
-  }
-
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-  }
-
-  function renderAll(){
-    renderDeptList();
-    renderStats();
-    renderTable();
-  }
-
-  // ---------- Drawer / form ----------
-  const scrim = document.getElementById("scrim");
-  const drawer = document.getElementById("drawer");
-
-  function openDrawer(id){
-    editingId = id || null;
-    const title = document.getElementById("drawer-title");
-    ["err-name","err-role","err-email"].forEach(id2 => document.getElementById(id2).textContent = "");
-
-    if (editingId){
-      const s = staff.find(x => x.id === editingId);
-      title.textContent = "Edit staff member";
-      document.getElementById("f-name").value = s.name;
-      document.getElementById("f-dept").value = s.dept;
-      document.getElementById("f-status").value = s.status;
-      document.getElementById("f-role").value = s.role;
-      document.getElementById("f-email").value = s.email;
-      document.getElementById("f-phone").value = s.phone || "";
-    } else {
-      title.textContent = "Add staff member";
-      document.getElementById("f-name").value = "";
-      document.getElementById("f-dept").value = DEPARTMENTS[0].id;
-      document.getElementById("f-status").value = "active";
-      document.getElementById("f-role").value = "";
-      document.getElementById("f-email").value = "";
-      document.getElementById("f-phone").value = "";
-    }
-
-    scrim.classList.add("is-open");
-    drawer.classList.add("is-open");
-    document.getElementById("f-name").focus();
-  }
-
-  function closeDrawer(){
-    scrim.classList.remove("is-open");
-    drawer.classList.remove("is-open");
-    editingId = null;
-  }
-
-  function validate(){
-    let ok = true;
-    const name = document.getElementById("f-name").value.trim();
-    const role = document.getElementById("f-role").value.trim();
-    const email = document.getElementById("f-email").value.trim();
-
-    if (!name){ document.getElementById("err-name").textContent = "Enter a name."; ok = false; }
-    if (!role){ document.getElementById("err-role").textContent = "Enter a role or title."; ok = false; }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-      document.getElementById("err-email").textContent = "Enter a valid email.";
-      ok = false;
-    }
-    return ok;
-  }
-
-  function saveStaff(){
-    if (!validate()) return;
-
-    const data = {
-      name: document.getElementById("f-name").value.trim(),
-      dept: document.getElementById("f-dept").value,
-      status: document.getElementById("f-status").value,
-      role: document.getElementById("f-role").value.trim(),
-      email: document.getElementById("f-email").value.trim(),
-      phone: document.getElementById("f-phone").value.trim(),
-    };
-
-    if (editingId){
-      const s = staff.find(x => x.id === editingId);
-      Object.assign(s, data);
-    } else {
-      staff.push({ id: `STF-${nextIdNum++}`, ...data });
-    }
-
-    closeDrawer();
-    renderAll();
-  }
-
-  // ---------- Wire up ----------
-  populateDeptSelect();
-  renderAll();
-
-  document.getElementById("add-staff-btn").addEventListener("click", () => openDrawer(null));
-  document.getElementById("drawer-close").addEventListener("click", closeDrawer);
-  document.getElementById("drawer-cancel").addEventListener("click", closeDrawer);
-  document.getElementById("drawer-save").addEventListener("click", saveStaff);
-  scrim.addEventListener("click", closeDrawer);
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
-
-  document.getElementById("search-input").addEventListener("input", e => {
-    searchTerm = e.target.value;
-    renderTable();
   });
-  document.getElementById("status-filter").addEventListener("change", e => {
-    activeStatus = e.target.value;
-    renderTable();
-  });
-
-})();
 </script>
+ 
 </body>
 </html>
+ 
