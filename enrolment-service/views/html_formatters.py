@@ -1,20 +1,20 @@
-def format_students_html(students):
-    if not students:
-        return "<p>No students found.</p>"
+def format_staff_html(staff):
+    if not staff:
+        return "<p>No staff found.</p>"
 
     html = "<ul>"
-    for student in students:
+    for staff_member in staff:
         html += (
-            f"<li>{student['student_id']} - "
-            f"{student['student_name']} - {student['subject_code']}</li>"
+            f"<li>{staff_member['staff_id']} - "
+            f"{staff_member['given_name']} {staff_member['family_name']} - {staff_member['department']}</li>"
         )
     html += "</ul>"
     return html
 
 
-def format_student_html(student):
+def format_staff_detail_html(staff_member):
     return (
-        f"<p>ID: {student['student_id']}<br>"
-        f"Name: {student['student_name']}<br>"
-        f"Subject: {student['subject_code']}</p>"
+        f"<p>ID: {staff_member['staff_id']}<br>"
+        f"Name: {staff_member['given_name']} {staff_member['family_name']}<br>"
+        f"Department: {staff_member['department']}</p>"
     )
