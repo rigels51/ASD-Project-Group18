@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 import requests
 
-from services.database_api import get_staff, get_staff_by_id_response, get_staff_by_department_response, get_staff_by_subject_response
+from services.database_api import get_staff, get_staff_by_id_response, get_staff_by_department_response
 from views.html_formatters import format_staff_detail_html, format_staff_html, format_staffs_html
 
 
@@ -49,25 +49,26 @@ def get_staff_by_id():
             503,
         )
 
+@normal_ui_bp.get("/staff/by-department")
+def get_staff_by_department():
+    department_id = request.args.get("department_id", "").strip()
 
-@normal_ui_bp.get("/staff/by-subject")
-def get_staff_by_subject():
-    subject_code = request.args.get("subject_code", "").strip().upper()
-
-    if not subject_code:
-        return "<p>Subject code is required.</p>", 400
+    if not department_id:
+        return "<p>Department ID is required.</p>", 400
 
     try:
-        response = get_staff_by_subject_response(subject_code)
+        response = get_staff_by_department_response(department_id)
 
         if response.status_code == 404:
-            return f"<p>No staff members found for {subject_code}.</p>", 404
+            return "<p>Department not found.</p>", 404
 
         response.raise_for_status()
         return format_staffs_html(response.json()), 200
     except requests.RequestException as exc:
         return (
-            "<p>Failed to retrieve subject results from database-service.</p>"
+            "<p>Failed to retrieve department results from database-service.</p>"
             f"<pre>{exc}</pre>",
             503,
         )
+
+

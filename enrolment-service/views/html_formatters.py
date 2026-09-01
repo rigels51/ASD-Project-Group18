@@ -11,6 +11,19 @@ def format_staff_html(staff):
     html += "</ul>"
     return html
 
+def format_staffs_html(staff_list):
+    if not staff_list:
+        return "<p>No staff found in this department.</p>"
+
+    html = "<ul>"
+    for staff_member in staff_list:
+        html += (
+            f"<li>{staff_member['staff_id']} - "
+            f"{staff_member['given_name']} {staff_member['family_name']} - {staff_member['department']}</li>"
+        )
+    html += "</ul>"
+    return html
+
 
 def format_staff_detail_html(staff_member):
     return (
