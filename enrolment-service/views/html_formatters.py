@@ -33,8 +33,8 @@ def format_staff_row_html(staff_member):
   <td>{staff_member['email']}</td>
   <td>
     <div class="row-actions">
-      <button class="icon-btn" hx-get="/staff/{staff_id}/edit" hx-target="#staff-row-{staff_id}" hx-swap="outerHTML" type="button">Edit</button>
-      <button class="icon-btn" hx-delete="/staff/{staff_id}" hx-target="#staff-row-{staff_id}" hx-swap="outerHTML swap:0.2s" hx-confirm="Remove {staff_member['given_name']} {staff_member['family_name']} from the registry?" type="button">Remove</button>
+      <button class="icon-btn" data-action="edit" data-id="{staff_id}" type="button">Edit</button>
+      <button class="icon-btn" data-action="remove" data-id="{staff_id}" data-name="{staff_member['given_name']} {staff_member['family_name']}" type="button">Remove</button>
     </div>
   </td>
 </tr>"""
@@ -47,7 +47,7 @@ def format_staff_edit_row_html(staff_member):
 
     return f"""<tr id="staff-row-{staff_id}">
   <td colspan="5">
-    <form class="edit-row-form" hx-put="/staff/{staff_id}" hx-target="#staff-row-{staff_id}" hx-swap="outerHTML">
+    <form class="edit-row-form" data-action="update" data-id="{staff_id}">
       <input type="text" name="given_name" value="{staff_member['given_name']}" placeholder="Given name" required>
       <input type="text" name="family_name" value="{staff_member['family_name']}" placeholder="Family name" required>
       <input type="email" name="email" value="{staff_member['email']}" placeholder="Email" required>
@@ -57,7 +57,7 @@ def format_staff_edit_row_html(staff_member):
         <option value="Part-time" {part_time_selected}>Part-time</option>
       </select>
       <button type="submit" class="btn btn-primary btn-sm">Save</button>
-      <button type="button" class="btn btn-ghost btn-sm" hx-get="/staff/{staff_id}/view" hx-target="#staff-row-{staff_id}" hx-swap="outerHTML">Cancel</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-id="{staff_id}">Cancel</button>
     </form>
   </td>
 </tr>"""
