@@ -44,6 +44,7 @@ def format_staff_edit_row_html(staff_member):
     staff_id = staff_member["staff_id"]
     full_time_selected = "selected" if staff_member["employment_type"] == "Full-time" else ""
     part_time_selected = "selected" if staff_member["employment_type"] == "Part-time" else ""
+    contractor_selected = "selected" if staff_member["employment_type"] == "Contractor" else ""
 
     return f"""<tr id="staff-row-{staff_id}">
   <td colspan="5">
@@ -55,6 +56,7 @@ def format_staff_edit_row_html(staff_member):
       <select name="employment_type">
         <option value="Full-time" {full_time_selected}>Full-time</option>
         <option value="Part-time" {part_time_selected}>Part-time</option>
+        <option value="Contractor"{contractor_selected}>Contractor</option>
       </select>
       <button type="submit" class="btn btn-primary btn-sm">Save</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-id="{staff_id}">Cancel</button>
