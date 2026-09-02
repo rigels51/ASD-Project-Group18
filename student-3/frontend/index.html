@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable & Class Scheduling</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="board">
+
+    <header class="masthead">
+        <div class="masthead-title">
+            <h1>Timetable &amp; Class Scheduling</h1>
+            <p>Semester schedule for Group 18's University Management System.</p>
+        </div>
+
+        <div class="stamp-row" id="role-stamps" role="group" aria-label="Viewing role">
+            <button type="button" class="stamp" data-role="student">Student</button>
+            <button type="button" class="stamp" data-role="lecturer">Lecturer</button>
+            <button type="button" class="stamp" data-role="admin">Admin</button>
+        </div>
+    </header>
+
+    <div class="frame">
+        <nav class="tab-rail" id="tab-rail" aria-label="Sections">
+            <button type="button" class="tab-btn is-active" data-tab="browse">Browse</button>
+            <button type="button" class="tab-btn" data-tab="manage" data-role-required="admin">Manage</button>
+            <button type="button" class="tab-btn" data-tab="clashes" data-role-required="admin">Clashes</button>
+            <button type="button" class="tab-btn" data-tab="ask">Ask AI</button>
+        </nav>
+
+        <main class="content">
+
+            <section class="tab-panel is-active" id="panel-browse">
+                <h2>Browse the timetable</h2>
+
+                <div class="controls-row">
+                    <button id="view-all-btn" type="button" class="btn btn-primary">View all sessions</button>
+
+                    <form id="filter-course-form" class="inline-form">
+                        <label for="course_code">Course code</label>
+                        <input id="course_code" name="course_code" type="text" placeholder="ASD101">
+                        <button type="submit" class="btn">Filter</button>
+                    </form>
+                </div>
+
+                <div id="my-sessions-lecturer" class="lecturer-lookup is-hidden">
+                    <label for="lecturer_staff_id">Look up by staff ID</label>
+                    <div class="inline-form">
+                        <input id="lecturer_staff_id" type="text" placeholder="STF001">
+                        <button id="my-sessions-btn" type="button" class="btn">View my sessions</button>
+                    </div>
+                    <p class="note">Staff ID matching activates once Staff Management is integrated.</p>
+                </div>
+
+                <div id="timetable-result" class="ledger"></div>
+            </section>
+
+            <section class="tab-panel" id="panel-manage">
+                <h2>Create a session</h2>
+                <form id="create-form" class="stacked-form">
+                    <div class="field-grid">
+                        <div>
+                            <label for="c_course_code">Course code</label>
+                            <input id="c_course_code" name="course_code" type="text" required>
+                        </div>
+                        <div>
+                            <label for="c_session_type">Type</label>
+                            <select id="c_session_type" name="session_type">
+                                <option>Lecture</option>
+                                <option>Tutorial</option>
+                                <option>Lab</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="c_day">Day</label>
+                            <select id="c_day" name="day">
+                                <option>Monday</option>
+                                <option>Tuesday</option>
+                                <option>Wednesday</option>
+                                <option>Thursday</option>
+                                <option>Friday</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="c_semester">Semester</label>
+                            <input id="c_semester" name="semester" type="text" value="2026-S2" required>
+                        </div>
+                        <div>
+                            <label for="c_start_time">Start time</label>
+                            <input id="c_start_time" name="start_time" type="time" required>
+                        </div>
+                        <div>
+                            <label for="c_end_time">End time</label>
+                            <input id="c_end_time" name="end_time" type="time" required>
+                        </div>
+                        <div>
+                            <label for="c_room">Room</label>
+                            <input id="c_room" name="room" type="text" required>
+                        </div>
+                        <div>
+                            <label for="c_staff_id">Staff ID (optional)</label>
+                            <input id="c_staff_id" name="staff_id" type="text">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create session</button>
+                </form>
+                <div id="create-result" class="ledger ledger-compact"></div>
+
+                <h2>Edit or delete a session</h2>
+                <form id="edit-form" class="stacked-form">
+                    <div class="field-grid">
+                        <div>
+                            <label for="e_session_id">Session ID</label>
+                            <input id="e_session_id" name="session_id" type="number" required>
+                        </div>
+                        <div>
+                            <label for="e_room">New room</label>
+                            <input id="e_room" name="room" type="text" placeholder="leave blank to skip">
+                        </div>
+                        <div>
+                            <label for="e_start_time">New start time</label>
+                            <input id="e_start_time" name="start_time" type="time">
+                        </div>
+                        <div>
+                            <label for="e_end_time">New end time</label>
+                            <input id="e_end_time" name="end_time" type="time">
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary">Update session</button>
+                        <button type="button" id="delete-btn" class="btn btn-danger">Delete session</button>
+                    </div>
+                </form>
+                <div id="edit-result" class="ledger ledger-compact"></div>
+            </section>
+
+            <section class="tab-panel" id="panel-clashes">
+                <h2>Check for scheduling clashes</h2>
+                <p class="note">Compares every session's day, room, and time range across the current timetable.</p>
+                <button id="check-clashes-btn" type="button" class="btn btn-primary">Run clash check</button>
+                <div id="clash-result" class="ledger"></div>
+            </section>
+
+            <section class="tab-panel" id="panel-ask">
+                <h2>Ask the AI agent</h2>
+                <p class="note">Answers are grounded in the current timetable data only.</p>
+                <form id="ask-form" class="stacked-form">
+                    <label for="question">Question</label>
+                    <textarea id="question" name="question" rows="4">When is my next ASD101 class?</textarea>
+                    <button type="submit" class="btn btn-primary">Ask</button>
+                </form>
+                <div id="ask-result" class="ledger"></div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:5003";
+
+// ---------- Role stamps ----------
+let currentRole = "student";
+const stampButtons = document.querySelectorAll(".stamp");
+const tabButtons = document.querySelectorAll(".tab-btn");
+
+function applyRole(role) {
+    currentRole = role;
+    stampButtons.forEach(btn => btn.classList.toggle("is-stamped", btn.dataset.role === role));
+
+    document.getElementById("my-sessions-lecturer").classList.toggle("is-hidden", role !== "lecturer");
+
+    tabButtons.forEach(tab => {
+        const needed = tab.dataset.roleRequired;
+        const allowed = !needed || needed === role;
+        tab.classList.toggle("is-hidden", !allowed);
+        if (!allowed && tab.classList.contains("is-active")) {
+            switchTab("browse");
+        }
+    });
+}
+
+stampButtons.forEach(btn => {
+    btn.addEventListener("click", () => applyRole(btn.dataset.role));
+});
+
+// ---------- Tabs ----------
+function switchTab(tabName) {
+    tabButtons.forEach(btn => btn.classList.toggle("is-active", btn.dataset.tab === tabName));
+    document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.classList.toggle("is-active", panel.id === `panel-${tabName}`);
+    });
+}
+
+tabButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (!btn.classList.contains("is-hidden")) switchTab(btn.dataset.tab);
+    });
+});
+
+applyRole("student");
+
+// ---------- Browse ----------
+document.getElementById("view-all-btn").addEventListener("click", async () => {
+    const res = await fetch(`${API_BASE}/timetable`);
+    document.getElementById("timetable-result").innerHTML = await res.text();
+});
+
+document.getElementById("filter-course-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = document.getElementById("course_code").value.trim();
+    if (!code) return;
+    const res = await fetch(`${API_BASE}/timetable/by-course?course_code=${encodeURIComponent(code)}`);
+    document.getElementById("timetable-result").innerHTML = await res.text();
+});
+
+document.getElementById("my-sessions-btn").addEventListener("click", () => {
+    const staffId = document.getElementById("lecturer_staff_id").value.trim();
+    document.getElementById("timetable-result").innerHTML =
+        `<p>Lookup by staff ID (${staffId || "none entered"}) activates once Staff Management is integrated.</p>`;
+});
+
+// ---------- Create ----------
+document.getElementById("create-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const res = await fetch(`${API_BASE}/timetable`, { method: "POST", body: form });
+    document.getElementById("create-result").innerHTML = await res.text();
+});
+
+// ---------- Update / Delete ----------
+document.getElementById("edit-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const sessionId = form.get("session_id");
+    form.delete("session_id");
+    const res = await fetch(`${API_BASE}/timetable/${sessionId}`, { method: "PUT", body: form });
+    document.getElementById("edit-result").innerHTML = await res.text();
+});
+
+document.getElementById("delete-btn").addEventListener("click", async () => {
+    const sessionId = document.getElementById("e_session_id").value;
+    if (!sessionId) return;
+    const res = await fetch(`${API_BASE}/timetable/${sessionId}`, { method: "DELETE" });
+    document.getElementById("edit-result").innerHTML = await res.text();
+});
+
+// ---------- Clash check ----------
+document.getElementById("check-clashes-btn").addEventListener("click", async () => {
+    const res = await fetch(`${API_BASE}/timetable/clashes`);
+    document.getElementById("clash-result").innerHTML = await res.text();
+});
+
+// ---------- Ask AI agent ----------
+document.getElementById("ask-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const res = await fetch(`${API_BASE}/ask`, { method: "POST", body: form });
+    document.getElementById("ask-result").innerHTML = await res.text();
+});
+</script>
+
+</body>
+</html>
