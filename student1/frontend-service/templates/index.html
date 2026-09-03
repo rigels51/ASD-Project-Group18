@@ -432,8 +432,7 @@
   <div class="chat-panel" id="chat-panel">
     <div class="chat-head">
       <div>
-        <div class="t">Records assistant</div>
-        <div class="s">reads the current student table</div>
+        <div class="t">AI CHAT MODE</div>
       </div>
       <button id="chat-close" aria-label="Close">&times;</button>
     </div>
@@ -443,7 +442,6 @@
     <div class="chat-suggest" id="chat-suggest">
       <button class="chip" type="button" data-q="Which students are currently on leave?">Who's on leave?</button>
       <button class="chip" type="button" data-q="List students with a GPA above 3.5.">GPA above 3.5</button>
-      <button class="chip" type="button" data-q="How many students are in BS Computer Science?">Students in BSCS</button>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chat-input" placeholder="Ask a question about the records…">
@@ -818,7 +816,7 @@
         chatBody.scrollTop = chatBody.scrollHeight;
       } catch (error) {
         pending.remove();
-        addMessage("The records assistant is unavailable right now — please try again in a moment.", "ai error");
+        addMessage("The Ai Mode is unavailable right now, please try again.", "ai error");
       } finally {
         document.getElementById("chat-send").disabled = false;
       }
