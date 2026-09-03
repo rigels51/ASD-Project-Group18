@@ -187,22 +187,39 @@
   @media (prefers-reduced-motion: reduce){
     .drawer, .scrim{transition:none;}
   }
+  /* ---------- Tab shell (hosts the Normal UI / AI Mode tabs) ---------- */
+  .card{
+    background:var(--paper-raised); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);
+  }
 
-  /* ---------- Tab shell (added — needed for this file to run as a tab) ---------- */
-  .tab-shell{padding:16px;}
-  .tab-nav{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:12px;}
+  .tab-shell{ padding:16px; }
+
+  .tab-nav{
+    display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;
+    border-bottom:1px solid var(--line); padding-bottom:12px;
+  }
+
   .tab-btn{
     font-family:'IBM Plex Sans', sans-serif; font-size:13.5px; font-weight:600;
     cursor:pointer; border-radius:8px; padding:8px 16px; border:1px solid var(--line);
     background:var(--paper-raised); color:var(--ink-soft);
   }
-  .tab-btn:hover{border-color:var(--ink-soft);}
-  .tab-btn.is-active{background:var(--ink); color:#fff; border-color:var(--ink);}
-  .tab-btn:disabled{opacity:0.5; cursor:not-allowed;}
-  .tab-content{position:relative;}
-  .tab-frame{width:100%; min-height:900px; border:0; display:none; background:transparent;}
-  .tab-frame.is-active{display:block;}
-  .card{
-    background:var(--paper-raised); border:1px solid var(--line);
-    border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);
+  .tab-btn:hover{ border-color:var(--ink-soft); }
+  .tab-btn.is-active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .tab-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .tab-content{ position:relative; }
+
+  .tab-frame{
+    width:100%;
+    min-height:900px;   /* fallback only — the resize script in index.html sets the real height */
+    border:0;
+    display:none;
+    background:transparent;
+  }
+  .tab-frame.is-active{ display:block; }
+
+  @media (max-width:900px){
+    .tab-frame{ min-height:1100px; }
   }
