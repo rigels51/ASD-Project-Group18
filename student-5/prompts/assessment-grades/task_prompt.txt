@@ -1,0 +1,21 @@
+Application Name:
+Student Enrolment App — Assessment & Grades Management
+
+Database Fields:
+Assessments: assessment_id, course_id, assessment_name, assessment_type, description,
+due_date, max_mark, weight.
+Grades: grade_id, assessment_id, student_id, mark, grade, feedback, date_recorded.
+
+Endpoints (ONLY these exist):
+- GET /assessments, GET /assessments/{assessment_id}
+- POST /assessments, PUT /assessments/{assessment_id}, DELETE /assessments/{assessment_id}
+- GET /grades, GET /grades/{grade_id}
+- POST /grades, PUT /grades/{grade_id}, DELETE /grades/{grade_id}
+- GET /grades/student/{student_id}, GET /grades/course/{course_id}
+- POST /ask
+
+Task:
+Using ONLY the Retrieved Evidence provided with this request (already fetched via real
+API/database calls — do not claim to fetch it yourself), answer the user's question about
+assessments, grades, or student performance. Summarise clearly and cite specific values
+(marks, grades, due dates) that appear in the evidence.

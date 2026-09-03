@@ -1,65 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title>Student Enrolment App</title>
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-<main class="app-shell">
-    <header class="app-header">
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
         <h1>Student Enrolment App</h1>
         <p>HTMX UI: Normal UI and AI Mode</p>
-    </header>
+      </header>
 
-    <section class="tab-shell card">
+      <section class="tab-shell card">
         <nav class="tab-nav" aria-label="Application tabs">
-            <button class="tab-btn is-active" data-tab="normal" type="button">Normal UI</button>
-            <button class="tab-btn" data-tab="ai-mode" type="button">AI Mode</button>
+          <button class="tab-btn is-active" data-tab="normal" type="button">
+            Find Student
+          </button>
+          <button class="tab-btn" data-tab="ai-mode" type="button">
+            AI Agent
+          </button>
+          <button class="tab-btn" data-tab="assessment-grades" type="button">
+            Assessments & Grades
+          </button>
         </nav>
 
         <div class="tab-content">
-            <iframe id="tab-frame-normal" class="tab-frame is-active" src="tabs/normal.html" title="Normal UI tab"></iframe>
-            <iframe id="tab-frame-ai-mode" class="tab-frame" src="tabs/ai-mode.html" title="AI Mode tab"></iframe>
+          <iframe
+            id="tab-frame-normal"
+            class="tab-frame is-active"
+            src="tabs/normal.html"
+            title="Find Student"
+          ></iframe>
+          <iframe
+            id="tab-frame-ai-mode"
+            class="tab-frame"
+            src="tabs/ai-mode.html"
+            title="AI Agent"
+          ></iframe>
+          <iframe
+            id="tab-frame-assessment-grades"
+            class="tab-frame"
+            src="tabs/assessment-grades.html"
+            title="Assessment & Grades tab"
+          ></iframe>
         </div>
-    </section>
-</main>
+      </section>
+    </main>
 
-<script>
-const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
-const tabFrames = {
-    normal: document.getElementById("tab-frame-normal"),
-    "ai-mode": document.getElementById("tab-frame-ai-mode"),
-};
+    <script>
+      const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
 
-function activateTab(tabName) {
-    tabButtons.forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.tab === tabName);
-    });
+      const tabFrames = {
+        normal: document.getElementById("tab-frame-normal"),
+        "ai-mode": document.getElementById("tab-frame-ai-mode"),
+        "assessment-grades": document.getElementById(
+          "tab-frame-assessment-grades",
+        ), //assessment and grade
+      };
 
-    Object.entries(tabFrames).forEach(([name, frame]) => {
-        frame.classList.toggle("is-active", name === tabName);
-    });
+      function resizeFrame(frame) {
+        try {
+          const doc = frame.contentWindow.document;
+          const height = Math.max(
+            doc.body.scrollHeight,
+            doc.documentElement.scrollHeight,
+          );
+          frame.style.height = height + "px";
+        } catch (e) {
+          // cross-origin or not yet loaded — CSS min-height fallback applies
+        }
+      }
 
-    window.location.hash = tabName;
-}
+      function activateTab(tabName) {
+        tabButtons.forEach((button) => {
+          button.classList.toggle("is-active", button.dataset.tab === tabName);
+        });
 
-tabButtons.forEach((button) => {
-    if (button.disabled) {
-        return;
-    }
+        Object.entries(tabFrames).forEach(([name, frame]) => {
+          const isActive = name === tabName;
+          frame.classList.toggle("is-active", isActive);
+          if (isActive) resizeFrame(frame);
+        });
 
-    button.addEventListener("click", () => {
-        activateTab(button.dataset.tab);
-    });
-});
+        window.location.hash = tabName;
+      }
 
-const hashTab = window.location.hash.replace("#", "");
-if (hashTab && tabFrames[hashTab]) {
-    activateTab(hashTab);
-} else {
-    activateTab("normal");
-}
-</script>
+      tabButtons.forEach((button) => {
+        if (button.disabled) {
+          return;
+        }
 
-</body>
+        button.addEventListener("click", () => {
+          activateTab(button.dataset.tab);
+        });
+      });
+
+      // Re-measure whenever a tab's content changes size (search results
+      // loading, drawer opening, rows being added/removed, etc.)
+      Object.values(tabFrames).forEach((frame) => {
+        frame.addEventListener("load", () => {
+          resizeFrame(frame);
+          try {
+            const observer = new MutationObserver(() => resizeFrame(frame));
+            observer.observe(frame.contentWindow.document.body, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+            });
+          } catch (e) {
+            /* ignore */
+          }
+        });
+      });
+
+      const hashTab = window.location.hash.replace("#", "");
+      if (hashTab && tabFrames[hashTab]) {
+        activateTab(hashTab);
+      } else {
+        activateTab("normal");
+      }
+    </script>
+  </body>
 </html>

@@ -44,9 +44,52 @@ services:
                     - database-service
         restart: unless-stopped
 
+    assessment-database-service:
+        build:
+            context: .
+            dockerfile: student-5/database/Dockerfile
+        container_name: assessment-database-service
+        ports:
+            - "5022:5022"
+        volumes:
+            - assessment_grades_data:/app/data
+        networks:
+            enrolment-network:
+                aliases:
+                    - assessment-database-service
+        restart: unless-stopped
+
+    assessment-service:
+        build:
+            context: .
+            dockerfile: student-5/backend/Dockerfile
+        container_name: assessment-service
+        ports:
+            - "5021:5021"
+        environment:
+            ASSESSMENT_DATABASE_SERVICE_URL: http://assessment-database-service:5022
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - assessment-database-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
 volumes:
     database_data:
+    assessment_grades_data:
 
 networks:
     enrolment-network:
         driver: bridge
+
+
+
+
+
+
+    
+
