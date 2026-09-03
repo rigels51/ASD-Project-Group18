@@ -31,38 +31,6 @@ def find_student_by_id(question, students):
     )
 
 
-def is_valid_question(question):
-    words = re.findall(r"[a-z0-9]+", question.casefold())
-    if len(words) < 3:
-        return False
-    if len(set(words)) == 1:
-        return False
-    if len(set(words)) / len(words) < 0.5:
-        return False
-    return any(
-        term in words
-        for term in (
-            "student",
-            "students",
-            "name",
-            "course",
-            "gpa",
-            "grade",
-            "status",
-            "enrolled",
-            "leave",
-            "graduated",
-            "record",
-            "records",
-            "who",
-            "what",
-            "which",
-            "how",
-            "list",
-        )
-    ) or bool(re.search(r"\bstu-\d+\b", question, re.IGNORECASE))
-
-
 def deterministic_answer(question, students):
     student = find_student_by_id(question, students)
     if student:
@@ -101,11 +69,11 @@ def deterministic_answer(question, students):
         (
             value
             for value in (
-                "BS Computer Science",
-                "BS Information Technology",
-                "BS Cybersecurity",
-                "BS Psychology",
-                "BS Civil Engineering",
+                "Computer Science",
+                "Information Technology",
+                "Cybersecurity",
+                "Psychology",
+                "Civil Engineering",
             )
             if value.removeprefix("BS ").casefold() in normalized_question
         ),
@@ -136,8 +104,6 @@ def ask_local_agent():
 
     if not question:
         return "<p>Question is required.</p>", 400
-    if not is_valid_question(question):
-        return "<p>Please enter a complete question about the student records.</p>", 400
 
     try:
         context = build_student_records_context()
@@ -183,8 +149,6 @@ def ask_with_context():
 
     if not question:
         return "<p>Question is required.</p>", 400
-    if not is_valid_question(question):
-        return "<p>Please enter a complete question about the student records.</p>", 400
 
     try:
         student_data = get_students()
