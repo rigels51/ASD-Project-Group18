@@ -6,8 +6,10 @@ on:
       - Yi-Zhang
 
   pull_request:
-    branches:
-      - main
+  branches:
+    - main
+  paths:
+    - 'Student4/**'
 
 jobs:
   build-and-validate:

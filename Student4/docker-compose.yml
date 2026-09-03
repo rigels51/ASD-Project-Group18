@@ -1,0 +1,70 @@
+services:
+
+  student4-frontend:
+    build:
+      context: ./frontend-service
+    container_name: student4-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - student4-enrolment
+    networks:
+      - student4-network
+    restart: unless-stopped
+
+
+  student4-enrolment:
+    build:
+      # Use project root because the Dockerfile also needs /prompts
+      context: ..
+      dockerfile: Student4/enrolment-service/Dockerfile
+
+    container_name: student4-enrolment
+
+    ports:
+      - "5001:5001"
+
+    environment:
+      DATABASE_SERVICE_URL: http://student4-database:5002
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      OLLAMA_MODEL: qwen2.5:0.5b
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    depends_on:
+      - student4-database
+
+    networks:
+      - student4-network
+
+    restart: unless-stopped
+
+
+  student4-database:
+    build:
+      context: ./database-service
+
+    container_name: student4-database
+
+    ports:
+      - "5002:5002"
+
+    volumes:
+      - student4_database_data:/app/data
+
+    networks:
+      student4-network:
+        aliases:
+          - student4-database
+
+    restart: unless-stopped
+
+
+volumes:
+  student4_database_data:
+
+
+networks:
+  student4-network:
+    driver: bridge
