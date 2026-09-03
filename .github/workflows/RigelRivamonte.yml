@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - student1
+    paths:
+      - 'student1/**'
+      - '.github/workflows/Student1.yml'
 
   pull_request:
     branches:
       - main
+    paths:
+      - 'student1/**'
+      - '.github/workflows/Student1.yml'
 
 jobs:
   build-and-validate:
