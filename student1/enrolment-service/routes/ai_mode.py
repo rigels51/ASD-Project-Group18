@@ -69,11 +69,11 @@ def deterministic_answer(question, students):
         (
             value
             for value in (
-                "BS Computer Science",
-                "BS Information Technology",
-                "BS Business Administration",
-                "BS Psychology",
-                "BS Civil Engineering",
+                "Computer Science",
+                "Information Technology",
+                "Cybersecurity",
+                "Psychology",
+                "Civil Engineering",
             )
             if value.removeprefix("BS ").casefold() in normalized_question
         ),
