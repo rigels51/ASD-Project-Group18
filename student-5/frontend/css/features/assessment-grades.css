@@ -1,0 +1,79 @@
+/* ============================================================
+   Feature stylesheet: Assessment & Grades Management
+   Owner: Student 5 — Vu Tien Thanh Nguyen
+
+   Loaded IN ADDITION TO the shared shared/frontend/css/styles.css
+   (which supplies --ink, --brass, .panel, .btn, .pill, .table-wrap,
+   .drawer, .field, etc.). This file only adds the bits that are
+   specific to this feature, so it can never collide with another
+   student's feature.css. Everything here reuses the shared design
+   tokens rather than inventing new colours.
+
+   Convention for the team: every feature file is scoped under a
+   single top-level wrapper class (".ag-app" here) so class names
+   like ".empty" or ".chip" can be reused freely across features
+   without leaking into each other's tabs.
+   ============================================================ */
+
+.ag-app { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- Pill colour mapping (assessment type) ---------- */
+.ag-app .pill.type-assignment { background: var(--brass-soft); color: var(--brass); }
+.ag-app .pill.type-test       { background: var(--leave-bg);   color: var(--leave); }
+.ag-app .pill.type-exam       { background: var(--leave-bg);   color: var(--leave); }
+.ag-app .pill.type-project    { background: var(--active-bg);  color: var(--active); }
+.ag-app .pill.type-presentation{ background: var(--active-bg); color: var(--active); }
+.ag-app .pill.type-quiz       { background: var(--brass-soft); color: var(--brass); }
+
+/* ---------- Pill colour mapping (grade band) ---------- */
+.ag-app .pill.grade-hd, .ag-app .pill.grade-d { background: var(--active-bg); color: var(--active); }
+.ag-app .pill.grade-c,  .ag-app .pill.grade-p { background: var(--leave-bg);  color: var(--leave); }
+.ag-app .pill.grade-n,  .ag-app .pill.grade-fail { background: var(--former-bg); color: var(--former); }
+.ag-app .pill.grade-ungraded {
+    background: var(--paper); color: var(--slate);
+    border: 1px dashed var(--line);
+}
+
+/* ---------- Sidebar course filter list (reuses .dept-list pattern) ---------- */
+.ag-app .dept-list .dept-dot.all      { background: var(--ink-soft); }
+.ag-app .dept-list .dept-dot.course   { background: var(--brass); }
+
+/* ---------- Weight / mark readouts in the table ---------- */
+.ag-app .mark-cell{ font-family:'IBM Plex Mono', monospace; font-size:13px; }
+.ag-app .weight-tag{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--slate);
+}
+
+/* ---------- AI chat panel ---------- */
+.ag-app .chat-panel .chat-log{
+    display:flex; flex-direction:column; gap:10px;
+    max-height:260px; overflow-y:auto; margin-bottom:12px;
+    padding-right:2px;
+}
+.ag-app .chat-bubble{
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:10px 12px; font-size:13.5px; line-height:1.5;
+}
+.ag-app .chat-bubble.question{
+    background:var(--paper); color:var(--ink-soft); align-self:flex-end;
+    border-color:var(--line);
+}
+.ag-app .chat-bubble.answer{
+    background:var(--paper-raised); color:var(--ink);
+    border-color:var(--brass); align-self:flex-start;
+}
+.ag-app .chat-bubble.answer .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--brass); display:block; margin-bottom:4px;
+}
+.ag-app .chat-input-row{ display:flex; gap:8px; }
+.ag-app .chat-input-row input{
+    flex:1; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    font-family:inherit; font-size:14px; background:var(--paper-raised); color:var(--ink);
+}
+.ag-app .chat-input-row input:focus{ outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass); }
+
+/* ---------- Small helpers ---------- */
+.ag-app .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.ag-app .panel-head h3{ margin-bottom:0; }
+.ag-app .helper-text{ font-size:12px; color:var(--slate); margin:0; }

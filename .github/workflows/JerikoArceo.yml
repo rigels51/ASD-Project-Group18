@@ -1,0 +1,72 @@
+name: Jeriko - Staff Management
+
+on:
+  push:
+    branches:
+      - jeriko
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      - name: Install backend service dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Student2/backend-service/requirements.txt
+
+
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile Student2/database-service/app.py
+          python -m py_compile Student2/database-service/init_db.py
+          python -m py_compile Student2/backend-service/routes/normal_ui.py
+          python -m py_compile Student2/backend-service/routes/ai_mode.py
+          python -m py_compile Student2/backend-service/services/database_api.py
+          python -m py_compile Student2/backend-service/services/llm_client.py
+          python -m py_compile Student2/backend-service/views/html_formatters.py
+
+
+      - name: Build frontend service
+        run: |
+          docker build \
+            -f Student2/frontend-service/Dockerfile \
+            -t jeriko-staff-frontend \
+            Student2/frontend-service
+
+
+      - name: Build backend service
+        run: |
+          docker build \
+            -f Student2/backend-service/Dockerfile \
+            -t jeriko-staff-enrolment \
+            .
+
+
+      - name: Build database service
+        run: |
+          docker build \
+            -f Student2/database-service/Dockerfile \
+            -t jeriko-staff-database \
+            Student2/database-service
+
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config
