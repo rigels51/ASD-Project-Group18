@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY backend-service/requirements.txt ./requirements.txt
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend-service ./backend-service
+COPY prompts/service ./prompts/service
+COPY prompts/lab4 ./prompts/lab4
+
+EXPOSE 5001
+
+CMD ["python", "enrolment-service/app.py"]
