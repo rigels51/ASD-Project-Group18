@@ -71,7 +71,7 @@ def deterministic_answer(question, students):
             for value in (
                 "BS Computer Science",
                 "BS Information Technology",
-                "BS Business Administration",
+                "BS Cybersecurity",
                 "BS Psychology",
                 "BS Civil Engineering",
             )
