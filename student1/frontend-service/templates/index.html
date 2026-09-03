@@ -171,6 +171,7 @@
       padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px;
       font-family: inherit; font-size: 14px; background: var(--paper); color: var(--ink);
     }
+    #f-course:disabled { appearance: none; -webkit-appearance: none; }
     .field input:focus, .field select:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .drawer-foot { padding: 16px 22px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
@@ -621,6 +622,8 @@
       document.getElementById("student-form").style.flexDirection = "column";
       document.getElementById("f-student-id").value = nextStudentId();
       document.getElementById("f-name").value = "";
+      document.getElementById("f-name").disabled = false;
+      document.getElementById("f-course").disabled = false;
       document.getElementById("f-course").selectedIndex = 0;
       document.getElementById("f-year").selectedIndex = 0;
       document.getElementById("f-gpa").value = "";
@@ -645,7 +648,9 @@
       document.getElementById("student-form").style.flexDirection = "column";
       document.getElementById("f-student-id").value = student.student_id;
       document.getElementById("f-name").value = student.name;
+      document.getElementById("f-name").disabled = true;
       document.getElementById("f-course").value = student.course;
+      document.getElementById("f-course").disabled = true;
       document.getElementById("f-year").value = student.year_level;
       document.getElementById("f-gpa").value = student.gpa;
       document.getElementById("f-status").value = student.status;

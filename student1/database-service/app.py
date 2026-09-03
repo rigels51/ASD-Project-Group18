@@ -213,8 +213,8 @@ def update_student(student_id):
         conn.close()
         return jsonify({"error": "Student not found"}), 404
 
-    updated_name = payload.get("name", current["name"]).strip()
-    updated_course = payload.get("course", current["course"]).strip()
+    updated_name = current["name"]
+    updated_course = current["course"]
     updated_year = payload.get("year_level", current["year_level"]).strip()
     updated_email = payload.get("email", current["email"]).strip()
     updated_phone = (payload.get("phone", current["phone"]) or "").strip()
