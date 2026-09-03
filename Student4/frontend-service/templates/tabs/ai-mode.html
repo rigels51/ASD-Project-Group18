@@ -1,95 +1,390 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <title>AI Mode</title>
-    <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        body { margin: 0; min-height: auto; background: transparent; }
-        .app-shell { max-width: none; padding: 0; }
-    </style>
+
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>AI Mode</title>
+
+  <link
+    rel="stylesheet"
+    href="/css/styles.css"
+  >
+
+  <style>
+
+    body {
+      margin: 0;
+      background: transparent;
+    }
+
+    .app-shell {
+      max-width: none;
+      padding: 0;
+    }
+
+  </style>
+
 </head>
+
+
 <body>
+
+
 <main class="app-shell">
-    <section class="card">
-        <h2>Ask Local AI Agent</h2>
 
-        <form id="ask-form">
-            <label for="question">Question</label>
-            <textarea id="question" name="question" rows="5">Explain what this Student Enrolment App does in one short paragraph.</textarea>
-            <button type="submit">Ask Local Agent</button>
-        </form>
 
-        <div id="agent-result" class="panel"></div>
+  <div class="section-heading">
 
-        <h2>Ask With Context</h2>
+    <div>
 
-        <form id="ask-with-context-form">
-            <label for="context-question">Question</label>
-            <textarea id="context-question" name="question" rows="4">Explain the Student Enrolment App.</textarea>
-            <button type="submit">Ask With Context</button>
-        </form>
+      <p class="section-label">
+        AGENTIC AI SERVICES
+      </p>
 
-        <div id="context-result" class="panel"></div>
+      <h2>AI Mode</h2>
 
-        <h2>Architecture Review</h2>
+      <p>
+        Ask questions about courses and enrolments using the local AI agent.
+      </p>
 
-        <form id="architecture-review-form">
-            <label for="architecture_request">Request</label>
-            <textarea id="architecture_request" name="architecture_request" rows="4">Review service boundaries for frontend-service, enrolment-service, and database-service.</textarea>
-            <button type="submit">Run Architecture Review</button>
-        </form>
+    </div>
 
-        <div id="architecture-result" class="panel"></div>
-    </section>
+  </div>
+
+
+
+  <!-- LOCAL AI -->
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Ask Local AI Agent</h3>
+
+        <p>
+          Ask a general question using the local Ollama model.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Local AI
+      </span>
+
+    </div>
+
+
+    <form id="ask-form">
+
+      <div class="field">
+
+        <label for="question">
+          Question
+        </label>
+
+        <textarea
+          id="question"
+          name="question"
+          rows="4"
+        >Explain what the Course and Enrollment Management system does.</textarea>
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="primary-btn"
+      >
+        Ask Local Agent
+      </button>
+
+    </form>
+
+
+    <div
+      id="agent-result"
+      class="panel"
+    ></div>
+
+  </section>
+
+
+
+  <!-- DATABASE CONTEXT AI -->
+
+  <section class="content-card ai-highlight">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Ask With Database Context</h3>
+
+        <p>
+          Ask questions using the current course and enrolment data.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Live Database
+      </span>
+
+    </div>
+
+
+    <form id="ask-with-context-form">
+
+      <div class="field">
+
+        <label for="context-question">
+          Question
+        </label>
+
+        <textarea
+          id="context-question"
+          name="question"
+          rows="4"
+        >Which courses have available seats?</textarea>
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="primary-btn"
+      >
+        Ask With Context
+      </button>
+
+    </form>
+
+
+    <div
+      id="context-result"
+      class="panel"
+    ></div>
+
+  </section>
+
+
+
+  <!-- ARCHITECTURE -->
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Architecture Review</h3>
+
+        <p>
+          Review the current microservice architecture using the AI agent.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <form id="architecture-review-form">
+
+      <div class="field">
+
+        <label for="architecture_request">
+          Architecture Request
+        </label>
+
+        <textarea
+          id="architecture_request"
+          name="architecture_request"
+          rows="4"
+        >Review the service boundaries for frontend-service, enrolment-service, and database-service.</textarea>
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="secondary-btn"
+      >
+        Run Architecture Review
+      </button>
+
+    </form>
+
+
+    <div
+      id="architecture-result"
+      class="panel"
+    ></div>
+
+  </section>
+
+
 </main>
 
+
+
 <script>
-const askForm = document.getElementById("ask-form");
-const askWithContextForm = document.getElementById("ask-with-context-form");
-const architectureReviewForm = document.getElementById("architecture-review-form");
 
-async function renderIntoPanel(panelId, url, options = {}) {
-    const panel = document.getElementById(panelId);
+const askForm =
+  document.getElementById("ask-form");
 
-    try {
-        const response = await fetch(url, options);
-        const body = await response.text();
-        panel.innerHTML = body;
-    } catch (error) {
-        panel.innerHTML = `<p>Request failed.</p><pre>${error}</pre>`;
-    }
+const askWithContextForm =
+  document.getElementById(
+    "ask-with-context-form"
+  );
+
+const architectureReviewForm =
+  document.getElementById(
+    "architecture-review-form"
+  );
+
+
+async function renderIntoPanel(
+  panelId,
+  url,
+  options = {}
+) {
+
+  const panel =
+    document.getElementById(panelId);
+
+
+  panel.innerHTML =
+    "<p>Loading...</p>";
+
+
+  try {
+
+    const response =
+      await fetch(url, options);
+
+    const body =
+      await response.text();
+
+    panel.innerHTML =
+      body;
+
+  } catch (error) {
+
+    panel.innerHTML =
+      `
+        <p>Request failed.</p>
+        <pre>${error}</pre>
+      `;
+
+  }
+
 }
 
-askForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new URLSearchParams(new FormData(askForm));
-    renderIntoPanel("agent-result", "http://localhost:5001/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
-    });
-});
 
-askWithContextForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const formData = new URLSearchParams(new FormData(askWithContextForm));
-    renderIntoPanel("context-result", "http://localhost:5001/ask-with-context", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
-    });
-});
 
-architectureReviewForm.addEventListener("submit", (event) => {
+askForm.addEventListener(
+  "submit",
+  event => {
+
     event.preventDefault();
-    const formData = new URLSearchParams(new FormData(architectureReviewForm));
-    renderIntoPanel("architecture-result", "http://localhost:5001/architecture-review", {
+
+    const formData =
+      new URLSearchParams(
+        new FormData(askForm)
+      );
+
+
+    renderIntoPanel(
+      "agent-result",
+      "http://localhost:5001/ask",
+      {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
-    });
-});
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+        body: formData
+      }
+    );
+
+  }
+);
+
+
+
+askWithContextForm.addEventListener(
+  "submit",
+  event => {
+
+    event.preventDefault();
+
+    const formData =
+      new URLSearchParams(
+        new FormData(
+          askWithContextForm
+        )
+      );
+
+
+    renderIntoPanel(
+      "context-result",
+      "http://localhost:5001/ask-with-context",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+        body: formData
+      }
+    );
+
+  }
+);
+
+
+
+architectureReviewForm.addEventListener(
+  "submit",
+  event => {
+
+    event.preventDefault();
+
+    const formData =
+      new URLSearchParams(
+        new FormData(
+          architectureReviewForm
+        )
+      );
+
+
+    renderIntoPanel(
+      "architecture-result",
+      "http://localhost:5001/architecture-review",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+        body: formData
+      }
+    );
+
+  }
+);
+
 </script>
+
+
 </body>
 </html>

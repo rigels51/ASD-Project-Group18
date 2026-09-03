@@ -1,189 +1,199 @@
 <!doctype html>
-<html>
-  <head>
-    <title>Course & Enrollment Management</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <body>
-    <main class="app-shell">
+  <title>Course & Enrollment Management</title>
 
-      <header class="app-header">
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+
+  <main class="app-shell">
+
+    <header class="app-header">
+
+      <div>
+        <p class="eyebrow">
+          UNIVERSITY MANAGEMENT · COURSE & ENROLMENT
+        </p>
+
         <h1>Course & Enrollment Management</h1>
-        <p>Normal Mode and AI Mode</p>
-      </header>
 
-      <section class="tab-shell card">
+        <p class="subtitle">
+          Manage courses, student enrolments and AI-assisted queries
+        </p>
+      </div>
 
-        <nav class="tab-nav" aria-label="Application tabs">
+      <div class="term-badge">
+        Spring 2026
+      </div>
 
-          <button
-            class="tab-btn is-active"
-            data-tab="normal"
-            type="button"
-          >
-            Courses & Enrolments
-          </button>
-
-          <button
-            class="tab-btn"
-            data-tab="ai-mode"
-            type="button"
-          >
-            AI Agent
-          </button>
-
-        </nav>
-
-        <div class="tab-content">
-
-          <iframe
-            id="tab-frame-normal"
-            class="tab-frame is-active"
-            src="tabs/normal.html"
-            title="Courses and Enrolments"
-          ></iframe>
-
-          <iframe
-            id="tab-frame-ai-mode"
-            class="tab-frame"
-            src="tabs/ai-mode.html"
-            title="AI Agent"
-          ></iframe>
-
-        </div>
-
-      </section>
-
-    </main>
-
-    <script>
-
-      const tabButtons = Array.from(
-        document.querySelectorAll(".tab-btn")
-      );
-
-      const tabFrames = {
-        normal: document.getElementById("tab-frame-normal"),
-        "ai-mode": document.getElementById("tab-frame-ai-mode"),
-      };
+    </header>
 
 
-      function resizeFrame(frame) {
+    <nav class="top-tabs">
+
+      <button
+        class="top-tab active"
+        data-page="normal"
+        type="button"
+      >
+        Normal UI
+      </button>
+
+      <button
+        class="top-tab"
+        data-page="ai"
+        type="button"
+      >
+        AI Mode
+      </button>
+
+    </nav>
+
+
+    <section class="page-container">
+
+      <iframe
+        id="normal-page"
+        class="page-frame active"
+        src="tabs/normal.html"
+        title="Normal UI"
+      ></iframe>
+
+      <iframe
+        id="ai-page"
+        class="page-frame"
+        src="tabs/ai-mode.html"
+        title="AI Mode"
+      ></iframe>
+
+    </section>
+
+  </main>
+
+
+  <script>
+
+    const buttons = document.querySelectorAll(".top-tab");
+
+    const pages = {
+      normal: document.getElementById("normal-page"),
+      ai: document.getElementById("ai-page")
+    };
+
+
+    function resizeFrame(frame) {
+
+      try {
+
+        const doc = frame.contentWindow.document;
+
+        const height = Math.max(
+          doc.body.scrollHeight,
+          doc.documentElement.scrollHeight
+        );
+
+        frame.style.height = (height + 40) + "px";
+
+      } catch (error) {
+
+        frame.style.height = "900px";
+
+      }
+
+    }
+
+
+    function showPage(pageName) {
+
+      buttons.forEach(button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.page === pageName
+        );
+
+      });
+
+
+      Object.entries(pages).forEach(([name, frame]) => {
+
+        const active = name === pageName;
+
+        frame.classList.toggle("active", active);
+
+        if (active) {
+          resizeFrame(frame);
+        }
+
+      });
+
+
+      window.location.hash = pageName;
+
+    }
+
+
+    buttons.forEach(button => {
+
+      button.addEventListener("click", () => {
+
+        showPage(button.dataset.page);
+
+      });
+
+    });
+
+
+    Object.values(pages).forEach(frame => {
+
+      frame.addEventListener("load", () => {
+
+        resizeFrame(frame);
 
         try {
 
-          const doc = frame.contentWindow.document;
-
-          const height = Math.max(
-            doc.body.scrollHeight,
-            doc.documentElement.scrollHeight
+          const observer = new MutationObserver(
+            () => resizeFrame(frame)
           );
 
-          frame.style.height = height + "px";
+          observer.observe(
+            frame.contentWindow.document.body,
+            {
+              childList: true,
+              subtree: true,
+              attributes: true
+            }
+          );
 
-        } catch (e) {
-
-          // CSS min-height fallback
-
+        } catch (error) {
+          // Ignore
         }
 
-      }
-
-
-      function activateTab(tabName) {
-
-        tabButtons.forEach((button) => {
-
-          button.classList.toggle(
-            "is-active",
-            button.dataset.tab === tabName
-          );
-
-        });
-
-
-        Object.entries(tabFrames).forEach(([name, frame]) => {
-
-          const isActive = name === tabName;
-
-          frame.classList.toggle(
-            "is-active",
-            isActive
-          );
-
-          if (isActive) {
-            resizeFrame(frame);
-          }
-
-        });
-
-
-        window.location.hash = tabName;
-
-      }
-
-
-      tabButtons.forEach((button) => {
-
-        button.addEventListener("click", () => {
-
-          activateTab(
-            button.dataset.tab
-          );
-
-        });
-
       });
 
-
-      Object.values(tabFrames).forEach((frame) => {
-
-        frame.addEventListener("load", () => {
-
-          resizeFrame(frame);
-
-          try {
-
-            const observer = new MutationObserver(
-              () => resizeFrame(frame)
-            );
-
-            observer.observe(
-              frame.contentWindow.document.body,
-              {
-                childList: true,
-                subtree: true,
-                attributes: true
-              }
-            );
-
-          } catch (e) {
-
-            // Ignore resize errors
-
-          }
-
-        });
-
-      });
+    });
 
 
-      const hashTab =
-        window.location.hash.replace("#", "");
+    const hash =
+      window.location.hash.replace("#", "");
 
 
-      if (hashTab && tabFrames[hashTab]) {
+    if (hash === "ai") {
 
-        activateTab(hashTab);
+      showPage("ai");
 
-      } else {
+    } else {
 
-        activateTab("normal");
+      showPage("normal");
 
-      }
+    }
 
-    </script>
+  </script>
 
-  </body>
+</body>
 </html>
