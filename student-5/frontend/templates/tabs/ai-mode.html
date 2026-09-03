@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Assessment & Grades AI Agent</title>
+    <!-- Shared design system: tokens, .panel/.btn/.pill/.table-wrap/.drawer/.field -->
+    <link rel="stylesheet" href="/css/styles.css" />
+    <!-- Feature-only additions, scoped under .ag-app -->
+    <link rel="stylesheet" href="/css/features/assessment-grades.css" />
+  </head>
+  <body>
+    <main class="app-shell ag-app">
+      <header class="app-header">
+        <div>
+          <span class="eyebrow">Assessment & Grades System</span>
+          <h1>Assessment & Grades AI Agent</h1>
+          <p class="sub">
+            Ask about a student's results or a course's assessments — grounded
+            in real data only.
+          </p>
+        </div>
+        <span class="term-badge mono">AI Mode</span>
+      </header>
+
+      <div class="layout" style="grid-template-columns: 1fr">
+        <section class="main">
+          <div class="panel chat-panel">
+            <h3>Ask the Assessment & Grades AI Agent</h3>
+            <div class="chat-log" id="chat-log">
+              <div class="chat-bubble answer">
+                <span class="eyebrow">Agent</span>
+                Ask about a student's results, or a course's assessments — I
+                only answer from real data fetched from the grades and
+                assessments services.
+              </div>
+            </div>
+            <form class="chat-input-row" id="ask-form">
+              <input
+                type="text"
+                id="question"
+                name="question"
+                placeholder="e.g. What did student 9 score in SEC301?"
+              />
+              <button class="btn btn-primary" type="submit">Ask</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const BACKEND_URL = "http://localhost:5021";
+
+      async function fetchText(url, options = {}) {
+        const response = await fetch(url, options);
+        return { status: response.status, body: await response.text() };
+      }
+
+      // ---------------- AI agent ----------------
+      document
+        .getElementById("ask-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const input = document.getElementById("question");
+          const question = input.value.trim();
+          if (!question) return;
+
+          const log = document.getElementById("chat-log");
+          log.insertAdjacentHTML(
+            "beforeend",
+            `<div class="chat-bubble question">${question}</div>`,
+          );
+          input.value = "";
+          log.scrollTop = log.scrollHeight;
+
+          const params = new URLSearchParams();
+          params.set("question", question);
+          const { body } = await fetchText(`${BACKEND_URL}/ask`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: params,
+          });
+          log.insertAdjacentHTML(
+            "beforeend",
+            `<div class="chat-bubble answer"><span class="eyebrow">Agent</span>${body}</div>`,
+          );
+          log.scrollTop = log.scrollHeight;
+        });
+    </script>
+  </body>
+</html>
