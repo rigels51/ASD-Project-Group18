@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Course & Enrollment Management</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+<main class="app-shell">
+<section class="card">
+
+<h2>Course Management</h2>
+
+<button onclick="loadCourses()">Show All Courses</button>
+<div id="courses-result" class="panel"></div>
+
+<h3>Add Course</h3>
+
+<form id="add-course-form">
+    <input name="course_code" placeholder="Course Code" required>
+    <input name="course_name" placeholder="Course Name" required>
+    <input name="credits" type="number" placeholder="Credits" required>
+    <input name="capacity" type="number" placeholder="Capacity" required>
+    <button type="submit">Add Course</button>
+</form>
+
+<h3>Update Course</h3>
+
+<form id="update-course-form">
+    <input name="course_id" type="number" placeholder="Course ID" required>
+    <input name="course_code" placeholder="Course Code" required>
+    <input name="course_name" placeholder="Course Name" required>
+    <input name="credits" type="number" placeholder="Credits" required>
+    <input name="capacity" type="number" placeholder="Capacity" required>
+    <button type="submit">Update Course</button>
+</form>
+
+<h3>Delete Course</h3>
+
+<form id="delete-course-form">
+    <input name="course_id" type="number" placeholder="Course ID" required>
+    <button type="submit">Delete Course</button>
+</form>
+
+<div id="course-message" class="panel"></div>
+
+
+<hr>
+
+
+<h2>Enrollment Management</h2>
+
+<button onclick="loadEnrolments()">Show All Enrollments</button>
+<div id="enrolments-result" class="panel"></div>
+
+<h3>Enroll Student</h3>
+
+<form id="add-enrolment-form">
+    <input name="student_id" type="number" placeholder="Student ID" required>
+    <input name="course_id" type="number" placeholder="Course ID" required>
+
+    <select name="status">
+        <option>Active</option>
+        <option>Completed</option>
+        <option>Withdrawn</option>
+    </select>
+
+    <button type="submit">Enroll Student</button>
+</form>
+
+<h3>Update Enrollment</h3>
+
+<form id="update-enrolment-form">
+    <input name="enrolment_id" type="number" placeholder="Enrollment ID" required>
+    <input name="student_id" type="number" placeholder="Student ID" required>
+    <input name="course_id" type="number" placeholder="Course ID" required>
+
+    <select name="status">
+        <option>Active</option>
+        <option>Completed</option>
+        <option>Withdrawn</option>
+    </select>
+
+    <button type="submit">Update Enrollment</button>
+</form>
+
+<h3>Delete Enrollment</h3>
+
+<form id="delete-enrolment-form">
+    <input name="enrolment_id" type="number" placeholder="Enrollment ID" required>
+    <button type="submit">Delete Enrollment</button>
+</form>
+
+<div id="enrolment-message" class="panel"></div>
+
+</section>
+</main>
+
+
+<script>
+
+const API = "http://localhost:5001";
+
+
+async function send(url, options = {}) {
+    const response = await fetch(url, options);
+    return await response.text();
+}
+
+
+async function loadCourses() {
+    document.getElementById("courses-result").innerHTML =
+        await send(`${API}/courses`);
+}
+
+
+async function loadEnrolments() {
+    document.getElementById("enrolments-result").innerHTML =
+        await send(`${API}/enrolments`);
+}
+
+
+document.getElementById("add-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("update-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses/update`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("delete-course-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("course-message").innerHTML =
+        await send(`${API}/courses/delete`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadCourses();
+};
+
+
+document.getElementById("add-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
+
+document.getElementById("update-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments/update`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
+
+document.getElementById("delete-enrolment-form").onsubmit = async function(e) {
+    e.preventDefault();
+
+    document.getElementById("enrolment-message").innerHTML =
+        await send(`${API}/enrolments/delete`, {
+            method: "POST",
+            body: new FormData(this)
+        });
+
+    loadEnrolments();
+};
+
+</script>
+
+</body>
+</html>
