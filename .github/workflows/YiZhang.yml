@@ -59,4 +59,15 @@ jobs:
         run: docker build -f Student4/database-service/Dockerfile -t yi-course-database Student4/database-service
 
       - name: Validate Docker Compose
+<<<<<<< HEAD:.github/workflows/YIZhang.yml
         run: docker compose -f Student4/docker-compose.yml config
+=======
+        run: docker compose -f Student4/docker-compose.yml config
+
+        on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - Yi-Zhang
+>>>>>>> 94633da6ee2e9fe16e3d253764d786b41f316459:.github/workflows/YiZhang.yml
