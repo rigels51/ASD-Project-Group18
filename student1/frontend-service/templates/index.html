@@ -607,9 +607,8 @@
       document.getElementById("view-status").innerHTML = `<span class="pill ${statusPillClass(student.status)}">${student.status}</span>`;
       document.getElementById("view-email").textContent = student.email;
       document.getElementById("view-phone").textContent = student.phone || "—";
-      document.getElementById("drawer-foot").innerHTML = '<button class="btn btn-ghost" id="view-edit-btn" type="button">Edit</button><button class="btn btn-primary" id="view-close-btn" type="button">Close</button>';
+      document.getElementById("drawer-foot").innerHTML = '<button class="btn btn-primary" id="view-close-btn" type="button">Close</button>';
       document.getElementById("view-close-btn").addEventListener("click", closeDrawer);
-      document.getElementById("view-edit-btn").addEventListener("click", () => openEdit(id));
       openDrawer();
     }
 
