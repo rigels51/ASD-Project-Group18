@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Records — University Registrar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #16213e;
+      --ink-soft: #2c3a5e;
+      --paper: #f6f4ef;
+      --paper-raised: #ffffff;
+      --line: #dedad0;
+      --slate: #5b6472;
+      --brass: #a9812f;
+      --brass-soft: #f1e6cc;
+      --active: #3f6c51;
+      --active-bg: #e6ede7;
+      --leave: #a2632a;
+      --leave-bg: #f4e6d6;
+      --former: #8a3c3c;
+      --former-bg: #f3e2e2;
+      --radius: 10px;
+      --shadow: 0 8px 24px -12px rgba(22,33,62,0.25);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3 { font-family: 'Source Serif 4', serif; margin: 0; }
+    .mono { font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.02em; }
+
+    .app-shell { max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
+    .app-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      padding-bottom: 20px; margin-bottom: 22px; border-bottom: 2px solid var(--ink);
+    }
+    .app-header .eyebrow {
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--brass); margin-bottom: 6px; display: block;
+    }
+    .app-header h1 { font-size: 30px; font-weight: 600; color: var(--ink); }
+    .app-header .sub { color: var(--slate); font-size: 13.5px; margin-top: 4px; }
+    .term-badge {
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft);
+      background: var(--paper-raised); border: 1px solid var(--line); border-radius: 999px;
+      padding: 6px 14px; white-space: nowrap;
+    }
+
+    .layout { display: grid; grid-template-columns: 250px 1fr; gap: 22px; }
+    @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .panel {
+      background: var(--paper-raised); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .panel h3 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--slate); font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; margin-bottom: 12px;
+    }
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row .n { font-family: 'Source Serif 4', serif; font-size: 20px; font-weight: 600; }
+    .stat-row .l { font-size: 12.5px; color: var(--slate); }
+    .dept-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .dept-list button {
+      width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+      padding: 8px 10px; border-radius: 7px; font-size: 13.5px; color: var(--ink-soft);
+      display: flex; align-items: center; justify-content: space-between; font-family: inherit;
+    }
+    .dept-list button:hover { background: var(--paper); }
+    .dept-list button.is-active { background: var(--ink); color: #fff; }
+    .dept-list .count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; opacity: 0.7; }
+    .dept-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink: 0; }
+    .dept-list button span.left { display: flex; align-items: center; }
+
+    .main { display: flex; flex-direction: column; gap: 16px; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .search-box { flex: 1; min-width: 220px; position: relative; }
+    .search-box input {
+      width: 100%; padding: 10px 14px 10px 36px; border: 1px solid var(--line);
+      border-radius: 8px; font-size: 14px; font-family: inherit; background: var(--paper-raised);
+      color: var(--ink);
+    }
+    .search-box input:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
+    .search-box svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--slate); }
+    select.status-filter {
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+      font-family: inherit; font-size: 13.5px; background: var(--paper-raised); color: var(--ink-soft);
+    }
+    .btn {
+      font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+      border-radius: 8px; padding: 10px 16px; border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-primary { background: var(--ink); color: #fff; }
+    .btn-primary:hover { background: var(--ink-soft); }
+    .btn-ghost { background: none; border: 1px solid var(--line); color: var(--ink-soft); }
+    .btn-ghost:hover { border-color: var(--ink-soft); }
+    .btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+    .table-wrap {
+      background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--slate); font-weight: 600; padding: 12px 16px; border-bottom: 1px solid var(--line);
+      background: #fbfaf7;
+    }
+    tbody td { padding: 13px 16px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #fbfaf6; }
+    .staff-id-cell { display: flex; align-items: center; gap: 10px; }
+    .badge {
+      width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 14px; color: #fff;
+    }
+    .name-block .name { font-weight: 600; color: var(--ink); }
+    .name-block .id { font-size: 11.5px; color: var(--slate); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .pill.active { background: var(--active-bg); color: var(--active); }
+    .pill.leave { background: var(--leave-bg); color: var(--leave); }
+    .pill.former { background: var(--former-bg); color: var(--former); }
+    .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .icon-btn {
+      background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px;
+      cursor: pointer; color: var(--slate); display: flex;
+    }
+    .icon-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+    .empty-state { padding: 52px 20px; text-align: center; color: var(--slate); }
+    .empty-state h3 { font-family: 'Source Serif 4', serif; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
+    .empty-state p { font-size: 13.5px; margin: 0; }
+
+    .scrim {
+      position: fixed; inset: 0; background: rgba(22,33,62,0.35); opacity: 0; pointer-events: none;
+      transition: opacity 0.18s ease; z-index: 20;
+    }
+    .scrim.is-open { opacity: 1; pointer-events: auto; }
+    .drawer {
+      position: fixed; top: 0; right: 0; height: 100%; width: min(420px, 92vw);
+      background: var(--paper-raised); box-shadow: var(--shadow); z-index: 21;
+      transform: translateX(100%); transition: transform 0.22s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.is-open { transform: translateX(0); }
+    .drawer-head {
+      padding: 20px 22px; border-bottom: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .drawer-head h2 { font-size: 19px; }
+    .drawer-head button { background: none; border: none; cursor: pointer; color: var(--slate); font-size: 20px; line-height: 1; }
+    .drawer-body { padding: 20px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+    .field input, .field select {
+      padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px;
+      font-family: inherit; font-size: 14px; background: var(--paper); color: var(--ink);
+    }
+    .field input:focus, .field select:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .drawer-foot { padding: 16px 22px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
+    .field-error { font-size: 12px; color: var(--former); min-height: 14px; }
+    .view-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+    .view-row:last-child { border-bottom: none; }
+    .view-row .k { color: var(--slate); font-size: 12.5px; }
+    .view-row .v { font-weight: 600; color: var(--ink); text-align: right; }
+    .view-header { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+    .view-header .badge { width: 52px; height: 52px; font-size: 19px; border-radius: 9px; }
+    .view-header .name { font-family: 'Source Serif 4', serif; font-size: 19px; font-weight: 600; }
+    .view-header .id { font-size: 12px; color: var(--slate); font-family: 'IBM Plex Mono', monospace; }
+
+    .confirm-modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -46%);
+      width: min(360px, 88vw); background: var(--paper-raised); border-radius: var(--radius);
+      box-shadow: var(--shadow); z-index: 22; padding: 22px; opacity: 0; pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .confirm-modal.is-open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+    .confirm-modal h3 { font-size: 17px; margin-bottom: 8px; }
+    .confirm-modal p { font-size: 13.5px; color: var(--slate); margin: 0 0 18px; }
+    .confirm-modal .drawer-foot { padding: 0; border-top: none; }
+
+    .chat-launcher {
+      position: fixed; bottom: 26px; right: 26px; z-index: 19;
+      background: var(--ink); color: #fff; border: none; border-radius: 999px;
+      padding: 13px 20px; font-family: inherit; font-size: 13.5px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: var(--shadow);
+    }
+    .chat-launcher:hover { background: var(--ink-soft); }
+    .chat-launcher.is-hidden { display: none; }
+
+    .chat-panel {
+      position: fixed; bottom: 26px; right: 26px; width: min(380px, 92vw); height: min(560px, 78vh);
+      background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); z-index: 19; display: flex; flex-direction: column; overflow: hidden;
+      transform: translateY(16px) scale(0.98); opacity: 0; pointer-events: none;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+    .chat-panel.is-open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+    .chat-head {
+      padding: 16px 18px; border-bottom: 1px solid var(--line); background: var(--ink); color: #fff;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .chat-head .t { font-family: 'Source Serif 4', serif; font-size: 16px; }
+    .chat-head .s { font-size: 11.5px; color: #c7cbdb; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+    .chat-head button { background: none; border: none; color: #fff; font-size: 19px; cursor: pointer; opacity: 0.8; }
+    .chat-head button:hover { opacity: 1; }
+    .chat-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--paper); }
+    .msg { max-width: 86%; padding: 9px 13px; border-radius: 11px; font-size: 13.5px; line-height: 1.45; }
+    .msg.user { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 3px; }
+    .msg.ai { align-self: flex-start; background: var(--paper-raised); border: 1px solid var(--line); color: var(--ink); border-bottom-left-radius: 3px; }
+    .msg.ai.pending { color: var(--slate); font-style: italic; }
+    .msg.ai.error { border-color: var(--former); color: var(--former); }
+    .chat-hint { font-size: 12px; color: var(--slate); padding: 2px 2px 0; }
+    .chat-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 14px; background: var(--paper); }
+    .chip {
+      font-family: inherit; font-size: 12px; background: var(--paper-raised); border: 1px solid var(--line);
+      color: var(--ink-soft); border-radius: 999px; padding: 6px 11px; cursor: pointer;
+    }
+    .chip:hover { border-color: var(--brass); color: var(--ink); }
+    .chat-input-row { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--line); background: var(--paper-raised); }
+    .chat-input-row input {
+      flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+      font-family: inherit; font-size: 13.5px; background: var(--paper); color: var(--ink);
+    }
+    .chat-input-row input:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
+    .chat-input-row button {
+      background: var(--ink); color: #fff; border: none; border-radius: 8px; padding: 0 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .chat-input-row button:hover { background: var(--ink-soft); }
+    .chat-input-row button:disabled { opacity: 0.5; cursor: default; }
+
+    @media (max-width: 480px) {
+      .chat-panel { width: 100vw; height: 100vh; bottom: 0; right: 0; border-radius: 0; }
+      .chat-launcher { right: 16px; bottom: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .drawer, .scrim, .chat-panel, .confirm-modal { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app-header">
+      <div>
+        <span class="eyebrow">Registrar · Records Office</span>
+        <h1>Student Records</h1>
+        <div class="sub">Look up, update and manage enrolled student files</div>
+      </div>
+      <div class="term-badge mono">Term: Fall 2026</div>
+    </div>
+
+    <div class="layout">
+      <div class="sidebar">
+        <div class="panel">
+          <h3>Overview</h3>
+          <div class="stat-row"><span class="l">Total students</span><span class="n" id="stat-total">0</span></div>
+          <div class="stat-row"><span class="l">Enrolled</span><span class="n" id="stat-enrolled">0</span></div>
+          <div class="stat-row"><span class="l">On leave</span><span class="n" id="stat-leave">0</span></div>
+          <div class="stat-row"><span class="l">Graduated</span><span class="n" id="stat-graduated">0</span></div>
+        </div>
+
+        <div class="panel">
+          <h3>Courses</h3>
+          <ul class="dept-list" id="course-list"></ul>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search by name or student ID…">
+          </div>
+          <select class="status-filter" id="status-filter">
+            <option value="all">All statuses</option>
+            <option value="Enrolled">Enrolled</option>
+            <option value="On Leave">On leave</option>
+            <option value="Graduated">Graduated</option>
+          </select>
+          <button class="btn btn-ghost" id="open-chat-toolbar-btn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            Ask about records
+          </button>
+          <button class="btn btn-primary" id="add-student-btn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add student
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Course</th>
+                <th>Year</th>
+                <th>GPA</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="student-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" style="display:none;">
+            <h3>No students match this view</h3>
+            <p>Try a different search term, or clear the course and status filters.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h2 id="drawer-title">Add student</h2>
+      <button id="drawer-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <div id="view-mode" style="display:none;">
+        <div class="view-header">
+          <div class="badge" id="view-badge"></div>
+          <div>
+            <div class="name" id="view-name"></div>
+            <div class="id mono" id="view-id"></div>
+          </div>
+        </div>
+        <div class="view-row"><span class="k">Course</span><span class="v" id="view-course"></span></div>
+        <div class="view-row"><span class="k">Year level</span><span class="v" id="view-year"></span></div>
+        <div class="view-row"><span class="k">GPA</span><span class="v" id="view-gpa"></span></div>
+        <div class="view-row"><span class="k">Status</span><span class="v" id="view-status"></span></div>
+        <div class="view-row"><span class="k">Email</span><span class="v" id="view-email"></span></div>
+        <div class="view-row"><span class="k">Phone</span><span class="v" id="view-phone"></span></div>
+      </div>
+
+      <form id="student-form" style="display:none;">
+        <div class="field" style="margin-bottom:14px;">
+          <label>Student ID</label>
+          <input type="text" id="f-student-id" disabled>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Full name</label>
+          <input type="text" id="f-name" placeholder="e.g. Dana Marquez">
+          <div class="field-error" id="e-name"></div>
+        </div>
+        <div class="field-row" style="margin-bottom:14px;">
+          <div class="field">
+            <label>Course</label>
+            <select id="f-course">
+              <option>BS Computer Science</option>
+              <option>BS Information Technology</option>
+              <option>BS Business Administration</option>
+              <option>BS Psychology</option>
+              <option>BS Civil Engineering</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Year level</label>
+            <select id="f-year">
+              <option>1st Year</option>
+              <option>2nd Year</option>
+              <option>3rd Year</option>
+              <option>4th Year</option>
+              <option>Graduate</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row" style="margin-bottom:14px;">
+          <div class="field">
+            <label>GPA</label>
+            <input type="number" id="f-gpa" step="0.01" min="0" max="4" placeholder="0.00 – 4.00">
+            <div class="field-error" id="e-gpa"></div>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="f-status">
+              <option>Enrolled</option>
+              <option>On Leave</option>
+              <option>Graduated</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:14px;">
+          <label>Email</label>
+          <input type="email" id="f-email" placeholder="name@university.edu">
+          <div class="field-error" id="e-email"></div>
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="f-phone" placeholder="09xx xxx xxxx">
+        </div>
+      </form>
+    </div>
+    <div class="drawer-foot" id="drawer-foot"></div>
+  </div>
+
+  <div class="confirm-modal" id="confirm-modal">
+    <h3>Delete this record?</h3>
+    <p id="confirm-text">This removes the student's file permanently. This can't be undone.</p>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" id="confirm-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="confirm-delete" style="background:var(--former);" type="button">Delete record</button>
+    </div>
+  </div>
+
+  <button class="chat-launcher" id="chat-launcher" type="button">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+    Ask about records
+  </button>
+
+  <div class="chat-panel" id="chat-panel">
+    <div class="chat-head">
+      <div>
+        <div class="t">Records assistant</div>
+        <div class="s">reads the current student table</div>
+      </div>
+      <button id="chat-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="chat-body" id="chat-body">
+      <div class="msg ai">Ask me things like "who's on leave from BS Psychology?" or "what's the average GPA in 4th year?" — I'll check the records and answer.</div>
+    </div>
+    <div class="chat-suggest" id="chat-suggest">
+      <button class="chip" type="button" data-q="Which students are currently on leave?">Who's on leave?</button>
+      <button class="chip" type="button" data-q="List students with a GPA above 3.5.">GPA above 3.5</button>
+      <button class="chip" type="button" data-q="How many students are in BS Computer Science?">Students in BSCS</button>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Ask a question about the records…">
+      <button id="chat-send" aria-label="Send" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:5001";
+    const courseColors = {
+      "BS Computer Science": "#3f6c51",
+      "BS Information Technology": "#2c3a5e",
+      "BS Business Administration": "#a9812f",
+      "BS Psychology": "#a2632a",
+      "BS Civil Engineering": "#8a3c3c"
+    };
+
+    let students = [];
+    let state = { search: "", status: "all", course: "all", drawerMode: null, editingId: null, pendingDeleteId: null };
+
+    function initials(name) {
+      const parts = (name || "").trim().split(/\s+/);
+      return ((parts[0]?.[0] || "") + (parts[parts.length - 1]?.[0] || "")).toUpperCase();
+    }
+
+    function statusPillClass(status) {
+      if (status === "Enrolled") return "active";
+      if (status === "On Leave") return "leave";
+      return "former";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (match) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[match]));
+    }
+
+    function nextStudentId() {
+      const nextNumber = students.reduce((max, student) => {
+        const match = /^STU-(\d+)$/.exec(student.student_id || "");
+        return match ? Math.max(max, Number(match[1])) : max;
+      }, 1000) + 1;
+      return `STU-${nextNumber}`;
+    }
+
+    async function loadStudents() {
+      const response = await fetch(`${API_BASE}/students`);
+      if (!response.ok) throw new Error("Unable to load students");
+      students = await response.json();
+      renderCourseList();
+      renderTable();
+    }
+
+    function renderStats() {
+      document.getElementById("stat-total").textContent = students.length;
+      document.getElementById("stat-enrolled").textContent = students.filter((s) => s.status === "Enrolled").length;
+      document.getElementById("stat-leave").textContent = students.filter((s) => s.status === "On Leave").length;
+      document.getElementById("stat-graduated").textContent = students.filter((s) => s.status === "Graduated").length;
+    }
+
+    function renderCourseList() {
+      const list = document.getElementById("course-list");
+      const courses = Object.keys(courseColors);
+      let html = `<li><button data-course="all" class="${state.course === 'all' ? 'is-active' : ''}"><span class="left"><span class="dept-dot" style="background:var(--ink);"></span>All courses</span><span class="count">${students.length}</span></button></li>`;
+      courses.forEach((course) => {
+        const count = students.filter((s) => s.course === course).length;
+        html += `<li><button data-course="${escapeHtml(course)}" class="${state.course === course ? 'is-active' : ''}"><span class="left"><span class="dept-dot" style="background:${courseColors[course]};"></span>${escapeHtml(course)}</span><span class="count">${count}</span></button></li>`;
+      });
+      list.innerHTML = html;
+      list.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.course = button.dataset.course;
+          renderCourseList();
+          renderTable();
+        });
+      });
+    }
+
+    function filteredStudents() {
+      return students.filter((student) => {
+        const q = state.search.trim().toLowerCase();
+        const matchesSearch = !q || student.name.toLowerCase().includes(q) || student.student_id.toLowerCase().includes(q);
+        const matchesStatus = state.status === "all" || student.status === state.status;
+        const matchesCourse = state.course === "all" || student.course === state.course;
+        return matchesSearch && matchesStatus && matchesCourse;
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("student-tbody");
+      const rows = filteredStudents();
+      document.getElementById("empty-state").style.display = rows.length ? "none" : "block";
+      tbody.innerHTML = rows.map((student) => `
+        <tr>
+          <td>
+            <div class="staff-id-cell">
+              <div class="badge" style="background:${courseColors[student.course] || 'var(--ink-soft)'};">${initials(student.name)}</div>
+              <div class="name-block">
+                <div class="name">${escapeHtml(student.name)}</div>
+                <div class="id mono">${escapeHtml(student.student_id)}</div>
+              </div>
+            </div>
+          </td>
+          <td>${escapeHtml(student.course)}</td>
+          <td>${escapeHtml(student.year_level)}</td>
+          <td class="mono">${Number(student.gpa).toFixed(2)}</td>
+          <td><span class="pill ${statusPillClass(student.status)}">${escapeHtml(student.status)}</span></td>
+          <td>
+            <div class="row-actions">
+              <button class="icon-btn" data-action="view" data-id="${escapeHtml(student.student_id)}" aria-label="View" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+              <button class="icon-btn" data-action="edit" data-id="${escapeHtml(student.student_id)}" aria-label="Edit" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="icon-btn" data-action="delete" data-id="${escapeHtml(student.student_id)}" aria-label="Delete" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      tbody.querySelectorAll("[data-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const id = button.dataset.id;
+          if (button.dataset.action === "view") openView(id);
+          if (button.dataset.action === "edit") openEdit(id);
+          if (button.dataset.action === "delete") openDeleteConfirm(id);
+        });
+      });
+
+      renderStats();
+    }
+
+    function openView(id) {
+      const student = students.find((item) => item.student_id === id);
+      if (!student) return;
+      state.drawerMode = "view";
+      state.editingId = id;
+      document.getElementById("drawer-title").textContent = "Student profile";
+      document.getElementById("view-mode").style.display = "block";
+      document.getElementById("student-form").style.display = "none";
+      document.getElementById("view-badge").style.background = courseColors[student.course] || "var(--ink-soft)";
+      document.getElementById("view-badge").textContent = initials(student.name);
+      document.getElementById("view-name").textContent = student.name;
+      document.getElementById("view-id").textContent = student.student_id;
+      document.getElementById("view-course").textContent = student.course;
+      document.getElementById("view-year").textContent = student.year_level;
+      document.getElementById("view-gpa").textContent = Number(student.gpa).toFixed(2);
+      document.getElementById("view-status").innerHTML = `<span class="pill ${statusPillClass(student.status)}">${student.status}</span>`;
+      document.getElementById("view-email").textContent = student.email;
+      document.getElementById("view-phone").textContent = student.phone || "—";
+      document.getElementById("drawer-foot").innerHTML = '<button class="btn btn-ghost" id="view-edit-btn" type="button">Edit</button><button class="btn btn-primary" id="view-close-btn" type="button">Close</button>';
+      document.getElementById("view-close-btn").addEventListener("click", closeDrawer);
+      document.getElementById("view-edit-btn").addEventListener("click", () => openEdit(id));
+      openDrawer();
+    }
+
+    function openAdd() {
+      state.drawerMode = "add";
+      state.editingId = null;
+      document.getElementById("drawer-title").textContent = "Add student";
+      document.getElementById("view-mode").style.display = "none";
+      document.getElementById("student-form").style.display = "flex";
+      document.getElementById("student-form").style.flexDirection = "column";
+      document.getElementById("f-student-id").value = nextStudentId();
+      document.getElementById("f-name").value = "";
+      document.getElementById("f-course").selectedIndex = 0;
+      document.getElementById("f-year").selectedIndex = 0;
+      document.getElementById("f-gpa").value = "";
+      document.getElementById("f-status").selectedIndex = 0;
+      document.getElementById("f-email").value = "";
+      document.getElementById("f-phone").value = "";
+      clearErrors();
+      document.getElementById("drawer-foot").innerHTML = '<button class="btn btn-ghost" id="form-cancel-btn" type="button">Cancel</button><button class="btn btn-primary" id="form-save-btn" type="button">Save student</button>';
+      document.getElementById("form-cancel-btn").addEventListener("click", closeDrawer);
+      document.getElementById("form-save-btn").addEventListener("click", saveStudent);
+      openDrawer();
+    }
+
+    function openEdit(id) {
+      const student = students.find((item) => item.student_id === id);
+      if (!student) return;
+      state.drawerMode = "edit";
+      state.editingId = id;
+      document.getElementById("drawer-title").textContent = "Edit student";
+      document.getElementById("view-mode").style.display = "none";
+      document.getElementById("student-form").style.display = "flex";
+      document.getElementById("student-form").style.flexDirection = "column";
+      document.getElementById("f-student-id").value = student.student_id;
+      document.getElementById("f-name").value = student.name;
+      document.getElementById("f-course").value = student.course;
+      document.getElementById("f-year").value = student.year_level;
+      document.getElementById("f-gpa").value = student.gpa;
+      document.getElementById("f-status").value = student.status;
+      document.getElementById("f-email").value = student.email;
+      document.getElementById("f-phone").value = student.phone || "";
+      clearErrors();
+      document.getElementById("drawer-foot").innerHTML = '<button class="btn btn-ghost" id="form-cancel-btn" type="button">Cancel</button><button class="btn btn-primary" id="form-save-btn" type="button">Save changes</button>';
+      document.getElementById("form-cancel-btn").addEventListener("click", closeDrawer);
+      document.getElementById("form-save-btn").addEventListener("click", saveStudent);
+      openDrawer();
+    }
+
+    function clearErrors() {
+      ["e-name", "e-gpa", "e-email"].forEach((id) => { document.getElementById(id).textContent = ""; });
+    }
+
+    async function saveStudent() {
+      clearErrors();
+      const payload = {
+        student_id: document.getElementById("f-student-id").value,
+        name: document.getElementById("f-name").value.trim(),
+        course: document.getElementById("f-course").value,
+        year_level: document.getElementById("f-year").value,
+        gpa: document.getElementById("f-gpa").value,
+        status: document.getElementById("f-status").value,
+        email: document.getElementById("f-email").value.trim(),
+        phone: document.getElementById("f-phone").value.trim()
+      };
+
+      let hasError = false;
+      if (!payload.name) { document.getElementById("e-name").textContent = "Enter the student's full name."; hasError = true; }
+      const gpa = Number(payload.gpa);
+      if (Number.isNaN(gpa) || gpa < 0 || gpa > 4) { document.getElementById("e-gpa").textContent = "GPA must be between 0.00 and 4.00."; hasError = true; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) { document.getElementById("e-email").textContent = "Enter a valid email address."; hasError = true; }
+      if (hasError) return;
+
+      try {
+        const endpoint = state.drawerMode === "edit" ? `${API_BASE}/students/${payload.student_id}` : `${API_BASE}/students`;
+        const method = state.drawerMode === "edit" ? "PUT" : "POST";
+        const response = await fetch(endpoint, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Unable to save student");
+        }
+        closeDrawer();
+        await loadStudents();
+      } catch (error) {
+        document.getElementById("e-email").textContent = error.message;
+      }
+    }
+
+    function openDrawer() {
+      document.getElementById("scrim").classList.add("is-open");
+      document.getElementById("drawer").classList.add("is-open");
+    }
+
+    function closeDrawer() {
+      document.getElementById("scrim").classList.remove("is-open");
+      document.getElementById("drawer").classList.remove("is-open");
+      document.getElementById("confirm-modal").classList.remove("is-open");
+    }
+
+    function openDeleteConfirm(id) {
+      const student = students.find((item) => item.student_id === id);
+      if (!student) return;
+      state.pendingDeleteId = id;
+      document.getElementById("confirm-text").textContent = `This removes ${student.name}'s (${student.student_id}) file permanently. This can't be undone.`;
+      document.getElementById("scrim").classList.add("is-open");
+      document.getElementById("confirm-modal").classList.add("is-open");
+    }
+
+    function closeConfirm() {
+      document.getElementById("scrim").classList.remove("is-open");
+      document.getElementById("confirm-modal").classList.remove("is-open");
+      state.pendingDeleteId = null;
+    }
+
+    async function deleteSelectedStudent() {
+      if (!state.pendingDeleteId) return;
+      try {
+        const response = await fetch(`${API_BASE}/students/${state.pendingDeleteId}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("Unable to delete student");
+        closeConfirm();
+        await loadStudents();
+      } catch (error) {
+        closeConfirm();
+        alert(error.message);
+      }
+    }
+
+    document.getElementById("scrim").addEventListener("click", () => {
+      closeDrawer();
+      closeConfirm();
+    });
+    document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+    document.getElementById("confirm-cancel").addEventListener("click", closeConfirm);
+    document.getElementById("confirm-delete").addEventListener("click", deleteSelectedStudent);
+    document.getElementById("search-input").addEventListener("input", (event) => {
+      state.search = event.target.value;
+      renderTable();
+    });
+    document.getElementById("status-filter").addEventListener("change", (event) => {
+      state.status = event.target.value;
+      renderTable();
+    });
+    document.getElementById("add-student-btn").addEventListener("click", openAdd);
+
+    const chatPanel = document.getElementById("chat-panel");
+    const chatLauncher = document.getElementById("chat-launcher");
+    const chatBody = document.getElementById("chat-body");
+    const chatInput = document.getElementById("chat-input");
+
+    function openChat() {
+      chatPanel.classList.add("is-open");
+      chatLauncher.classList.add("is-hidden");
+      chatInput.focus();
+    }
+
+    function closeChat() {
+      chatPanel.classList.remove("is-open");
+      chatLauncher.classList.remove("is-hidden");
+    }
+
+    chatLauncher.addEventListener("click", openChat);
+    document.getElementById("open-chat-toolbar-btn").addEventListener("click", openChat);
+    document.getElementById("chat-close").addEventListener("click", closeChat);
+
+    function addMessage(text, cssClass) {
+      const div = document.createElement("div");
+      div.className = `msg ${cssClass}`;
+      div.textContent = text;
+      chatBody.appendChild(div);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      return div;
+    }
+
+    async function askAI(question) {
+      document.getElementById("chat-suggest").style.display = "none";
+      addMessage(question, "user");
+      const pending = addMessage("Checking the records…", "ai pending");
+      chatInput.value = "";
+      document.getElementById("chat-send").disabled = true;
+
+      try {
+        const form = new URLSearchParams({ question });
+        const response = await fetch(`${API_BASE}/ask-with-context`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: form.toString()
+        });
+        const html = await response.text();
+        pending.remove();
+        if (!response.ok) {
+          addMessage("I couldn't answer that from the current records.", "ai error");
+          return;
+        }
+        const answerContainer = document.createElement("div");
+        answerContainer.className = "msg ai";
+        answerContainer.innerHTML = html.replace(/^<p>|<\/p>$/g, "");
+        chatBody.appendChild(answerContainer);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      } catch (error) {
+        pending.remove();
+        addMessage("The records assistant is unavailable right now — please try again in a moment.", "ai error");
+      } finally {
+        document.getElementById("chat-send").disabled = false;
+      }
+    }
+
+    document.getElementById("chat-send").addEventListener("click", () => {
+      const question = chatInput.value.trim();
+      if (question) askAI(question);
+    });
+
+    chatInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        const question = chatInput.value.trim();
+        if (question) askAI(question);
+      }
+    });
+
+    document.querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => askAI(chip.dataset.q));
+    });
+
+    loadStudents().catch((error) => {
+      document.getElementById("student-tbody").innerHTML = `<tr><td colspan="6">${escapeHtml(error.message)}</td></tr>`;
+    });
+  </script>
+</body>
+</html>
