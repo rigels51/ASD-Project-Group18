@@ -1,0 +1,79 @@
+name: Student1 - Course and Enrollment
+
+on:
+  push:
+    branches:
+      - student1
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-validate:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      - name: Install student1 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r student1/enrolment-service/requirements.txt
+
+
+      - name: Validate Python syntax
+        run: |
+          python -m py_compile student1/database-service/app.py
+          python -m py_compile student1/database-service/init_db.py
+          python -m py_compile student1/enrolment-service/app.py
+          python -m py_compile student1/enrolment-service/routes/normal_ui.py
+          python -m py_compile student1/enrolment-service/routes/ai_mode.py
+          python -m py_compile student1/enrolment-service/services/database_api.py
+          python -m py_compile student1/enrolment-service/services/llm_client.py
+          python -m py_compile student1/enrolment-service/services/prompt_loader.py
+          python -m py_compile student1/enrolment-service/views/html_formatters.py
+
+
+      - name: Run student1 tests
+        run: |
+          python -m unittest discover -s student1/tests -p "test_*.py"
+
+
+      - name: Build frontend service
+        run: |
+          docker build \
+            -f student1/frontend-service/Dockerfile \
+            -t student1-course-frontend \
+            student1/frontend-service
+
+
+      - name: Build enrolment service
+        run: |
+          docker build \
+            -f student1/enrolment-service/Dockerfile \
+            -t student1-course-enrolment \
+            .
+
+
+      - name: Build database service
+        run: |
+          docker build \
+            -f student1/database-service/Dockerfile \
+            -t student1-course-database \
+            student1/database-service
+
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config
