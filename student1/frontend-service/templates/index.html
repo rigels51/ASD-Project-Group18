@@ -172,6 +172,7 @@
       font-family: inherit; font-size: 14px; background: var(--paper); color: var(--ink);
     }
     #f-course:disabled { appearance: none; -webkit-appearance: none; }
+    #f-status:disabled { appearance: none; -webkit-appearance: none; }
     .field input:focus, .field select:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .drawer-foot { padding: 16px 22px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
@@ -624,8 +625,10 @@
       document.getElementById("f-course").disabled = false;
       document.getElementById("f-course").selectedIndex = 0;
       document.getElementById("f-year").selectedIndex = 0;
-      document.getElementById("f-gpa").value = "";
+      document.getElementById("f-gpa").value = "0.00";
+      document.getElementById("f-gpa").disabled = true;
       document.getElementById("f-status").selectedIndex = 0;
+      document.getElementById("f-status").disabled = true;
       document.getElementById("f-email").value = "";
       document.getElementById("f-phone").value = "";
       clearErrors();
@@ -651,7 +654,9 @@
       document.getElementById("f-course").disabled = true;
       document.getElementById("f-year").value = student.year_level;
       document.getElementById("f-gpa").value = student.gpa;
+      document.getElementById("f-gpa").disabled = false;
       document.getElementById("f-status").value = student.status;
+      document.getElementById("f-status").disabled = false;
       document.getElementById("f-email").value = student.email;
       document.getElementById("f-phone").value = student.phone || "";
       clearErrors();
