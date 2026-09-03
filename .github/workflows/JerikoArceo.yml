@@ -4,16 +4,10 @@ on:
   push:
     branches:
       - jeriko
-    paths:
-      - 'Student2/**'
-      - '.github/workflows/Jeriko.yml'
 
   pull_request:
     branches:
       - main
-    paths:
-      - 'Student2/**'
-      - '.github/workflows/Jeriko.yml'
 
 jobs:
   build-and-validate:
