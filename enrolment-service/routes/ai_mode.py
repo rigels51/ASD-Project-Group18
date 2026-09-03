@@ -1,10 +1,19 @@
 from flask import Blueprint, request
 
+from services.database_api import get_students
 from services.llm_client import OLLAMA_MODEL, call_architecture_agent, create_chat_completion
 from services.prompt_loader import load_prompt
 
 
 ai_mode_bp = Blueprint("ai_mode", __name__)
+
+
+def build_student_records_context():
+    students = get_students()
+    return {
+        "student_count": len(students),
+        "students": students,
+    }
 
 
 @ai_mode_bp.post("/ask")
@@ -15,13 +24,21 @@ def ask_local_agent():
         return "<p>Question is required.</p>", 400
 
     try:
+        context = build_student_records_context()
+        student_data = context["students"]
+        records_text = "\n".join(
+            f"{student['student_id']} | {student['name']} | {student['course']} | {student['year_level']} | {student['status']} | GPA {student['gpa']} | {student['email']} | {student['phone']}"
+            for student in student_data
+        )
         answer = create_chat_completion(
             [
                 {
                     "role": "system",
                     "content": (
-                        "You are a concise software engineering assistant. "
-                        "Answer in one short paragraph unless asked otherwise."
+                        "You are the AI records assistant for a university student records system. "
+                        "Use only the provided student data. Answer clearly and briefly in 2-5 sentences. "
+                        "If the information is not present, say so plainly.\n\nSTUDENT DATA:\n"
+                        + records_text
                     ),
                 },
                 {"role": "user", "content": question},
@@ -51,11 +68,19 @@ def ask_with_context():
         system_prompt = load_prompt("service/implementation/system_prompt.txt")
         task_prompt = load_prompt("service/implementation/task_prompt.txt")
         context_prompt = load_prompt("service/implementation/context_prompt.txt")
+        student_data = get_students()
+        records_text = "\n".join(
+            f"{student['student_id']} | {student['name']} | {student['course']} | {student['year_level']} | {student['status']} | GPA {student['gpa']} | {student['email']} | {student['phone']}"
+            for student in student_data
+        )
 
         final_prompt = f"""
 {task_prompt}
 
 {context_prompt}
+
+Current student records:
+{records_text}
 
 User Question:
 
