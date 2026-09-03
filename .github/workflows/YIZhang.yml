@@ -16,7 +16,12 @@ on:
       - 'Student4/**'
       - '.github/workflows/YiZhang.yml'
       - 'prompts/**'
+on:
+  workflow_dispatch:
 
+  push:
+    branches:
+      - Yi-Zhang
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
@@ -59,9 +64,3 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose -f Student4/docker-compose.yml config
 
-        on:
-  workflow_dispatch:
-
-  push:
-    branches:
-      - Yi-Zhang
