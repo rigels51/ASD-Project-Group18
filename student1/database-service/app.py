@@ -118,6 +118,17 @@ def get_student_by_id():
     return get_student(student_id)
 
 
+def get_next_student_id(conn):
+    highest_id = conn.execute(
+        """
+        SELECT MAX(CAST(SUBSTR(student_id, 5) AS INTEGER))
+        FROM students
+        WHERE student_id GLOB 'STU-[0-9]*'
+        """
+    ).fetchone()[0]
+    return f"STU-{max(highest_id or 1000, 1000) + 1:04d}"
+
+
 @app.get("/students/<student_id>")
 def get_student(student_id):
     conn = get_db_connection()
@@ -160,24 +171,23 @@ def create_student():
         "course",
         "year_level",
         "email",
-        "gpa",
     ]
 
     missing = [field for field in required_fields if not payload.get(field)]
     if missing:
         return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
 
-    student_id = payload.get("student_id") or f"STU-{len(get_students().get_json()) + 1:04d}"
     name = payload["name"].strip()
     course = payload["course"].strip()
     year_level = payload["year_level"].strip()
     email = payload["email"].strip()
     phone = (payload.get("phone") or "").strip()
-    gpa = float(payload["gpa"])
-    status = (payload.get("status") or "Enrolled").strip()
+    gpa = 0.0
+    status = "Enrolled"
 
     conn = get_db_connection()
     try:
+        student_id = get_next_student_id(conn)
         conn.execute(
             """
             INSERT INTO students (student_id, name, course, year_level, email, phone, gpa, status)
