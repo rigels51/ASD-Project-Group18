@@ -1,6 +1,8 @@
 name: Yi Zhang - Course and Enrollment
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - Yi-Zhang
@@ -48,26 +50,13 @@ jobs:
           python -m py_compile Student4/enrolment-service/views/html_formatters.py
 
       - name: Build frontend service
-        run: |
-          docker build \
-            -f Student4/frontend-service/Dockerfile \
-            -t yi-course-frontend \
-            Student4/frontend-service
+        run: docker build -f Student4/frontend-service/Dockerfile -t yi-course-frontend Student4/frontend-service
 
       - name: Build enrolment service
-        run: |
-          docker build \
-            -f Student4/enrolment-service/Dockerfile \
-            -t yi-course-enrolment \
-            .
+        run: docker build -f Student4/enrolment-service/Dockerfile -t yi-course-enrolment .
 
       - name: Build database service
-        run: |
-          docker build \
-            -f Student4/database-service/Dockerfile \
-            -t yi-course-database \
-            Student4/database-service
+        run: docker build -f Student4/database-service/Dockerfile -t yi-course-database Student4/database-service
 
       - name: Validate Docker Compose
-        run: |
-          docker compose -f Student4/docker-compose.yml config
+        run: docker compose -f Student4/docker-compose.yml config
