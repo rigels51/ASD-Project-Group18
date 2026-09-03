@@ -1,7 +1,7 @@
 services:
     frontend-service:
         build:
-            context: ./frontend-service
+            context: ./student1/frontend-service
         container_name: frontend-service
         ports:
             - "8080:80"
@@ -14,7 +14,7 @@ services:
     enrolment-service:
         build:
             context: .
-            dockerfile: enrolment-service/Dockerfile
+            dockerfile: student1/enrolment-service/Dockerfile
         container_name: enrolment-service
         ports:
             - "5001:5001"
@@ -32,7 +32,7 @@ services:
 
     database-service:
         build:
-            context: ./database-service
+            context: ./student1/database-service
         container_name: database-service
         ports:
             - "5002:5002"
