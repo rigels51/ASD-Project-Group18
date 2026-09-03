@@ -58,3 +58,10 @@ jobs:
 
       - name: Validate Docker Compose
         run: docker compose -f Student4/docker-compose.yml config
+
+        on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - Yi-Zhang
