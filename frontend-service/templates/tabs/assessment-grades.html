@@ -1,0 +1,573 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Assessment & Grades Management</title>
+    <!-- Shared design system: tokens, .panel/.btn/.pill/.table-wrap/.drawer/.field -->
+    <link rel="stylesheet" href="/css/styles.css" />
+    <!-- Feature-only additions, scoped under .ag-app -->
+    <link rel="stylesheet" href="/css/features/assessment-grades.css" />
+  </head>
+  <body>
+    <main class="app-shell ag-app">
+      <header class="app-header">
+        <div>
+          <span class="eyebrow">Assessment & Grades System</span>
+          <h1>Assessment & Grades Management</h1>
+          <p class="sub">
+            Create, track, and grade course assessments — ask the AI agent for a
+            grounded summary any time.
+          </p>
+        </div>
+        <span class="term-badge mono">Assessment & Grades Management</span>
+      </header>
+
+      <div class="layout">
+        <!-- ---------------- Sidebar ---------------- -->
+        <aside class="sidebar">
+          <div class="panel">
+            <h3>Overview</h3>
+            <div class="stat-row">
+              <span class="n" id="stat-assessments">—</span
+              ><span class="l">Assessments</span>
+            </div>
+            <div class="stat-row">
+              <span class="n" id="stat-grades">—</span
+              ><span class="l">Grades recorded</span>
+            </div>
+            <div class="stat-row">
+              <span class="n" id="stat-ungraded">—</span
+              ><span class="l">Ungraded</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Courses</h3>
+            <ul class="dept-list" id="course-filter-list">
+              <li>
+                <button type="button" class="is-active" data-course="">
+                  <span><span class="dept-dot all"></span>All courses</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-course="ASD101">
+                  <span><span class="dept-dot course"></span>ASD101</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-course="WEB201">
+                  <span><span class="dept-dot course"></span>WEB201</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-course="DBS101">
+                  <span><span class="dept-dot course"></span>DBS101</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-course="NET201">
+                  <span><span class="dept-dot course"></span>NET201</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" data-course="SEC301">
+                  <span><span class="dept-dot course"></span>SEC301</span>
+                </button>
+              </li>
+            </ul>
+            <p class="helper-text" style="margin-top: 10px">
+              Filters both tables below.
+            </p>
+          </div>
+        </aside>
+
+        <!-- ---------------- Main ---------------- -->
+        <section class="main">
+          <!-- Assessments -->
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Assessments</h3>
+              <button class="btn btn-primary" id="open-add-assessment">
+                + Add assessment
+              </button>
+            </div>
+
+            <div class="toolbar">
+              <div class="search-box">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="text"
+                  id="assessment-search"
+                  placeholder="Search assessment name…"
+                />
+              </div>
+              <select class="status-filter" id="assessment-type-filter">
+                <option value="">All types</option>
+                <option value="Assignment">Assignment</option>
+                <option value="Test">Test</option>
+                <option value="Exam">Exam</option>
+                <option value="Project">Project</option>
+                <option value="Presentation">Presentation</option>
+                <option value="Quiz">Quiz</option>
+              </select>
+              <button class="btn btn-ghost" id="clear-assessment-filters">
+                Clear
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <div id="assessments-result"></div>
+            </div>
+          </div>
+
+          <!-- Grades -->
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Grades</h3>
+              <button class="btn btn-primary" id="open-add-grade">
+                + Record grade
+              </button>
+            </div>
+
+            <div class="toolbar">
+              <div class="search-box">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input
+                  type="number"
+                  id="grade-student-search"
+                  placeholder="Search by student ID…"
+                  min="1"
+                />
+              </div>
+              <button class="btn btn-ghost" id="show-all-grades">
+                Show all
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <div id="grades-result"></div>
+            </div>
+          </div>
+
+          <!-- AI agent -->
+          <div class="panel chat-panel">
+            <h3>Ask the Assessment & Grades AI Agent</h3>
+            <div class="chat-log" id="chat-log">
+              <div class="chat-bubble answer">
+                <span class="eyebrow">Agent</span>
+                Ask about a student's results, or a course's assessments — I
+                only answer from real data fetched from the grades and
+                assessments services.
+              </div>
+            </div>
+            <form class="chat-input-row" id="ask-form">
+              <input
+                type="text"
+                id="question"
+                name="question"
+                placeholder="e.g. What did student 9 score in SEC301?"
+              />
+              <button class="btn btn-primary" type="submit">Ask</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ---------------- Drawer (shared for add/edit assessment + add/edit grade) ---------------- -->
+    <div class="scrim" id="scrim"></div>
+    <aside class="drawer" id="drawer">
+      <div class="drawer-head">
+        <h2 id="drawer-title">Add assessment</h2>
+        <button type="button" id="drawer-close" aria-label="Close">
+          &times;
+        </button>
+      </div>
+      <div class="drawer-body" id="drawer-body">
+        <!-- injected per mode by JS -->
+      </div>
+      <div class="drawer-foot">
+        <button class="btn btn-ghost" type="button" id="drawer-cancel">
+          Cancel
+        </button>
+        <button class="btn btn-primary" type="button" id="drawer-save">
+          Save
+        </button>
+      </div>
+    </aside>
+
+    <script>
+      const BACKEND_URL = "http://localhost:5021";
+      let activeCourse = "";
+
+      async function fetchText(url, options = {}) {
+        const response = await fetch(url, options);
+        return { status: response.status, body: await response.text() };
+      }
+
+      function countRows(html) {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return doc.querySelectorAll("tbody tr").length;
+      }
+
+      function countUngraded(html) {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return doc.querySelectorAll(".pill.grade-ungraded").length;
+      }
+
+      // ---------------- Assessments ----------------
+      async function loadAssessments() {
+        const params = new URLSearchParams();
+        if (activeCourse) params.set("course_id", activeCourse);
+        const type = document.getElementById("assessment-type-filter").value;
+        if (type) params.set("assessment_type", type);
+        const q = document.getElementById("assessment-search").value.trim();
+        if (q) params.set("q", q);
+
+        const { body } = await fetchText(
+          `${BACKEND_URL}/assessments?${params.toString()}`,
+        );
+        document.getElementById("assessments-result").innerHTML = body;
+        document.getElementById("stat-assessments").textContent =
+          countRows(body);
+      }
+
+      document
+        .getElementById("assessment-search")
+        .addEventListener("input", debounce(loadAssessments, 300));
+      document
+        .getElementById("assessment-type-filter")
+        .addEventListener("change", loadAssessments);
+      document
+        .getElementById("clear-assessment-filters")
+        .addEventListener("click", () => {
+          document.getElementById("assessment-search").value = "";
+          document.getElementById("assessment-type-filter").value = "";
+          loadAssessments();
+        });
+
+      document
+        .getElementById("assessments-result")
+        .addEventListener("click", async (e) => {
+          const btn = e.target.closest("button[data-action]");
+          if (!btn) return;
+          const id = btn.dataset.id;
+
+          if (btn.dataset.action === "view") {
+            const { body } = await fetchText(
+              `${BACKEND_URL}/assessments/${id}`,
+            );
+            openDrawer("view-assessment", body);
+          }
+          if (btn.dataset.action === "edit-assessment") {
+            const { body } = await fetchText(
+              `${BACKEND_URL}/assessments/${id}`,
+            );
+            openDrawer("edit-assessment", null, id);
+          }
+          if (btn.dataset.action === "delete-assessment") {
+            if (confirm(`Delete assessment ${id}?`)) {
+              await fetchText(`${BACKEND_URL}/assessments/${id}`, {
+                method: "DELETE",
+              });
+              loadAssessments();
+            }
+          }
+        });
+
+      // ---------------- Grades ----------------
+      async function loadGrades(mode = "all", value = "") {
+        let url = `${BACKEND_URL}/grades`;
+        if (mode === "student") url = `${BACKEND_URL}/grades/student/${value}`;
+        if (mode === "course") url = `${BACKEND_URL}/grades/course/${value}`;
+
+        const { body } = await fetchText(url);
+        document.getElementById("grades-result").innerHTML = body;
+        document.getElementById("stat-grades").textContent = countRows(body);
+        document.getElementById("stat-ungraded").textContent =
+          countUngraded(body);
+      }
+
+      document
+        .getElementById("show-all-grades")
+        .addEventListener("click", () => {
+          document.getElementById("grade-student-search").value = "";
+          loadGrades(activeCourse ? "course" : "all", activeCourse);
+        });
+
+      document.getElementById("grade-student-search").addEventListener(
+        "input",
+        debounce((e) => {
+          const val = e.target.value.trim();
+          if (val) loadGrades("student", val);
+          else loadGrades(activeCourse ? "course" : "all", activeCourse);
+        }, 350),
+      );
+
+      document
+        .getElementById("grades-result")
+        .addEventListener("click", async (e) => {
+          const btn = e.target.closest("button[data-action]");
+          if (!btn) return;
+          const id = btn.dataset.id;
+
+          if (btn.dataset.action === "edit-grade") {
+            openDrawer("edit-grade", null, id);
+          }
+          if (btn.dataset.action === "delete-grade") {
+            if (confirm(`Delete grade ${id}?`)) {
+              await fetchText(`${BACKEND_URL}/grades/${id}`, {
+                method: "DELETE",
+              });
+              loadGrades(activeCourse ? "course" : "all", activeCourse);
+            }
+          }
+        });
+
+      // ---------------- Course filter ----------------
+      document
+        .getElementById("course-filter-list")
+        .addEventListener("click", (e) => {
+          const btn = e.target.closest("button[data-course]");
+          if (!btn) return;
+          activeCourse = btn.dataset.course;
+          document
+            .querySelectorAll("#course-filter-list button")
+            .forEach((b) => b.classList.remove("is-active"));
+          btn.classList.add("is-active");
+          loadAssessments();
+          loadGrades(activeCourse ? "course" : "all", activeCourse);
+        });
+
+      // ---------------- Drawer ----------------
+      const scrim = document.getElementById("scrim");
+      const drawer = document.getElementById("drawer");
+      const drawerTitle = document.getElementById("drawer-title");
+      const drawerBody = document.getElementById("drawer-body");
+      const drawerSave = document.getElementById("drawer-save");
+      let drawerMode = null;
+      let drawerEditId = null;
+
+      function closeDrawer() {
+        scrim.classList.remove("is-open");
+        drawer.classList.remove("is-open");
+        drawerMode = null;
+        drawerEditId = null;
+      }
+      document
+        .getElementById("drawer-close")
+        .addEventListener("click", closeDrawer);
+      document
+        .getElementById("drawer-cancel")
+        .addEventListener("click", closeDrawer);
+      scrim.addEventListener("click", closeDrawer);
+
+      function openDrawer(mode, viewHtml = null, editId = null) {
+        drawerMode = mode;
+        drawerEditId = editId;
+
+        if (mode === "view-assessment") {
+          drawerTitle.textContent = "Assessment detail";
+          drawerBody.innerHTML = viewHtml;
+          drawerSave.style.display = "none";
+        } else if (mode === "add-assessment" || mode === "edit-assessment") {
+          drawerTitle.textContent =
+            mode === "add-assessment"
+              ? "Add assessment"
+              : `Edit assessment #${editId}`;
+          drawerSave.style.display = "";
+          drawerBody.innerHTML = `
+            <div class="field"><label>Course code</label><input id="f-course_id" placeholder="ASD101" ${mode === "add-assessment" ? "required" : "placeholder='Leave blank to keep'"}></div>
+            <div class="field"><label>Assessment name</label><input id="f-assessment_name" ${mode === "add-assessment" ? "required" : "placeholder='Leave blank to keep'"}></div>
+            <div class="field-row">
+                <div class="field"><label>Type</label><input id="f-assessment_type" placeholder="Assignment"></div>
+                <div class="field"><label>Due date</label><input id="f-due_date" type="date"></div>
+            </div>
+            <div class="field-row">
+                <div class="field"><label>Max mark</label><input id="f-max_mark" type="number" step="0.1"></div>
+                <div class="field"><label>Weight %</label><input id="f-weight" type="number" step="0.1"></div>
+            </div>
+            <div class="field"><label>Description</label><input id="f-description"></div>
+            <p class="field-error" id="drawer-error"></p>
+        `;
+        } else if (mode === "add-grade" || mode === "edit-grade") {
+          drawerTitle.textContent =
+            mode === "add-grade" ? "Record grade" : `Edit grade #${editId}`;
+          drawerSave.style.display = "";
+          drawerBody.innerHTML = `
+            ${
+              mode === "add-grade"
+                ? `
+            <div class="field-row">
+                <div class="field"><label>Assessment ID</label><input id="f-assessment_id" type="number" required></div>
+                <div class="field"><label>Student ID</label><input id="f-student_id" type="number" required></div>
+            </div>`
+                : ""
+            }
+            <div class="field-row">
+                <div class="field"><label>Mark</label><input id="f-mark" type="number" step="0.1"></div>
+                <div class="field"><label>Grade</label><input id="f-grade" placeholder="HD / D / C / P / N"></div>
+            </div>
+            ${mode === "add-grade" ? `<div class="field"><label>Date recorded</label><input id="f-date_recorded" type="date" required></div>` : ""}
+            <div class="field"><label>Feedback</label><input id="f-feedback"></div>
+            <p class="field-error" id="drawer-error"></p>
+        `;
+        }
+
+        scrim.classList.add("is-open");
+        drawer.classList.add("is-open");
+      }
+
+      document
+        .getElementById("open-add-assessment")
+        .addEventListener("click", () => openDrawer("add-assessment"));
+      document
+        .getElementById("open-add-grade")
+        .addEventListener("click", () => openDrawer("add-grade"));
+
+      drawerSave.addEventListener("click", async () => {
+        const errorEl = document.getElementById("drawer-error");
+        const val = (id) => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : "";
+        };
+
+        try {
+          if (
+            drawerMode === "add-assessment" ||
+            drawerMode === "edit-assessment"
+          ) {
+            const params = new URLSearchParams();
+            [
+              "course_id",
+              "assessment_name",
+              "assessment_type",
+              "due_date",
+              "max_mark",
+              "weight",
+              "description",
+            ].forEach((f) => {
+              const v = val(`f-${f}`);
+              if (v) params.set(f, v);
+            });
+            const url =
+              drawerMode === "add-assessment"
+                ? `${BACKEND_URL}/assessments`
+                : `${BACKEND_URL}/assessments/${drawerEditId}`;
+            const method = drawerMode === "add-assessment" ? "POST" : "PUT";
+            const res = await fetch(url, {
+              method,
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: params,
+            });
+            if (!res.ok) {
+              errorEl.textContent = "Please check the required fields.";
+              return;
+            }
+            closeDrawer();
+            loadAssessments();
+          } else if (
+            drawerMode === "add-grade" ||
+            drawerMode === "edit-grade"
+          ) {
+            const params = new URLSearchParams();
+            [
+              "assessment_id",
+              "student_id",
+              "mark",
+              "grade",
+              "date_recorded",
+              "feedback",
+            ].forEach((f) => {
+              const v = val(`f-${f}`);
+              if (v) params.set(f, v);
+            });
+            const url =
+              drawerMode === "add-grade"
+                ? `${BACKEND_URL}/grades`
+                : `${BACKEND_URL}/grades/${drawerEditId}`;
+            const method = drawerMode === "add-grade" ? "POST" : "PUT";
+            const res = await fetch(url, {
+              method,
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: params,
+            });
+            if (!res.ok) {
+              errorEl.textContent = "Please check the required fields.";
+              return;
+            }
+            closeDrawer();
+            loadGrades(activeCourse ? "course" : "all", activeCourse);
+          }
+        } catch (err) {
+          errorEl.textContent =
+            "Request failed — check the services are running.";
+        }
+      });
+
+      // ---------------- AI agent ----------------
+      document
+        .getElementById("ask-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const input = document.getElementById("question");
+          const question = input.value.trim();
+          if (!question) return;
+
+          const log = document.getElementById("chat-log");
+          log.insertAdjacentHTML(
+            "beforeend",
+            `<div class="chat-bubble question">${question}</div>`,
+          );
+          input.value = "";
+          log.scrollTop = log.scrollHeight;
+
+          const params = new URLSearchParams();
+          params.set("question", question);
+          const { body } = await fetchText(`${BACKEND_URL}/ask`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: params,
+          });
+          log.insertAdjacentHTML(
+            "beforeend",
+            `<div class="chat-bubble answer"><span class="eyebrow">Agent</span>${body}</div>`,
+          );
+          log.scrollTop = log.scrollHeight;
+        });
+
+      // ---------------- Utility ----------------
+      function debounce(fn, delay) {
+        let t;
+        return (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => fn(...args), delay);
+        };
+      }
+
+      // ---------------- Initial load ----------------
+      loadAssessments();
+      loadGrades();
+    </script>
+  </body>
+</html>
