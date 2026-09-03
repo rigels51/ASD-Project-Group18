@@ -7,11 +7,13 @@ on:
       - 'student-3/**'
     paths:
       - 'student-3/**'
+      - '.github/workflows/student-3.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'student-3/**'
+      - '.github/workflows/student-3.yml'
 
 jobs:
   build-and-validate:
