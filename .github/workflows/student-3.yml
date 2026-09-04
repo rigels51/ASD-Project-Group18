@@ -1,0 +1,76 @@
+name: Student 3 - Timetable & Class Scheduling CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'student-3/**'
+    paths:
+      - 'student-3/**'
+      - '.github/workflows/student-3.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'student-3/**'
+      - '.github/workflows/student-3.yml'
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install backend dependencies
+        working-directory: student-3/backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialise database
+        working-directory: student-3/backend
+        run: python init_db.py
+
+      - name: Verify database seeded correctly
+        working-directory: student-3/backend
+        run: |
+          python -c "
+          import sqlite3
+          conn = sqlite3.connect('timetable.db')
+          count = conn.execute('SELECT COUNT(*) FROM timetable').fetchone()[0]
+          assert count == 10, f'Expected 10 seed records, found {count}'
+          print(f'Database check passed: {count} records')
+          "
+
+      - name: Start backend server
+        working-directory: student-3/backend
+        run: |
+          nohup python app.py > flask.log 2>&1 &
+          sleep 3
+
+      - name: Validate core endpoints respond
+        run: |
+          curl -sf http://127.0.0.1:5003/timetable -o /dev/null
+          curl -sf http://127.0.0.1:5003/timetable/1 -o /dev/null
+          curl -sf http://127.0.0.1:5003/timetable/clashes -o /dev/null
+          echo "All core endpoints responded successfully"
+
+      - name: Build backend Docker image
+        working-directory: student-3/backend
+        run: docker build -t timetable-backend .
+
+      - name: Build frontend Docker image
+        working-directory: student-3/frontend
+        run: docker build -t timetable-frontend .
+
+      - name: Show backend logs on failure
+        if: failure()
+        working-directory: student-3/backend
+        run: cat flask.log || true

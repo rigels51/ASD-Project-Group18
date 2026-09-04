@@ -78,6 +78,33 @@ services:
             - enrolment-network
         restart: unless-stopped
 
+    timetable-backend:
+        build:
+            context: ./student-3/backend
+        container_name: timetable-backend
+        ports:
+            - "5003:5003"
+        environment:
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    timetable-frontend:
+        build:
+            context: ./student-3/frontend
+        container_name: timetable-frontend
+        ports:
+            - "8003:80"
+        depends_on:
+            - timetable-backend
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
 volumes:
     database_data:
     assessment_grades_data:
@@ -85,11 +112,3 @@ volumes:
 networks:
     enrolment-network:
         driver: bridge
-
-
-
-
-
-
-    
-
