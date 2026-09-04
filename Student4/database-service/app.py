@@ -13,9 +13,6 @@ def get_db_connection():
     return conn
 
 
-# -------------------------
-# Health Check
-# -------------------------
 @app.get("/")
 def health():
     return jsonify({
@@ -24,11 +21,8 @@ def health():
     })
 
 
-# =========================================================
-# COURSE CRUD
-# =========================================================
 
-# READ - Get all courses
+#  Get all courses
 @app.get("/courses")
 def get_courses():
     conn = get_db_connection()
@@ -44,7 +38,7 @@ def get_courses():
     return jsonify([dict(row) for row in courses])
 
 
-# READ - Get one course
+#Get one course
 @app.get("/courses/<int:course_id>")
 def get_course(course_id):
     conn = get_db_connection()
@@ -63,7 +57,7 @@ def get_course(course_id):
     return jsonify(dict(course))
 
 
-# CREATE - Add course
+#Add course
 @app.post("/courses")
 def create_course():
     data = request.get_json(silent=True) or {}
@@ -127,7 +121,7 @@ def create_course():
     }), 201
 
 
-# UPDATE - Update course
+# Update course
 @app.put("/courses/<int:course_id>")
 def update_course(course_id):
     data = request.get_json(silent=True) or {}
@@ -193,7 +187,7 @@ def update_course(course_id):
     })
 
 
-# DELETE - Delete course
+#Delete course
 @app.delete("/courses/<int:course_id>")
 def delete_course(course_id):
     conn = get_db_connection()

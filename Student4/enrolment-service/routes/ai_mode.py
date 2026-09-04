@@ -17,9 +17,6 @@ from services.prompt_loader import load_prompt
 ai_mode_bp = Blueprint("ai_mode", __name__)
 
 
-# =========================================================
-# BASIC AI MODE
-# =========================================================
 
 @ai_mode_bp.post("/ask")
 def ask_local_agent():
@@ -59,9 +56,7 @@ def ask_local_agent():
         )
 
 
-# =========================================================
-# AI MODE WITH DATABASE CONTEXT
-# =========================================================
+
 
 @ai_mode_bp.post("/ask-with-context")
 def ask_with_context():
@@ -71,11 +66,11 @@ def ask_with_context():
         return "<p>Question is required.</p>", 400
 
     try:
-        # Get live data from database-service
+        # database-service
         courses = get_courses()
         enrolments = get_enrolments()
 
-        # Create useful course availability information
+        # Create course information
         course_context = []
 
         for course in courses:
@@ -147,9 +142,7 @@ USER QUESTION:
         )
 
 
-# =========================================================
-# LAB 4 AGENTIC AI ROUTES
-# =========================================================
+
 
 @ai_mode_bp.post("/pattern-selection")
 def pattern_selection():

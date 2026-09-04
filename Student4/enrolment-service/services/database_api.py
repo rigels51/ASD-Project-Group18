@@ -8,9 +8,6 @@ DATABASE_SERVICE_URL = os.getenv(
 )
 
 
-# =========================================================
-# COURSE API
-# =========================================================
 
 def get_courses():
     response = requests.get(
@@ -51,9 +48,6 @@ def delete_course_response(course_id):
     )
 
 
-# =========================================================
-# ENROLMENT API
-# =========================================================
 
 def get_enrolments():
     response = requests.get(
