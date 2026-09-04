@@ -5,260 +5,339 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Timetable & Class Scheduling</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<div class="board">
+<div class="app-shell">
 
-    <header class="masthead">
-        <div class="masthead-title">
+    <header class="app-header">
+        <div>
+            <span class="eyebrow">Student 3</span>
             <h1>Timetable &amp; Class Scheduling</h1>
-            <p>Semester schedule for Group 18's University Management System.</p>
+            <p class="sub">University Management System — Group 18</p>
         </div>
-
-        <div class="stamp-row" id="role-stamps" role="group" aria-label="Viewing role">
-            <button type="button" class="stamp" data-role="student">Student</button>
-            <button type="button" class="stamp" data-role="lecturer">Lecturer</button>
-            <button type="button" class="stamp" data-role="admin">Admin</button>
-        </div>
+        <span class="term-badge mono">2026-S2</span>
     </header>
 
-    <div class="frame">
-        <nav class="tab-rail" id="tab-rail" aria-label="Sections">
-            <button type="button" class="tab-btn is-active" data-tab="browse">Browse</button>
-            <button type="button" class="tab-btn" data-tab="manage" data-role-required="admin">Manage</button>
-            <button type="button" class="tab-btn" data-tab="clashes" data-role-required="admin">Clashes</button>
-            <button type="button" class="tab-btn" data-tab="ask">Ask AI</button>
-        </nav>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="panel">
+                <h3>Viewing as</h3>
+                <ul class="dept-list" id="role-list">
+                    <li><button type="button" class="is-active" data-role="student"><span><span class="dept-dot" style="background:var(--active)"></span>Student</span></button></li>
+                    <li><button type="button" data-role="lecturer"><span><span class="dept-dot" style="background:var(--leave)"></span>Lecturer</span></button></li>
+                    <li><button type="button" data-role="admin"><span><span class="dept-dot" style="background:var(--brass)"></span>Admin</span></button></li>
+                </ul>
+            </div>
 
-        <main class="content">
+            <div class="panel">
+                <h3>Sections</h3>
+                <ul class="dept-list" id="tab-list">
+                    <li><button type="button" class="is-active" data-tab="browse">Browse</button></li>
+                    <li><button type="button" data-tab="manage" data-role-required="admin">Manage</button></li>
+                    <li><button type="button" data-tab="clashes" data-role-required="admin">Clashes</button></li>
+                    <li><button type="button" data-tab="ask">Ask AI</button></li>
+                </ul>
+            </div>
+        </aside>
+
+        <main class="main">
 
             <section class="tab-panel is-active" id="panel-browse">
-                <h2>Browse the timetable</h2>
-
-                <div class="controls-row">
-                    <button id="view-all-btn" type="button" class="btn btn-primary">View all sessions</button>
-
-                    <form id="filter-course-form" class="inline-form">
-                        <label for="course_code">Course code</label>
-                        <input id="course_code" name="course_code" type="text" placeholder="ASD101">
-                        <button type="submit" class="btn">Filter</button>
-                    </form>
-                </div>
-
-                <div id="my-sessions-lecturer" class="lecturer-lookup is-hidden">
-                    <label for="lecturer_staff_id">Look up by staff ID</label>
-                    <div class="inline-form">
-                        <input id="lecturer_staff_id" type="text" placeholder="STF001">
-                        <button id="my-sessions-btn" type="button" class="btn">View my sessions</button>
+                <div class="toolbar">
+                    <div class="search-box">
+                        <input id="course_code" type="text" placeholder="Filter by course code, e.g. ASD101">
                     </div>
-                    <p class="note">Staff ID matching activates once Staff Management is integrated.</p>
+                    <button id="filter-btn" type="button" class="btn btn-ghost">Filter</button>
+                    <button id="view-all-btn" type="button" class="btn btn-primary">View all sessions</button>
                 </div>
 
-                <div id="timetable-result" class="ledger"></div>
+                <div id="lecturer-lookup" class="panel is-hidden" style="margin-top:12px;">
+                    <h3>My sessions (by staff ID)</h3>
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <input id="lecturer_staff_id" type="text" placeholder="STF001">
+                        </div>
+                        <button id="my-sessions-btn" type="button" class="btn btn-ghost">Look up</button>
+                    </div>
+                </div>
+
+                <div id="timetable-result" class="table-wrap" style="margin-top:14px;">
+                    <div class="empty-state">
+                        <h3>No sessions loaded yet</h3>
+                        <p>Click "View all sessions" to load the timetable.</p>
+                    </div>
+                </div>
             </section>
 
             <section class="tab-panel" id="panel-manage">
-                <h2>Create a session</h2>
-                <form id="create-form" class="stacked-form">
-                    <div class="field-grid">
-                        <div>
-                            <label for="c_course_code">Course code</label>
-                            <input id="c_course_code" name="course_code" type="text" required>
-                        </div>
-                        <div>
-                            <label for="c_session_type">Type</label>
-                            <select id="c_session_type" name="session_type">
-                                <option>Lecture</option>
-                                <option>Tutorial</option>
-                                <option>Lab</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="c_day">Day</label>
-                            <select id="c_day" name="day">
-                                <option>Monday</option>
-                                <option>Tuesday</option>
-                                <option>Wednesday</option>
-                                <option>Thursday</option>
-                                <option>Friday</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="c_semester">Semester</label>
-                            <input id="c_semester" name="semester" type="text" value="2026-S2" required>
-                        </div>
-                        <div>
-                            <label for="c_start_time">Start time</label>
-                            <input id="c_start_time" name="start_time" type="time" required>
-                        </div>
-                        <div>
-                            <label for="c_end_time">End time</label>
-                            <input id="c_end_time" name="end_time" type="time" required>
-                        </div>
-                        <div>
-                            <label for="c_room">Room</label>
-                            <input id="c_room" name="room" type="text" required>
-                        </div>
-                        <div>
-                            <label for="c_staff_id">Staff ID (optional)</label>
-                            <input id="c_staff_id" name="staff_id" type="text">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Create session</button>
-                </form>
-                <div id="create-result" class="ledger ledger-compact"></div>
+                <div class="toolbar">
+                    <button id="open-create-drawer" type="button" class="btn btn-primary">+ New session</button>
+                </div>
 
-                <h2>Edit or delete a session</h2>
-                <form id="edit-form" class="stacked-form">
-                    <div class="field-grid">
-                        <div>
+                <div id="create-result" class="table-wrap" style="margin-top:14px; display:none;"></div>
+
+                <h3 style="margin-top:20px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); font-family:'IBM Plex Sans',sans-serif; font-weight:600;">Edit or delete a session</h3>
+                <div class="panel" style="margin-top:8px;">
+                    <div class="field-row">
+                        <div class="field">
                             <label for="e_session_id">Session ID</label>
-                            <input id="e_session_id" name="session_id" type="number" required>
+                            <input id="e_session_id" type="number">
                         </div>
-                        <div>
+                        <div class="field">
                             <label for="e_room">New room</label>
-                            <input id="e_room" name="room" type="text" placeholder="leave blank to skip">
+                            <input id="e_room" type="text" placeholder="leave blank to skip">
                         </div>
-                        <div>
+                        <div class="field">
                             <label for="e_start_time">New start time</label>
-                            <input id="e_start_time" name="start_time" type="time">
+                            <input id="e_start_time" type="time">
                         </div>
-                        <div>
+                        <div class="field">
                             <label for="e_end_time">New end time</label>
-                            <input id="e_end_time" name="end_time" type="time">
+                            <input id="e_end_time" type="time">
                         </div>
                     </div>
-                    <div class="btn-row">
-                        <button type="submit" class="btn btn-primary">Update session</button>
-                        <button type="button" id="delete-btn" class="btn btn-danger">Delete session</button>
+                    <div class="toolbar" style="margin-top:12px;">
+                        <button id="update-btn" type="button" class="btn btn-primary">Update session</button>
+                        <button id="delete-btn" type="button" class="btn btn-danger">Delete session</button>
                     </div>
-                </form>
-                <div id="edit-result" class="ledger ledger-compact"></div>
+                </div>
+                <div id="edit-result" class="table-wrap" style="margin-top:14px; display:none;"></div>
             </section>
 
             <section class="tab-panel" id="panel-clashes">
-                <h2>Check for scheduling clashes</h2>
-                <p class="note">Compares every session's day, room, and time range across the current timetable.</p>
-                <button id="check-clashes-btn" type="button" class="btn btn-primary">Run clash check</button>
-                <div id="clash-result" class="ledger"></div>
+                <div class="toolbar">
+                    <button id="check-clashes-btn" type="button" class="btn btn-primary">Run clash check</button>
+                </div>
+                <div id="clash-result" class="table-wrap" style="margin-top:14px;">
+                    <div class="empty-state">
+                        <h3>No check run yet</h3>
+                        <p>Compares every session's day, room, and time range.</p>
+                    </div>
+                </div>
             </section>
 
             <section class="tab-panel" id="panel-ask">
-                <h2>Ask the AI agent</h2>
-                <p class="note">Answers are grounded in the current timetable data only.</p>
-                <form id="ask-form" class="stacked-form">
-                    <label for="question">Question</label>
-                    <textarea id="question" name="question" rows="4">When is my next ASD101 class?</textarea>
-                    <button type="submit" class="btn btn-primary">Ask</button>
-                </form>
-                <div id="ask-result" class="ledger"></div>
+                <div class="panel">
+                    <h3>Ask the AI agent</h3>
+                    <div class="field">
+                        <textarea id="question" rows="3" style="padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);">When is my next ASD101 class?</textarea>
+                    </div>
+                    <button id="ask-btn" type="button" class="btn btn-primary" style="margin-top:10px;">Ask</button>
+                </div>
+                <div id="ask-result" class="ask-response" style="margin-top:14px;"></div>
             </section>
 
         </main>
     </div>
 </div>
 
+<!-- Create session drawer -->
+<div class="scrim" id="create-scrim"></div>
+<div class="drawer" id="create-drawer">
+    <div class="drawer-head">
+        <h2>New session</h2>
+        <button type="button" id="close-create-drawer">&times;</button>
+    </div>
+    <div class="drawer-body">
+        <div class="field">
+            <label for="c_course_code">Course code</label>
+            <input id="c_course_code" type="text">
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label for="c_session_type">Type</label>
+                <select id="c_session_type">
+                    <option>Lecture</option>
+                    <option>Tutorial</option>
+                    <option>Lab</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="c_day">Day</label>
+                <select id="c_day">
+                    <option>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                </select>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label for="c_start_time">Start time</label>
+                <input id="c_start_time" type="time">
+            </div>
+            <div class="field">
+                <label for="c_end_time">End time</label>
+                <input id="c_end_time" type="time">
+            </div>
+        </div>
+        <div class="field">
+            <label for="c_room">Room</label>
+            <input id="c_room" type="text">
+        </div>
+        <div class="field-row">
+            <div class="field">
+                <label for="c_semester">Semester</label>
+                <input id="c_semester" type="text" value="2026-S2">
+            </div>
+            <div class="field">
+                <label for="c_staff_id">Staff ID (optional)</label>
+                <input id="c_staff_id" type="text">
+            </div>
+        </div>
+        <div class="field-error" id="create-error"></div>
+    </div>
+    <div class="drawer-foot">
+        <button type="button" class="btn btn-ghost" id="cancel-create">Cancel</button>
+        <button type="button" class="btn btn-primary" id="submit-create">Create session</button>
+    </div>
+</div>
+
 <script>
 const API_BASE = "http://127.0.0.1:5003";
 
-// ---------- Role stamps ----------
-let currentRole = "student";
-const stampButtons = document.querySelectorAll(".stamp");
-const tabButtons = document.querySelectorAll(".tab-btn");
+// ---------- Role switching ----------
+const roleButtons = document.querySelectorAll("#role-list button");
+const tabButtons = document.querySelectorAll("#tab-list button");
 
 function applyRole(role) {
-    currentRole = role;
-    stampButtons.forEach(btn => btn.classList.toggle("is-stamped", btn.dataset.role === role));
-
-    document.getElementById("my-sessions-lecturer").classList.toggle("is-hidden", role !== "lecturer");
+    roleButtons.forEach(b => b.classList.toggle("is-active", b.dataset.role === role));
+    document.getElementById("lecturer-lookup").classList.toggle("is-hidden", role !== "lecturer");
 
     tabButtons.forEach(tab => {
         const needed = tab.dataset.roleRequired;
         const allowed = !needed || needed === role;
         tab.classList.toggle("is-hidden", !allowed);
-        if (!allowed && tab.classList.contains("is-active")) {
-            switchTab("browse");
-        }
+        if (!allowed && tab.classList.contains("is-active")) switchTab("browse");
     });
 }
 
-stampButtons.forEach(btn => {
-    btn.addEventListener("click", () => applyRole(btn.dataset.role));
-});
+roleButtons.forEach(b => b.addEventListener("click", () => applyRole(b.dataset.role)));
 
 // ---------- Tabs ----------
 function switchTab(tabName) {
-    tabButtons.forEach(btn => btn.classList.toggle("is-active", btn.dataset.tab === tabName));
-    document.querySelectorAll(".tab-panel").forEach(panel => {
-        panel.classList.toggle("is-active", panel.id === `panel-${tabName}`);
-    });
+    tabButtons.forEach(b => b.classList.toggle("is-active", b.dataset.tab === tabName));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("is-active", p.id === `panel-${tabName}`));
 }
-
-tabButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        if (!btn.classList.contains("is-hidden")) switchTab(btn.dataset.tab);
-    });
-});
+tabButtons.forEach(b => b.addEventListener("click", () => { if (!b.classList.contains("is-hidden")) switchTab(b.dataset.tab); }));
 
 applyRole("student");
+
+// ---------- Session type / clash pill helpers ----------
+function typePillClass(type) {
+    if (type === "Lecture") return "type-lecture";
+    if (type === "Tutorial") return "type-tutorial";
+    return "type-lab";
+}
+
+function renderSessionsTable(html, targetId) {
+    // Wrap raw backend HTML table (from the Flask <table> response) directly —
+    // the table-wrap container supplies the shared visual styling.
+    document.getElementById(targetId).innerHTML = html;
+}
 
 // ---------- Browse ----------
 document.getElementById("view-all-btn").addEventListener("click", async () => {
     const res = await fetch(`${API_BASE}/timetable`);
-    document.getElementById("timetable-result").innerHTML = await res.text();
+    renderSessionsTable(await res.text(), "timetable-result");
 });
 
-document.getElementById("filter-course-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+document.getElementById("filter-btn").addEventListener("click", async () => {
     const code = document.getElementById("course_code").value.trim();
     if (!code) return;
     const res = await fetch(`${API_BASE}/timetable/by-course?course_code=${encodeURIComponent(code)}`);
-    document.getElementById("timetable-result").innerHTML = await res.text();
+    renderSessionsTable(await res.text(), "timetable-result");
 });
 
 document.getElementById("my-sessions-btn").addEventListener("click", () => {
     const staffId = document.getElementById("lecturer_staff_id").value.trim();
     document.getElementById("timetable-result").innerHTML =
-        `<p>Lookup by staff ID (${staffId || "none entered"}) activates once Staff Management is integrated.</p>`;
+        `<div class="empty-state"><p>Lookup by staff ID (${staffId || "none entered"}) activates once Staff Management is integrated.</p></div>`;
 });
 
-// ---------- Create ----------
-document.getElementById("create-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
+// ---------- Create (drawer) ----------
+const drawer = document.getElementById("create-drawer");
+const scrim = document.getElementById("create-scrim");
+
+function openDrawer() { drawer.classList.add("is-open"); scrim.classList.add("is-open"); }
+function closeDrawer() { drawer.classList.remove("is-open"); scrim.classList.remove("is-open"); }
+
+document.getElementById("open-create-drawer").addEventListener("click", openDrawer);
+document.getElementById("close-create-drawer").addEventListener("click", closeDrawer);
+document.getElementById("cancel-create").addEventListener("click", closeDrawer);
+document.getElementById("create-scrim").addEventListener("click", closeDrawer);
+
+document.getElementById("submit-create").addEventListener("click", async () => {
+    const form = new FormData();
+    form.set("course_code", document.getElementById("c_course_code").value);
+    form.set("session_type", document.getElementById("c_session_type").value);
+    form.set("day", document.getElementById("c_day").value);
+    form.set("start_time", document.getElementById("c_start_time").value);
+    form.set("end_time", document.getElementById("c_end_time").value);
+    form.set("room", document.getElementById("c_room").value);
+    form.set("semester", document.getElementById("c_semester").value);
+    form.set("staff_id", document.getElementById("c_staff_id").value);
+
     const res = await fetch(`${API_BASE}/timetable`, { method: "POST", body: form });
-    document.getElementById("create-result").innerHTML = await res.text();
+    const text = await res.text();
+
+    if (res.ok) {
+        document.getElementById("create-error").textContent = "";
+        document.getElementById("create-result").style.display = "block";
+        document.getElementById("create-result").innerHTML = `<div class="empty-state"><p>${text.replace(/<\/?p>/g, "")}</p></div>`;
+        closeDrawer();
+    } else {
+        document.getElementById("create-error").textContent = text.replace(/<\/?p>/g, "");
+    }
 });
 
 // ---------- Update / Delete ----------
-document.getElementById("edit-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const sessionId = form.get("session_id");
-    form.delete("session_id");
+document.getElementById("update-btn").addEventListener("click", async () => {
+    const sessionId = document.getElementById("e_session_id").value;
+    if (!sessionId) return;
+    const form = new FormData();
+    const room = document.getElementById("e_room").value;
+    const start = document.getElementById("e_start_time").value;
+    const end = document.getElementById("e_end_time").value;
+    if (room) form.set("room", room);
+    if (start) form.set("start_time", start);
+    if (end) form.set("end_time", end);
+
     const res = await fetch(`${API_BASE}/timetable/${sessionId}`, { method: "PUT", body: form });
-    document.getElementById("edit-result").innerHTML = await res.text();
+    const text = await res.text();
+    document.getElementById("edit-result").style.display = "block";
+    document.getElementById("edit-result").innerHTML = `<div class="empty-state"><p>${text.replace(/<\/?p>/g, "")}</p></div>`;
 });
 
 document.getElementById("delete-btn").addEventListener("click", async () => {
     const sessionId = document.getElementById("e_session_id").value;
     if (!sessionId) return;
     const res = await fetch(`${API_BASE}/timetable/${sessionId}`, { method: "DELETE" });
-    document.getElementById("edit-result").innerHTML = await res.text();
+    const text = await res.text();
+    document.getElementById("edit-result").style.display = "block";
+    document.getElementById("edit-result").innerHTML = `<div class="empty-state"><p>${text.replace(/<\/?p>/g, "")}</p></div>`;
 });
 
 // ---------- Clash check ----------
 document.getElementById("check-clashes-btn").addEventListener("click", async () => {
     const res = await fetch(`${API_BASE}/timetable/clashes`);
-    document.getElementById("clash-result").innerHTML = await res.text();
+    const text = await res.text();
+    const target = document.getElementById("clash-result");
+    if (text.includes("No clashes")) {
+        target.innerHTML = `<div class="empty-state"><span class="pill clear">Clear</span><h3 style="margin-top:10px;">No clashes detected</h3></div>`;
+    } else {
+        target.innerHTML = `<div style="padding:16px;"><span class="pill clash">Clashes found</span><div style="margin-top:10px;">${text}</div></div>`;
+    }
 });
 
 // ---------- Ask AI agent ----------
-document.getElementById("ask-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
+document.getElementById("ask-btn").addEventListener("click", async () => {
+    const form = new FormData();
+    form.set("question", document.getElementById("question").value);
     const res = await fetch(`${API_BASE}/ask`, { method: "POST", body: form });
     document.getElementById("ask-result").innerHTML = await res.text();
 });
