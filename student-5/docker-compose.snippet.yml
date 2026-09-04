@@ -1,0 +1,69 @@
+# USING THIS FILE STANDALONE (docker compose -f student-5/docker-compose.snippet.yml up):
+# Works as-is.
+#
+# MERGING INTO THE TEAM'S ROOT docker-compose.yml INSTEAD:
+# Copy the three services under "services:" and the volume under "volumes:"
+# into the team's file, but change:
+#   - assessment-database-service: context becomes "./student-5/database" (same as here)
+#   - assessment-service:          context becomes "." and dockerfile becomes "student-5/backend/Dockerfile"
+#   - assessment-frontend-service: context becomes "./student-5/frontend" (same as here)
+# Skip the "networks:" block — the team's root file already declares "enrolment-network".
+#
+# Ports used (none of these collide with student1 5001/5002, Student2 5011/5012,
+# or Student4 5031/5032):
+#   assessment-database-service  -> 5022
+#   assessment-service            -> 5021
+#   assessment-frontend-service   -> 8085 (host) -> 80 (container)
+
+services:
+    assessment-database-service:
+        build:
+            context: ./database
+        container_name: assessment-database-service
+        ports:
+            - "5022:5022"
+        volumes:
+            - assessment_grades_data:/app/data
+        networks:
+            enrolment-network:
+                aliases:
+                    - assessment-database-service
+        restart: unless-stopped
+
+    assessment-service:
+        build:
+            context: ..
+            dockerfile: student-5/backend/Dockerfile
+        container_name: assessment-service
+        ports:
+            - "5021:5021"
+        environment:
+            ASSESSMENT_DATABASE_SERVICE_URL: http://assessment-database-service:5022
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - assessment-database-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    assessment-frontend-service:
+        build:
+            context: ./frontend
+        container_name: assessment-frontend-service
+        ports:
+            - "8085:80"
+        depends_on:
+            - assessment-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+volumes:
+    assessment_grades_data:
+
+networks:
+    enrolment-network:
+        driver: bridge

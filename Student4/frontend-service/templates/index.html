@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Course & Enrollment Management</title>
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+
+  <main class="app-shell">
+
+    <header class="app-header">
+
+      <div>
+        <p class="eyebrow">
+          UNIVERSITY MANAGEMENT · COURSE & ENROLMENT
+        </p>
+
+        <h1>Course & Enrollment Management</h1>
+
+        <p class="subtitle">
+          Manage courses, student enrolments and AI-assisted queries
+        </p>
+      </div>
+
+      <div class="term-badge">
+        Spring 2026
+      </div>
+
+    </header>
+
+
+    <nav class="top-tabs">
+
+      <button
+        class="top-tab active"
+        data-page="normal"
+        type="button"
+      >
+        Normal UI
+      </button>
+
+      <button
+        class="top-tab"
+        data-page="ai"
+        type="button"
+      >
+        AI Mode
+      </button>
+
+    </nav>
+
+
+    <section class="page-container">
+
+      <iframe
+        id="normal-page"
+        class="page-frame active"
+        src="tabs/normal.html"
+        title="Normal UI"
+      ></iframe>
+
+      <iframe
+        id="ai-page"
+        class="page-frame"
+        src="tabs/ai-mode.html"
+        title="AI Mode"
+      ></iframe>
+
+    </section>
+
+  </main>
+
+
+  <script>
+
+    const buttons = document.querySelectorAll(".top-tab");
+
+    const pages = {
+      normal: document.getElementById("normal-page"),
+      ai: document.getElementById("ai-page")
+    };
+
+
+    function resizeFrame(frame) {
+
+      try {
+
+        const doc = frame.contentWindow.document;
+
+        const height = Math.max(
+          doc.body.scrollHeight,
+          doc.documentElement.scrollHeight
+        );
+
+        frame.style.height = (height + 40) + "px";
+
+      } catch (error) {
+
+        frame.style.height = "900px";
+
+      }
+
+    }
+
+
+    function showPage(pageName) {
+
+      buttons.forEach(button => {
+
+        button.classList.toggle(
+          "active",
+          button.dataset.page === pageName
+        );
+
+      });
+
+
+      Object.entries(pages).forEach(([name, frame]) => {
+
+        const active = name === pageName;
+
+        frame.classList.toggle("active", active);
+
+        if (active) {
+          resizeFrame(frame);
+        }
+
+      });
+
+
+      window.location.hash = pageName;
+
+    }
+
+
+    buttons.forEach(button => {
+
+      button.addEventListener("click", () => {
+
+        showPage(button.dataset.page);
+
+      });
+
+    });
+
+
+    Object.values(pages).forEach(frame => {
+
+      frame.addEventListener("load", () => {
+
+        resizeFrame(frame);
+
+        try {
+
+          const observer = new MutationObserver(
+            () => resizeFrame(frame)
+          );
+
+          observer.observe(
+            frame.contentWindow.document.body,
+            {
+              childList: true,
+              subtree: true,
+              attributes: true
+            }
+          );
+
+        } catch (error) {
+          // Ignore
+        }
+
+      });
+
+    });
+
+
+    const hash =
+      window.location.hash.replace("#", "");
+
+
+    if (hash === "ai") {
+
+      showPage("ai");
+
+    } else {
+
+      showPage("normal");
+
+    }
+
+  </script>
+
+</body>
+</html>

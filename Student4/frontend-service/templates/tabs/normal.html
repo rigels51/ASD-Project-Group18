@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Course & Enrollment Management</title>
+
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+    }
+
+    .app-shell {
+      max-width: none;
+      padding: 0;
+    }
+  </style>
+
+</head>
+
+
+<body>
+
+<main class="app-shell">
+
+
+  <!-- SECOND LEVEL TABS -->
+
+  <nav class="sub-tabs">
+
+    <button
+      class="sub-tab active"
+      data-section="student"
+      type="button"
+    >
+      Student Enrolment
+    </button>
+
+    <button
+      class="sub-tab"
+      data-section="course"
+      type="button"
+    >
+      Course Management
+    </button>
+
+  </nav>
+
+
+  <!-- =============================== -->
+  <!-- STUDENT ENROLMENT PAGE -->
+  <!-- =============================== -->
+
+  <section
+    id="student-section"
+    class="normal-section active"
+  >
+
+    <div class="section-heading">
+
+      <div>
+        <p class="section-label">
+          STUDENT SERVICES
+        </p>
+
+        <h2>Student Enrolment</h2>
+
+        <p>
+          Browse courses and manage student enrolments.
+        </p>
+      </div>
+
+    </div>
+
+
+    <!-- AVAILABLE COURSES -->
+
+    <div class="content-card">
+
+      <div class="card-header">
+
+        <div>
+          <h3>Available Courses</h3>
+          <p>View all courses currently stored in the system.</p>
+        </div>
+
+        <button
+          class="primary-btn"
+          onclick="loadStudentCourses()"
+        >
+          Show Courses
+        </button>
+
+      </div>
+
+      <div
+        id="student-courses-result"
+        class="panel"
+      ></div>
+
+    </div>
+
+
+    <!-- ENROL STUDENT -->
+
+    <div class="content-card">
+
+      <div class="card-header">
+        <div>
+          <h3>Enrol in a Course</h3>
+          <p>Register a student into a selected course.</p>
+        </div>
+      </div>
+
+      <form
+        id="add-enrolment-form"
+        class="form-grid"
+      >
+
+        <div class="field">
+          <label>Student ID</label>
+
+          <input
+            name="student_id"
+            type="number"
+            placeholder="e.g. 1001"
+            required
+          >
+        </div>
+
+
+        <div class="field">
+          <label>Course ID</label>
+
+          <input
+            name="course_id"
+            type="number"
+            placeholder="e.g. 1"
+            required
+          >
+        </div>
+
+
+        <div class="field">
+          <label>Status</label>
+
+          <select name="status">
+            <option>Active</option>
+            <option>Completed</option>
+            <option>Withdrawn</option>
+          </select>
+        </div>
+
+
+        <div class="form-action">
+          <button
+            type="submit"
+            class="primary-btn"
+          >
+            Enrol Student
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+
+
+    <!-- VIEW ENROLMENTS -->
+
+    <div class="content-card">
+
+      <div class="card-header">
+
+        <div>
+          <h3>Current Enrolments</h3>
+          <p>View all student enrolment records.</p>
+        </div>
+
+        <button
+          class="secondary-btn"
+          onclick="loadEnrolments()"
+        >
+          Show Enrolments
+        </button>
+
+      </div>
+
+      <div
+        id="enrolments-result"
+        class="panel"
+      ></div>
+
+    </div>
+
+
+    <!-- UPDATE / WITHDRAW -->
+
+    <div class="two-column-grid">
+
+
+      <div class="content-card">
+
+        <h3>Update Enrolment</h3>
+
+        <form
+          id="update-enrolment-form"
+          class="vertical-form"
+        >
+
+          <div class="field">
+
+            <label>Enrolment ID</label>
+
+            <input
+              name="enrolment_id"
+              type="number"
+              placeholder="Enrolment ID"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Student ID</label>
+
+            <input
+              name="student_id"
+              type="number"
+              placeholder="Student ID"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Course ID</label>
+
+            <input
+              name="course_id"
+              type="number"
+              placeholder="Course ID"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Status</label>
+
+            <select name="status">
+              <option>Active</option>
+              <option>Completed</option>
+              <option>Withdrawn</option>
+            </select>
+
+          </div>
+
+
+          <button
+            type="submit"
+            class="secondary-btn"
+          >
+            Update Enrolment
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="content-card danger-card">
+
+        <h3>Withdraw from Course</h3>
+
+        <p class="muted">
+          Delete an enrolment record using its enrolment ID.
+        </p>
+
+        <form
+          id="delete-enrolment-form"
+          class="vertical-form"
+        >
+
+          <div class="field">
+
+            <label>Enrolment ID</label>
+
+            <input
+              name="enrolment_id"
+              type="number"
+              placeholder="Enrolment ID"
+              required
+            >
+
+          </div>
+
+          <button
+            type="submit"
+            class="danger-btn"
+          >
+            Withdraw
+          </button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="enrolment-message"
+      class="message-panel"
+    ></div>
+
+  </section>
+
+
+
+  <!-- =============================== -->
+  <!-- COURSE MANAGEMENT PAGE -->
+  <!-- =============================== -->
+
+  <section
+    id="course-section"
+    class="normal-section"
+  >
+
+    <div class="section-heading">
+
+      <div>
+
+        <p class="section-label">
+          STAFF SERVICES
+        </p>
+
+        <h2>Course Management</h2>
+
+        <p>
+          Create, update and remove university courses.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <!-- SHOW COURSES -->
+
+    <div class="content-card">
+
+      <div class="card-header">
+
+        <div>
+          <h3>Course Directory</h3>
+          <p>View all courses currently stored in the database.</p>
+        </div>
+
+        <button
+          class="primary-btn"
+          onclick="loadCourses()"
+        >
+          Show All Courses
+        </button>
+
+      </div>
+
+      <div
+        id="courses-result"
+        class="panel"
+      ></div>
+
+    </div>
+
+
+    <!-- ADD COURSE -->
+
+    <div class="content-card">
+
+      <h3>Add Course</h3>
+
+      <form
+        id="add-course-form"
+        class="form-grid"
+      >
+
+        <div class="field">
+
+          <label>Course Code</label>
+
+          <input
+            name="course_code"
+            placeholder="e.g. ASD101"
+            required
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label>Course Name</label>
+
+          <input
+            name="course_name"
+            placeholder="Course name"
+            required
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label>Credits</label>
+
+          <input
+            name="credits"
+            type="number"
+            placeholder="6"
+            required
+          >
+
+        </div>
+
+
+        <div class="field">
+
+          <label>Capacity</label>
+
+          <input
+            name="capacity"
+            type="number"
+            placeholder="30"
+            required
+          >
+
+        </div>
+
+
+        <div class="form-action">
+
+          <button
+            type="submit"
+            class="primary-btn"
+          >
+            Add Course
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+
+    <!-- UPDATE / DELETE -->
+
+    <div class="two-column-grid">
+
+
+      <div class="content-card">
+
+        <h3>Update Course</h3>
+
+        <form
+          id="update-course-form"
+          class="vertical-form"
+        >
+
+          <div class="field">
+
+            <label>Course ID</label>
+
+            <input
+              name="course_id"
+              type="number"
+              placeholder="Course ID"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Course Code</label>
+
+            <input
+              name="course_code"
+              placeholder="Course Code"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Course Name</label>
+
+            <input
+              name="course_name"
+              placeholder="Course Name"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Credits</label>
+
+            <input
+              name="credits"
+              type="number"
+              placeholder="Credits"
+              required
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Capacity</label>
+
+            <input
+              name="capacity"
+              type="number"
+              placeholder="Capacity"
+              required
+            >
+
+          </div>
+
+
+          <button
+            type="submit"
+            class="secondary-btn"
+          >
+            Update Course
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="content-card danger-card">
+
+        <h3>Delete Course</h3>
+
+        <p class="muted">
+          A course cannot be deleted if active enrolments exist.
+        </p>
+
+        <form
+          id="delete-course-form"
+          class="vertical-form"
+        >
+
+          <div class="field">
+
+            <label>Course ID</label>
+
+            <input
+              name="course_id"
+              type="number"
+              placeholder="Course ID"
+              required
+            >
+
+          </div>
+
+          <button
+            type="submit"
+            class="danger-btn"
+          >
+            Delete Course
+          </button>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="course-message"
+      class="message-panel"
+    ></div>
+
+  </section>
+
+</main>
+
+
+<script>
+
+const API = "http://localhost:5001";
+
+
+
+/* ====================================
+   SECOND LEVEL TAB SWITCHING
+==================================== */
+
+const subTabs =
+  document.querySelectorAll(".sub-tab");
+
+const sections =
+  document.querySelectorAll(".normal-section");
+
+
+subTabs.forEach(button => {
+
+  button.addEventListener("click", () => {
+
+    subTabs.forEach(tab =>
+      tab.classList.remove("active")
+    );
+
+    sections.forEach(section =>
+      section.classList.remove("active")
+    );
+
+    button.classList.add("active");
+
+    document
+      .getElementById(
+        button.dataset.section + "-section"
+      )
+      .classList.add("active");
+
+  });
+
+});
+
+
+
+/* ====================================
+   API HELPER
+==================================== */
+
+async function send(url, options = {}) {
+
+  try {
+
+    const response =
+      await fetch(url, options);
+
+    return await response.text();
+
+  } catch (error) {
+
+    return `
+      <p>Request failed.</p>
+      <pre>${error}</pre>
+    `;
+
+  }
+
+}
+
+
+
+/* ====================================
+   COURSE FUNCTIONS
+==================================== */
+
+async function loadCourses() {
+
+  document
+    .getElementById("courses-result")
+    .innerHTML =
+      await send(`${API}/courses`);
+
+}
+
+
+async function loadStudentCourses() {
+
+  document
+    .getElementById("student-courses-result")
+    .innerHTML =
+      await send(`${API}/courses`);
+
+}
+
+
+
+/* ====================================
+   ENROLMENT FUNCTIONS
+==================================== */
+
+async function loadEnrolments() {
+
+  document
+    .getElementById("enrolments-result")
+    .innerHTML =
+      await send(`${API}/enrolments`);
+
+}
+
+
+
+/* ====================================
+   ADD COURSE
+==================================== */
+
+document
+  .getElementById("add-course-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("course-message")
+      .innerHTML =
+        await send(
+          `${API}/courses`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadCourses();
+
+    this.reset();
+
+  };
+
+
+
+/* ====================================
+   UPDATE COURSE
+==================================== */
+
+document
+  .getElementById("update-course-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("course-message")
+      .innerHTML =
+        await send(
+          `${API}/courses/update`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadCourses();
+
+  };
+
+
+
+/* ====================================
+   DELETE COURSE
+==================================== */
+
+document
+  .getElementById("delete-course-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("course-message")
+      .innerHTML =
+        await send(
+          `${API}/courses/delete`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadCourses();
+
+    this.reset();
+
+  };
+
+
+
+/* ====================================
+   ADD ENROLMENT
+==================================== */
+
+document
+  .getElementById("add-enrolment-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("enrolment-message")
+      .innerHTML =
+        await send(
+          `${API}/enrolments`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadEnrolments();
+
+    this.reset();
+
+  };
+
+
+
+/* ====================================
+   UPDATE ENROLMENT
+==================================== */
+
+document
+  .getElementById("update-enrolment-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("enrolment-message")
+      .innerHTML =
+        await send(
+          `${API}/enrolments/update`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadEnrolments();
+
+  };
+
+
+
+/* ====================================
+   DELETE ENROLMENT
+==================================== */
+
+document
+  .getElementById("delete-enrolment-form")
+  .onsubmit =
+  async function(event) {
+
+    event.preventDefault();
+
+    document
+      .getElementById("enrolment-message")
+      .innerHTML =
+        await send(
+          `${API}/enrolments/delete`,
+          {
+            method: "POST",
+            body: new FormData(this)
+          }
+        );
+
+    loadEnrolments();
+
+    this.reset();
+
+  };
+
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,80 @@
+# NOTE: GitHub Actions only runs workflows that live in .github/workflows/
+# at the repo root — this file can't run from inside student-5/. Copy it to:
+#   .github/workflows/VuTienThanhNguyen.yml
+# (rename to match your own name/username, consistent with JerikoArceo.yml,
+# RigelRivamonte.yml, YIZhang.yml already in that folder.)
+
+name: Student 5 - Assessment & Grades CI
+
+on:
+  push:
+    paths:
+      - "student-5/**"
+  pull_request:
+    paths:
+      - "student-5/**"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r student-5/backend/requirements.txt
+          pip install -r student-5/database/requirements.txt
+          pip install pytest requests
+
+      - name: Build database-service image
+        run: docker build -f student-5/database/Dockerfile -t assessment-database-service:ci .
+
+      - name: Build backend/API-service image
+        run: docker build -f student-5/backend/Dockerfile -t assessment-service:ci .
+
+      - name: Build frontend-service image
+        run: docker build -t assessment-frontend-service:ci student-5/frontend
+
+      - name: Run database-service container
+        run: |
+          docker network create assessment-ci-net
+          docker run -d --name assessment-database-service --network assessment-ci-net -p 5022:5022 assessment-database-service:ci
+          sleep 3
+
+      - name: Run backend/API-service container
+        run: |
+          docker run -d --name assessment-service --network assessment-ci-net \
+            -e ASSESSMENT_DATABASE_SERVICE_URL=http://assessment-database-service:5022 \
+            -p 5021:5021 assessment-service:ci
+          sleep 3
+
+      - name: Pre-commit validation - smoke test the endpoints
+        run: |
+          curl -sf http://localhost:5022/ || (echo "database-service not responding" && exit 1)
+          curl -sf http://localhost:5021/assessments || (echo "assessment-service not responding" && exit 1)
+
+      - name: Post-commit AI-assisted unit testing - run pytest suite
+        env:
+          ASSESSMENT_BACKEND_URL: http://localhost:5021
+          ASSESSMENT_DATABASE_URL: http://localhost:5022
+        run: pytest student-5/tests/test_assessment_grades_service.py -v
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker logs assessment-database-service || true
+          docker logs assessment-service || true
+
+      - name: Clean up containers
+        if: always()
+        run: |
+          docker rm -f assessment-database-service assessment-service || true
+          docker network rm assessment-ci-net || true
