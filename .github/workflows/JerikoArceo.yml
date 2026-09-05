@@ -4,10 +4,14 @@ on:
   push:
     branches:
       - jeriko
+    paths:
+      - 'Student2/**'
 
   pull_request:
     branches:
       - main
+    paths:
+      - 'Student2/**'
 
 jobs:
   build-and-validate:
