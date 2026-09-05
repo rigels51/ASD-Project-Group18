@@ -1,47 +1,137 @@
 services:
-    frontend-service:
+    student1-frontend:
         build:
-            context: ./frontend-service
-        container_name: frontend-service
+            context: ./student-1/frontend-service
+        container_name: student1-frontend
         ports:
             - "8080:80"
         depends_on:
-            - enrolment-service
+            - student1-enrolment
         networks:
             - enrolment-network
         restart: unless-stopped
 
-    enrolment-service:
+    student1-enrolment:
         build:
             context: .
-            dockerfile: enrolment-service/Dockerfile
-        container_name: enrolment-service
+            dockerfile: student-1/enrolment-service/Dockerfile
+        container_name: student1-enrolment
         ports:
             - "5001:5001"
         environment:
-            DATABASE_SERVICE_URL: http://database-service:5002
+            DATABASE_SERVICE_URL: http://student1-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
-            - database-service
+            - student1-database
         networks:
             - enrolment-network
         restart: unless-stopped
 
-    database-service:
+    student1-database:
         build:
-            context: ./database-service
-        container_name: database-service
+            context: ./student-1/database-service
+        container_name: student1-database
         ports:
             - "5002:5002"
         volumes:
-            - database_data:/app/data
+            - student1_database_data:/app/data
         networks:
             enrolment-network:
                 aliases:
-                    - database-service
+                    - student1-database
+        restart: unless-stopped
+
+    student2-frontend:
+        build:
+            context: ./student-2/frontend-service
+        container_name: student2-frontend
+        ports:
+            - "8082:80"
+        depends_on:
+            - student2-backend
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    student2-backend:
+        build:
+            context: .
+            dockerfile: student-2/backend-service/Dockerfile
+        container_name: student2-backend
+        ports:
+            - "5011:5001"
+        environment:
+            DATABASE_SERVICE_URL: http://student2-database:5002
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - student2-database
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    student2-database:
+        build:
+            context: ./student-2/database-service
+        container_name: student2-database
+        ports:
+            - "5012:5002"
+        volumes:
+            - student2_database_data:/app/data
+        networks:
+            enrolment-network:
+                aliases:
+                    - student2-database
+        restart: unless-stopped
+
+    student4-frontend:
+        build:
+            context: ./student-4/frontend-service
+        container_name: student4-frontend
+        ports:
+            - "8081:80"
+        depends_on:
+            - student4-enrolment
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    student4-enrolment:
+        build:
+            context: .
+            dockerfile: student-4/enrolment-service/Dockerfile
+        container_name: student4-enrolment
+        ports:
+            - "5031:5001"
+        environment:
+            DATABASE_SERVICE_URL: http://student4-database:5002
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - student4-database
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    student4-database:
+        build:
+            context: ./student-4/database-service
+        container_name: student4-database
+        ports:
+            - "5032:5002"
+        volumes:
+            - student4_database_data:/app/data
+        networks:
+            enrolment-network:
+                aliases:
+                    - student4-database
         restart: unless-stopped
 
     assessment-database-service:
@@ -78,6 +168,18 @@ services:
             - enrolment-network
         restart: unless-stopped
 
+    assessment-frontend-service:
+        build:
+            context: ./student-5/frontend
+        container_name: assessment-frontend-service
+        ports:
+            - "8085:80"
+        depends_on:
+            - assessment-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
     timetable-backend:
         build:
             context: ./student-3/backend
@@ -106,7 +208,9 @@ services:
         restart: unless-stopped
 
 volumes:
-    database_data:
+    student1_database_data:
+    student2_database_data:
+    student4_database_data:
     assessment_grades_data:
 
 networks:
