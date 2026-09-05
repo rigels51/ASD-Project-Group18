@@ -85,7 +85,7 @@ Review service boundaries for frontend-service, enrolment-service, and database-
       askForm.addEventListener("submit", (event) => {
         event.preventDefault();
         const formData = new URLSearchParams(new FormData(askForm));
-        renderIntoPanel("agent-result", "http://localhost:5001/ask", {
+        renderIntoPanel("agent-result", "http://localhost:5011/ask", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formData,
@@ -97,7 +97,7 @@ Review service boundaries for frontend-service, enrolment-service, and database-
         const formData = new URLSearchParams(new FormData(askWithContextForm));
         renderIntoPanel(
           "context-result",
-          "http://localhost:5001/ask-with-context",
+          "http://localhost:5011/ask-with-context",
           {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -113,7 +113,7 @@ Review service boundaries for frontend-service, enrolment-service, and database-
         );
         renderIntoPanel(
           "architecture-result",
-          "http://localhost:5001/architecture-review",
+          "http://localhost:5011/architecture-review",
           {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },

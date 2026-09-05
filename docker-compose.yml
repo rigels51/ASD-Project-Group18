@@ -1,4 +1,13 @@
 services:
+    homepage:
+        build:
+            context: .
+            dockerfile: shared/frontend/Dockerfile
+        container_name: group18-homepage
+        ports:
+            - "8090:80"
+        restart: unless-stopped
+
     student1-frontend:
         build:
             context: ./student-1/frontend-service
@@ -136,8 +145,8 @@ services:
 
     assessment-database-service:
         build:
-            context: .
-            dockerfile: student-5/database/Dockerfile
+            context: ./student-5/database
+            dockerfile: Dockerfile
         container_name: assessment-database-service
         ports:
             - "5022:5022"

@@ -90,7 +90,7 @@
           if (!studentsPanel.dataset.loaded) {
             renderIntoPanel(
               "students-result",
-              "http://localhost:5001/students",
+              "http://localhost:5011/students",
             );
             studentsPanel.dataset.loaded = "true";
           }
@@ -106,7 +106,7 @@
         const query = new URLSearchParams(formData).toString();
         renderIntoPanel(
           "student-result",
-          `http://localhost:5001/students/by-id?${query}`,
+          `http://localhost:5011/students/by-id?${query}`,
         );
       });
 
@@ -116,7 +116,7 @@
         const query = new URLSearchParams(formData).toString();
         renderIntoPanel(
           "subject-result",
-          `http://localhost:5001/students/by-subject?${query}`,
+          `http://localhost:5011/students/by-subject?${query}`,
         );
       });
     </script>
