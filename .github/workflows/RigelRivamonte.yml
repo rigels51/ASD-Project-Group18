@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - Student1
+    paths:
+      - 'student-1/**'
+      - '.github/workflows/RigelRivamonte.yml'
 
   pull_request:
     branches:
       - main
+    paths:
+      - 'student-1/**'
+      - '.github/workflows/RigelRivamonte.yml'
 
 jobs:
   build-and-validate:
@@ -49,7 +55,7 @@ jobs:
         run: |
           docker build \
             -f student-1/frontend-service/Dockerfile \
-            -t student-1-course-frontend \
+            -t student1-course-frontend \
             student-1/frontend-service
 
 
@@ -57,7 +63,7 @@ jobs:
         run: |
           docker build \
             -f student-1/enrolment-service/Dockerfile \
-            -t student-1-course-enrolment \
+            -t student1-course-enrolment \
             .
 
 
@@ -65,5 +71,5 @@ jobs:
         run: |
           docker build \
             -f student-1/database-service/Dockerfile \
-            -t student-1-course-database \
+            -t student1-course-database \
             student-1/database-service
