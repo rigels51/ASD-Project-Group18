@@ -1,9 +1,19 @@
 from flask import Flask, jsonify, request
+import os
 import sqlite3
+
+import requests
 
 app = Flask(__name__)
 
 DATABASE_NAME = "/app/data/enrolment.db"
+
+# student-1's database-service holds the student records; enrolments here
+# reference the same student IDs and sync the student's course back there.
+STUDENT_RECORDS_SERVICE_URL = os.getenv(
+    "STUDENT_RECORDS_SERVICE_URL",
+    "http://student1-database:5002",
+)
 
 
 def get_db_connection():
@@ -11,6 +21,27 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def student_exists(student_id):
+    try:
+        response = requests.get(
+            f"{STUDENT_RECORDS_SERVICE_URL}/students/{student_id}", timeout=5
+        )
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def sync_student_course(student_id, course_name):
+    try:
+        requests.put(
+            f"{STUDENT_RECORDS_SERVICE_URL}/students/{student_id}/course",
+            json={"course": course_name},
+            timeout=5,
+        )
+    except requests.RequestException:
+        pass
 
 
 # -------------------------
@@ -294,25 +325,34 @@ def get_enrolment(enrolment_id):
 def create_enrolment():
     data = request.get_json(silent=True) or {}
 
-    student_id = data.get("student_id")
+    student_id = str(data.get("student_id", "")).strip().upper()
     course_id = data.get("course_id")
     status = str(data.get("status", "Active")).strip()
 
+    if not student_id or course_id in (None, ""):
+        return jsonify({
+            "error": "student_id and course_id are required"
+        }), 400
+
     try:
-        student_id = int(student_id)
         course_id = int(course_id)
     except (TypeError, ValueError):
         return jsonify({
-            "error": "student_id and course_id must be integers"
+            "error": "course_id must be an integer"
         }), 400
 
     if not status:
         status = "Active"
 
+    if not student_exists(student_id):
+        return jsonify({
+            "error": "Student not found in student records"
+        }), 404
+
     conn = get_db_connection()
 
     course = conn.execute("""
-        SELECT course_id
+        SELECT course_id, course_name
         FROM courses
         WHERE course_id = ?
     """, (course_id,)).fetchone()
@@ -342,6 +382,9 @@ def create_enrolment():
 
     conn.close()
 
+    if status.lower() == "active":
+        sync_student_course(student_id, course["course_name"])
+
     return jsonify({
         "message": "Student enrolled successfully",
         "enrolment_id": enrolment_id
@@ -353,16 +396,20 @@ def create_enrolment():
 def update_enrolment(enrolment_id):
     data = request.get_json(silent=True) or {}
 
-    student_id = data.get("student_id")
+    student_id = str(data.get("student_id", "")).strip().upper()
     course_id = data.get("course_id")
     status = str(data.get("status", "")).strip()
 
+    if not student_id or course_id in (None, ""):
+        return jsonify({
+            "error": "student_id and course_id are required"
+        }), 400
+
     try:
-        student_id = int(student_id)
         course_id = int(course_id)
     except (TypeError, ValueError):
         return jsonify({
-            "error": "student_id and course_id must be integers"
+            "error": "course_id must be an integer"
         }), 400
 
     if not status:
@@ -385,7 +432,7 @@ def update_enrolment(enrolment_id):
         }), 404
 
     course = conn.execute("""
-        SELECT course_id
+        SELECT course_id, course_name
         FROM courses
         WHERE course_id = ?
     """, (course_id,)).fetchone()
@@ -412,6 +459,11 @@ def update_enrolment(enrolment_id):
     conn.commit()
     conn.close()
 
+    sync_student_course(
+        student_id,
+        course["course_name"] if status.lower() == "active" else "No Course",
+    )
+
     return jsonify({
         "message": "Enrolment updated successfully"
     })
@@ -423,7 +475,7 @@ def delete_enrolment(enrolment_id):
     conn = get_db_connection()
 
     enrolment = conn.execute("""
-        SELECT enrolment_id
+        SELECT enrolment_id, student_id, status
         FROM enrolments
         WHERE enrolment_id = ?
     """, (enrolment_id,)).fetchone()
@@ -441,6 +493,9 @@ def delete_enrolment(enrolment_id):
 
     conn.commit()
     conn.close()
+
+    if enrolment["status"].lower() == "active":
+        sync_student_course(enrolment["student_id"], "No Course")
 
     return jsonify({
         "message": "Enrolment deleted successfully"

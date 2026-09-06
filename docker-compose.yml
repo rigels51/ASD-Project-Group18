@@ -135,8 +135,12 @@ services:
         container_name: student4-database
         ports:
             - "5032:5002"
+        environment:
+            STUDENT_RECORDS_SERVICE_URL: http://student1-database:5002
         volumes:
             - student4_database_data:/app/data
+        depends_on:
+            - student1-database
         networks:
             enrolment-network:
                 aliases:

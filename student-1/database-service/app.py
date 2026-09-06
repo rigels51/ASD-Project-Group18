@@ -28,19 +28,21 @@ def initialize_database():
 
     student_count = conn.execute("SELECT COUNT(*) FROM students").fetchone()[0]
     if student_count == 0:
+        # Course names mirror student-4's course catalog; a student only has a
+        # course once actively enrolled via student-4's enrolment-service.
         seed_students = [
-            ("STU-1001", "Rigel Rivamonte", "Computer Science", "3rd Year", "rigel.rivamonte@uni.edu", "0417 200 1145", 3.72, "Enrolled"),
-                ("STU-1002", "Vu Tien Thanh Nguyen", "Information Technology", "2nd Year", "marisol.tan@uni.edu", "0418 442 0093", 3.15, "Enrolled"),
-                ("STU-1003", "Andres Villamor", "Cybersecurity", "4th Year", "andres.villamor@uni.edu", "0420 553 7712", 2.98, "On Leave"),
-                ("STU-1004", "Priya Nathan", "Psychology", "1st Year", "priya.nathan@uni.edu", "0417 664 2201", 3.44, "Enrolled"),
-                ("STU-1005", "Julius Bermudez", "Civil Engineering", "4th Year", "julius.bermudez@uni.edu", "0419 305 8842", 3.05, "Enrolled"),
-                ("STU-1006", "Keisha Alonzo", "Computer Science", "2nd Year", "keisha.alonzo@uni.edu", "0421 774 1129", 3.88, "Enrolled"),
-                ("STU-1007", "Noel Fajardo", "Information Technology", "3rd Year", "noel.fajardo@uni.edu", "0417 883 4420", 2.61, "On Leave"),
-                ("STU-1008", "Jeriko Arceo", "Psychology", "Graduate", "camille.ordonez@uni.edu", "0418 220 9931", 3.91, "Graduated"),
-                ("STU-1009", "Lazizbek Ismoilov", "Cybersecurity", "1st Year", "dexter.salcedo@uni.edu", "0420 114 5567", 3.20, "Enrolled"),
-                ("STU-1010", "Yi Zhang", "Civil Engineering", "3rd Year", "faye.bautista@uni.edu", "0417 992 3315", 3.63, "Enrolled"),
-                ("STU-1011", "Miguel Estrella", "Computer Science", "4th Year", "miguel.estrella@uni.edu", "0419 441 7723", 3.30, "Graduated"),
-                ("STU-1012", "Anika Roque", "Information Technology", "1st Year", "anika.roque@uni.edu", "0418 662 0087", 2.85, "Enrolled"),
+            ("STU-1001", "Rigel Rivamonte", "Advanced Software Development", "3rd Year", "rigel.rivamonte@uni.edu", "0417 200 1145", 3.72, "Enrolled"),
+                ("STU-1002", "Vu Tien Thanh Nguyen", "Advanced Software Development", "2nd Year", "marisol.tan@uni.edu", "0418 442 0093", 3.15, "Enrolled"),
+                ("STU-1003", "Andres Villamor", "Database Systems", "4th Year", "andres.villamor@uni.edu", "0420 553 7712", 2.98, "On Leave"),
+                ("STU-1004", "Priya Nathan", "No Course", "1st Year", "priya.nathan@uni.edu", "0417 664 2201", 3.44, "Enrolled"),
+                ("STU-1005", "Julius Bermudez", "Web Development", "4th Year", "julius.bermudez@uni.edu", "0419 305 8842", 3.05, "Enrolled"),
+                ("STU-1006", "Keisha Alonzo", "Computer Networks", "2nd Year", "keisha.alonzo@uni.edu", "0421 774 1129", 3.88, "Enrolled"),
+                ("STU-1007", "Noel Fajardo", "No Course", "3rd Year", "noel.fajardo@uni.edu", "0417 883 4420", 2.61, "On Leave"),
+                ("STU-1008", "Jeriko Arceo", "Data Analytics", "Graduate", "camille.ordonez@uni.edu", "0418 220 9931", 3.91, "Graduated"),
+                ("STU-1009", "Lazizbek Ismoilov", "Artificial Intelligence", "1st Year", "dexter.salcedo@uni.edu", "0420 114 5567", 3.20, "Enrolled"),
+                ("STU-1010", "Yi Zhang", "No Course", "3rd Year", "faye.bautista@uni.edu", "0417 992 3315", 3.63, "Enrolled"),
+                ("STU-1011", "Miguel Estrella", "No Course", "4th Year", "miguel.estrella@uni.edu", "0419 441 7723", 3.30, "Graduated"),
+                ("STU-1012", "Anika Roque", "No Course", "1st Year", "anika.roque@uni.edu", "0418 662 0087", 2.85, "Enrolled"),
         ]
         conn.executemany(
             """
@@ -168,7 +170,6 @@ def create_student():
     payload = request.get_json(silent=True) or {}
     required_fields = [
         "name",
-        "course",
         "year_level",
         "email",
     ]
@@ -178,7 +179,9 @@ def create_student():
         return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
 
     name = payload["name"].strip()
-    course = payload["course"].strip()
+    # New students start with no course; a course is only assigned once they
+    # are actively enrolled via student-4's enrolment-service.
+    course = "No Course"
     year_level = payload["year_level"].strip()
     email = payload["email"].strip()
     phone = (payload.get("phone") or "").strip()
@@ -224,6 +227,8 @@ def update_student(student_id):
         return jsonify({"error": "Student not found"}), 404
 
     updated_name = current["name"]
+    # Course is not editable here; it is only changed via the enrolment sync
+    # endpoint below, called by student-4's enrolment-service.
     updated_course = current["course"]
     updated_year = payload.get("year_level", current["year_level"]).strip()
     updated_email = payload.get("email", current["email"]).strip()
@@ -261,6 +266,26 @@ def delete_student(student_id):
     conn.commit()
     conn.close()
     return jsonify({"deleted": cursor.rowcount > 0, "student_id": student_id})
+
+
+@app.put("/students/<student_id>/course")
+def sync_student_course(student_id):
+    """Internal endpoint used by student-4's database-service to keep a
+    student's course in sync with their enrolment status."""
+    payload = request.get_json(silent=True) or {}
+    course = (payload.get("course") or "No Course").strip() or "No Course"
+
+    conn = get_db_connection()
+    current = conn.execute("SELECT student_id FROM students WHERE student_id = ?", (student_id,)).fetchone()
+    if current is None:
+        conn.close()
+        return jsonify({"error": "Student not found"}), 404
+
+    conn.execute("UPDATE students SET course = ? WHERE student_id = ?", (course, student_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"student_id": student_id, "course": course})
 
 
 if __name__ == "__main__":

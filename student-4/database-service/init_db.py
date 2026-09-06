@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS courses (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS enrolments (
     enrolment_id INTEGER PRIMARY KEY,
-    student_id INTEGER NOT NULL,
+    student_id TEXT NOT NULL,
     course_id INTEGER NOT NULL,
     status TEXT NOT NULL,
     FOREIGN KEY (course_id) REFERENCES courses(course_id)
@@ -72,17 +72,18 @@ VALUES (?, ?, ?, ?, ?)
 # -------------------------
 # Enrolment sample data
 # -------------------------
+# Student IDs match student-1's student-records seed data (STU-1001..STU-1010).
 enrolments = [
-    (1, 1001, 1, "Active"),
-    (2, 1002, 1, "Active"),
-    (3, 1003, 2, "Active"),
-    (4, 1004, 2, "Completed"),
-    (5, 1005, 3, "Active"),
-    (6, 1006, 4, "Active"),
-    (7, 1007, 5, "Withdrawn"),
-    (8, 1008, 6, "Active"),
-    (9, 1009, 7, "Active"),
-    (10, 1010, 8, "Completed"),
+    (1, "STU-1001", 1, "Active"),
+    (2, "STU-1002", 1, "Active"),
+    (3, "STU-1003", 2, "Active"),
+    (4, "STU-1004", 2, "Completed"),
+    (5, "STU-1005", 3, "Active"),
+    (6, "STU-1006", 4, "Active"),
+    (7, "STU-1007", 5, "Withdrawn"),
+    (8, "STU-1008", 6, "Active"),
+    (9, "STU-1009", 7, "Active"),
+    (10, "STU-1010", 8, "Completed"),
 ]
 
 cursor.executemany("""

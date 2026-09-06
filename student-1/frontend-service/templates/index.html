@@ -372,13 +372,7 @@
         <div class="field-row" style="margin-bottom:14px;">
           <div class="field">
             <label>Course</label>
-            <select id="f-course">
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Cybersecurity">Cybersecurity</option>
-              <option value="Psychology">Psychology</option>
-              <option value="Civil Engineering">Civil Engineering</option>
-            </select>
+            <input type="text" id="f-course" disabled>
           </div>
           <div class="field">
             <label>Year level</label>
@@ -459,12 +453,20 @@
 
   <script>
     const API_BASE = "http://localhost:5001";
+    // Course names and colors mirror student-4's course catalog, since a
+    // student's course comes from their active enrolment there.
     const courseColors = {
-      "Computer Science": "#3f6c51",
-      "Information Technology": "#2c3a5e",
-      "Cybersecurity": "#a9812f",
-      "Psychology": "#a2632a",
-      "Civil Engineering": "#8a3c3c"
+      "Advanced Software Development": "#3f6c51",
+      "Database Systems": "#2c3a5e",
+      "Web Development": "#a9812f",
+      "Computer Networks": "#a2632a",
+      "Cyber Security": "#8a3c3c",
+      "Data Analytics": "#5b6472",
+      "Artificial Intelligence": "#6c4f9e",
+      "Cloud Computing": "#2f7d8c",
+      "Software Engineering": "#c76b3e",
+      "Project Management": "#4c7a3f",
+      "No Course": "#9aa0ab"
     };
 
     let students = [];
@@ -626,8 +628,8 @@
       document.getElementById("f-student-id").value = nextStudentId();
       document.getElementById("f-name").value = "";
       document.getElementById("f-name").disabled = false;
-      document.getElementById("f-course").disabled = false;
-      document.getElementById("f-course").selectedIndex = 0;
+      document.getElementById("f-course").value = "No Course";
+      document.getElementById("f-course").disabled = true;
       document.getElementById("f-year").selectedIndex = 0;
       document.getElementById("f-gpa").value = "0.00";
       document.getElementById("f-gpa").disabled = true;
@@ -679,7 +681,6 @@
       const payload = {
         student_id: document.getElementById("f-student-id").value,
         name: document.getElementById("f-name").value.trim(),
-        course: document.getElementById("f-course").value,
         year_level: document.getElementById("f-year").value,
         gpa: document.getElementById("f-gpa").value,
         status: document.getElementById("f-status").value,
