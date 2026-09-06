@@ -24,7 +24,7 @@ services:
         build:
             context: .
             dockerfile: student-1/enrolment-service/Dockerfile
-        container_name: student1-enrolment
+        container_name: enrolment-service
         ports:
             - "5001:5001"
         environment:
@@ -42,7 +42,7 @@ services:
     student1-database:
         build:
             context: ./student-1/database-service
-        container_name: student1-database
+        container_name: database-service
         ports:
             - "5002:5002"
         volumes:
