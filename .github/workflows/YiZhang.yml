@@ -7,7 +7,7 @@ on:
     branches:
       - Yi-Zhang
     paths:
-      - 'Student4/**'
+      - 'student-4/**'
       - '.github/workflows/YiZhang.yml'
       - 'prompts/**'
 
@@ -15,7 +15,7 @@ on:
     branches:
       - main
     paths:
-      - 'Student4/**'
+      - 'student-4/**'
       - '.github/workflows/YiZhang.yml'
       - 'prompts/**'
 
@@ -35,28 +35,28 @@ jobs:
       - name: Install enrolment service dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r Student4/enrolment-service/requirements.txt
+          pip install -r student-4/enrolment-service/requirements.txt
 
       - name: Validate Python syntax
         run: |
-          python -m py_compile Student4/database-service/app.py
-          python -m py_compile Student4/database-service/init_db.py
-          python -m py_compile Student4/enrolment-service/app.py
-          python -m py_compile Student4/enrolment-service/routes/normal_ui.py
-          python -m py_compile Student4/enrolment-service/routes/ai_mode.py
-          python -m py_compile Student4/enrolment-service/services/database_api.py
-          python -m py_compile Student4/enrolment-service/services/llm_client.py
-          python -m py_compile Student4/enrolment-service/services/prompt_loader.py
-          python -m py_compile Student4/enrolment-service/views/html_formatters.py
+          python -m py_compile student-4/database-service/app.py
+          python -m py_compile student-4/database-service/init_db.py
+          python -m py_compile student-4/enrolment-service/app.py
+          python -m py_compile student-4/enrolment-service/routes/normal_ui.py
+          python -m py_compile student-4/enrolment-service/routes/ai_mode.py
+          python -m py_compile student-4/enrolment-service/services/database_api.py
+          python -m py_compile student-4/enrolment-service/services/llm_client.py
+          python -m py_compile student-4/enrolment-service/services/prompt_loader.py
+          python -m py_compile student-4/enrolment-service/views/html_formatters.py
 
       - name: Build frontend service
-        run: docker build -f Student4/frontend-service/Dockerfile -t yi-course-frontend Student4/frontend-service
+        run: docker build -f student-4/frontend-service/Dockerfile -t yi-course-frontend student-4/frontend-service
 
       - name: Build enrolment service
-        run: docker build -f Student4/enrolment-service/Dockerfile -t yi-course-enrolment .
+        run: docker build -f student-4/enrolment-service/Dockerfile -t yi-course-enrolment .
 
       - name: Build database service
-        run: docker build -f Student4/database-service/Dockerfile -t yi-course-database Student4/database-service
+        run: docker build -f student-4/database-service/Dockerfile -t yi-course-database student-4/database-service
 
       - name: Validate Docker Compose
-        run: docker compose -f Student4/docker-compose.yml config
+        run: docker compose -f student-4/docker-compose.yml config

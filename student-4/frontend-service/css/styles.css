@@ -116,6 +116,7 @@ body {
 
   white-space: nowrap;
 }
+.home-link { margin-right: 10px; text-decoration: none; }
 
 
 /* ============================

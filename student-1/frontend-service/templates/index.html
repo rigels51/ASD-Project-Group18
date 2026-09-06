@@ -52,6 +52,7 @@
       background: var(--paper-raised); border: 1px solid var(--line); border-radius: 999px;
       padding: 6px 14px; white-space: nowrap;
     }
+    .home-link { margin-right: 10px; text-decoration: none; }
 
     .layout { display: grid; grid-template-columns: 250px 1fr; gap: 22px; }
     @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
@@ -266,7 +267,10 @@
         <h1>Student Records</h1>
         <div class="sub"></div>
       </div>
-      <div class="term-badge mono">Term: Spring 2026</div>
+      <div>
+        <a class="btn btn-ghost home-link" href="http://localhost:8090">Home</a>
+        <span class="term-badge mono">Term: Spring 2026</span>
+      </div>
     </div>
 
     <div class="layout">
