@@ -4,10 +4,16 @@ on:
   push:
     branches:
       - Student1
+    paths:
+      - 'Student1/**'
+      - '.github/workflows/RigelRivamonte.yml'
 
   pull_request:
     branches:
       - main
+    paths:
+      - 'Student1/**'
+      - '.github/workflows/RigelRivamonte.yml'
 
 jobs:
   build-and-validate:
