@@ -184,6 +184,12 @@ td.mono{font-size:13px;}
     padding:16px; min-height:2.5rem; font-size:14px;
 }
 
+/* ---------- Tab panels (missing from initial re-skin — this controls
+   which section is actually visible; without it, Browse/Manage/Clashes/Ask
+   all show at once regardless of role or selected tab) ---------- */
+.tab-panel{display:none;}
+.tab-panel.is-active{display:block;}
+
 .is-hidden{display:none !important;}
 
 @media (prefers-reduced-motion: reduce){
