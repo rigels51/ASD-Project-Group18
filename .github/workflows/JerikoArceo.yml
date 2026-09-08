@@ -6,7 +6,7 @@ on:
       - jeriko
       - jeriko-workingAttempt
     paths:
-      - 'Student2/**'
+      - 'student-2/**'
 
   pull_request:
     branches:
@@ -62,7 +62,7 @@ jobs:
           docker build \
             -f student-2/backend-service/Dockerfile \
             -t jeriko-staff-enrolment \
-            .
+            student-2/backend-service
 
 
       - name: Build database service
