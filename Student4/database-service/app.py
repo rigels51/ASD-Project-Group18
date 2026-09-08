@@ -144,6 +144,11 @@ def update_course(course_id):
             "error": "credits and capacity must be integers"
         }), 400
 
+    if credits <= 0 or capacity <= 0:
+        return jsonify({
+            "error": "credits and capacity must be greater than 0"
+        }), 400
+
     conn = get_db_connection()
 
     existing = conn.execute("""
@@ -288,16 +293,20 @@ def get_enrolment(enrolment_id):
 def create_enrolment():
     data = request.get_json(silent=True) or {}
 
-    student_id = data.get("student_id")
+    student_id = str(data.get("student_id", "")).strip().upper()
     course_id = data.get("course_id")
     status = str(data.get("status", "Active")).strip()
 
+    if not student_id.startswith("STU-") or not student_id[4:].isdigit():
+        return jsonify({
+            "error": "student_id must use the Student 1 format, e.g. STU-1001"
+        }), 400
+
     try:
-        student_id = int(student_id)
         course_id = int(course_id)
     except (TypeError, ValueError):
         return jsonify({
-            "error": "student_id and course_id must be integers"
+            "error": "course_id must be an integer"
         }), 400
 
     if not status:
@@ -347,16 +356,20 @@ def create_enrolment():
 def update_enrolment(enrolment_id):
     data = request.get_json(silent=True) or {}
 
-    student_id = data.get("student_id")
+    student_id = str(data.get("student_id", "")).strip().upper()
     course_id = data.get("course_id")
     status = str(data.get("status", "")).strip()
 
+    if not student_id.startswith("STU-") or not student_id[4:].isdigit():
+        return jsonify({
+            "error": "student_id must use the Student 1 format, e.g. STU-1001"
+        }), 400
+
     try:
-        student_id = int(student_id)
         course_id = int(course_id)
     except (TypeError, ValueError):
         return jsonify({
-            "error": "student_id and course_id must be integers"
+            "error": "course_id must be an integer"
         }), 400
 
     if not status:

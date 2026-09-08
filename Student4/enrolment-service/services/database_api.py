@@ -4,7 +4,12 @@ import requests
 
 DATABASE_SERVICE_URL = os.getenv(
     "DATABASE_SERVICE_URL",
-    "http://database-service:5002"
+    "http://student4-database:5002"
+)
+
+STUDENT_SERVICE_URL = os.getenv(
+    "STUDENT_SERVICE_URL",
+    "http://student1-database:5002"
 )
 
 
@@ -84,5 +89,16 @@ def update_enrolment_response(enrolment_id, data):
 def delete_enrolment_response(enrolment_id):
     return requests.delete(
         f"{DATABASE_SERVICE_URL}/enrolments/{enrolment_id}",
+        timeout=5
+    )
+
+
+# =========================================================
+# STUDENT 1 API
+# =========================================================
+
+def get_student_response(student_id):
+    return requests.get(
+        f"{STUDENT_SERVICE_URL}/students/{student_id}",
         timeout=5
     )
