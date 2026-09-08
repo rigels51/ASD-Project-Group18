@@ -12,6 +12,7 @@ from services.database_api import (
     create_enrolment_response,
     update_enrolment_response,
     delete_enrolment_response,
+    get_student_response,
 )
 
 from views.html_formatters import (
@@ -238,7 +239,7 @@ def get_enrolment_by_id():
 
 @normal_ui_bp.post("/enrolments")
 def create_enrolment():
-    student_id = request.form.get("student_id", "").strip()
+    student_id = request.form.get("student_id", "").strip().upper()
     course_id = request.form.get("course_id", "").strip()
     status = request.form.get("status", "Active").strip()
 
@@ -252,6 +253,14 @@ def create_enrolment():
     }
 
     try:
+        # Validate student through Student 1 API
+        student_response = get_student_response(student_id)
+
+        if student_response.status_code == 404:
+            return "<p>Student not found in Student 1 records.</p>", 404
+
+        student_response.raise_for_status()
+
         response = create_enrolment_response(data)
 
         if response.status_code == 404:
@@ -281,7 +290,7 @@ def create_enrolment():
 @normal_ui_bp.post("/enrolments/update")
 def update_enrolment():
     enrolment_id = request.form.get("enrolment_id", "").strip()
-    student_id = request.form.get("student_id", "").strip()
+    student_id = request.form.get("student_id", "").strip().upper()
     course_id = request.form.get("course_id", "").strip()
     status = request.form.get("status", "").strip()
 
@@ -300,6 +309,14 @@ def update_enrolment():
     }
 
     try:
+        # Validate student through Student 1 API
+        student_response = get_student_response(student_id)
+
+        if student_response.status_code == 404:
+            return "<p>Student not found in Student 1 records.</p>", 404
+
+        student_response.raise_for_status()
+
         response = update_enrolment_response(enrolment_id, data)
 
         if response.status_code == 404:
