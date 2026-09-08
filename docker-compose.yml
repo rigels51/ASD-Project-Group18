@@ -50,12 +50,6 @@ services:
         networks:
             enrolment-network:
                 aliases:
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-                    - database-service
-=======
->>>>>>> Stashed changes
                     - student1-database
         restart: unless-stopped
 
@@ -125,20 +119,14 @@ services:
             - "5031:5001"
         environment:
             DATABASE_SERVICE_URL: http://student4-database:5002
-<<<<<<< Updated upstream
-=======
             STUDENT_SERVICE_URL: http://student1-database:5002
->>>>>>> Stashed changes
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
             - student4-database
-<<<<<<< Updated upstream
-=======
             - student1-database
->>>>>>> Stashed changes
         networks:
             - enrolment-network
         restart: unless-stopped
@@ -155,10 +143,6 @@ services:
             enrolment-network:
                 aliases:
                     - student4-database
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
         restart: unless-stopped
 
     assessment-database-service:
@@ -195,11 +179,6 @@ services:
             - enrolment-network
         restart: unless-stopped
 
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
     assessment-frontend-service:
         build:
             context: ./student-5/frontend
@@ -239,11 +218,7 @@ services:
             - enrolment-network
         restart: unless-stopped
 
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 volumes:
     student1_database_data:
     student2_database_data:
