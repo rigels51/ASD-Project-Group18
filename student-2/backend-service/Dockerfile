@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt ./requirements.txt
+COPY backend-service/requirements.txt ./requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . ./backend-service
+COPY backend-service ./backend-service
 COPY prompts/service ./prompts/service
 COPY prompts/lab4 ./prompts/lab4
 
