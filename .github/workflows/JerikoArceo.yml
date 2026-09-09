@@ -62,7 +62,7 @@ jobs:
           docker build \
             -f student-2/backend-service/Dockerfile \
             -t jeriko-staff-enrolment \
-            student-2
+            .
 
 
       - name: Build database service
