@@ -1,5 +1,10 @@
 # USING THIS FILE STANDALONE (docker compose -f student-5/docker-compose.snippet.yml up):
-# Works as-is.
+# Works, but two things only work once merged into the team's root docker-compose.yml
+# (see below) because they call OTHER students' services by container name:
+#   - Recording/validating a grade's student_id against Student 1's database-service
+#   - Showing student names / course names next to ids (falls back to id-only)
+# Standalone, those calls simply fail to connect and are handled gracefully
+# (enrichment is skipped; POST /grades returns 503 instead of validating).
 #
 # MERGING INTO THE TEAM'S ROOT docker-compose.yml INSTEAD:
 # Copy the three services under "services:" and the volume under "volumes:"
@@ -7,6 +12,8 @@
 #   - assessment-database-service: context becomes "./student-5/database" (same as here)
 #   - assessment-service:          context becomes "." and dockerfile becomes "student-5/backend/Dockerfile"
 #   - assessment-frontend-service: context becomes "./student-5/frontend" (same as here)
+# Also add "student1-database" and "student4-database" to assessment-service's
+# depends_on so it doesn't race Student 1 / Student 4 starting up.
 # Skip the "networks:" block — the team's root file already declares "enrolment-network".
 #
 # Ports used (none of these collide with student1 5001/5002, Student2 5011/5012,
@@ -39,6 +46,12 @@ services:
             - "5021:5021"
         environment:
             ASSESSMENT_DATABASE_SERVICE_URL: http://assessment-database-service:5022
+            # Relationship: Student 1 -> Student 5 via student_id.
+            # Only resolves when this container is on the same network as
+            # student1-database (i.e. once merged into the team's root compose).
+            STUDENT_SERVICE_URL: http://student1-database:5002
+            # Relationship: Student 4 -> Student 5 via course_id.
+            COURSE_SERVICE_URL: http://student4-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:

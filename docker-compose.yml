@@ -169,12 +169,16 @@ services:
             - "5021:5021"
         environment:
             ASSESSMENT_DATABASE_SERVICE_URL: http://assessment-database-service:5022
+            STUDENT_SERVICE_URL: http://student1-database:5002
+            COURSE_SERVICE_URL: http://student4-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
             - assessment-database-service
+            - student1-database
+            - student4-database
         networks:
             - enrolment-network
         restart: unless-stopped

@@ -8,6 +8,7 @@ from services.database_api import (
     get_grades,
     get_grades_by_student_response,
     get_grades_by_course_response,
+    get_student_response,
 )
 from services.llm_client import create_chat_completion, OLLAMA_MODEL
 from services.prompt_loader import load_prompt
@@ -16,17 +17,22 @@ from services.prompt_loader import load_prompt
 ai_mode_bp = Blueprint("assessment_ai_mode", __name__)
 
 COURSE_CODE_PATTERN = re.compile(r"\b[A-Z]{2,4}\d{3}\b")
-STUDENT_ID_PATTERN = re.compile(r"student\s*(?:id\s*)?#?\s*(\d+)", re.IGNORECASE)
+# Real Student 1 ids look like "STU-1001" (see student-1/database-service).
+STUDENT_CODE_PATTERN = re.compile(r"\bSTU-?\s?(\d{3,4})\b", re.IGNORECASE)
+# Backward-compatible fallback for phrasing like "student 1001" (no STU- prefix).
+STUDENT_ID_PATTERN = re.compile(r"student\s*(?:id\s*)?#?\s*(\d{3,4})\b", re.IGNORECASE)
 
 
 def _plan(question):
     """PLAN: work out which evidence the question needs."""
     course_match = COURSE_CODE_PATTERN.search(question.upper())
-    student_match = STUDENT_ID_PATTERN.search(question)
+
+    student_match = STUDENT_CODE_PATTERN.search(question) or STUDENT_ID_PATTERN.search(question)
+    student_id = f"STU-{student_match.group(1)}" if student_match else None
 
     return {
         "course_id": course_match.group(0) if course_match else None,
-        "student_id": int(student_match.group(1)) if student_match else None,
+        "student_id": student_id,
     }
 
 
@@ -35,6 +41,15 @@ def _act_and_observe(plan):
     evidence_parts = []
 
     if plan["student_id"]:
+        # Relationship: Student 1 -> Student 5 via student_id. Pull the
+        # student's real name/course from Student 1 so the agent can answer
+        # "who" as well as "what mark", not just echo an id back.
+        student_response = get_student_response(plan["student_id"])
+        if student_response.status_code == 200:
+            evidence_parts.append(f"Student 1 record for {plan['student_id']}: {student_response.json()}")
+        else:
+            evidence_parts.append(f"No Student 1 record found for {plan['student_id']}.")
+
         response = get_grades_by_student_response(plan["student_id"])
         if response.status_code == 200:
             evidence_parts.append(f"Grades for student {plan['student_id']}: {response.json()}")

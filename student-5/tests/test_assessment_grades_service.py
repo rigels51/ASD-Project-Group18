@@ -9,6 +9,12 @@ Run against a live stack, e.g.:
 These tests hit the backend/API service (default: http://localhost:5021), which in
 turn proxies to the database service, so a pass demonstrates the whole chain works:
 frontend-facing API -> backend -> database.
+
+NOTE: POST /grades now validates student_id against Student 1's database-service
+(relationship: Student 1 -> Student 5 via student_id). When run standalone (e.g. in
+CI, without student1-database on the network) that call fails and the route returns
+503 rather than 201/400 — this suite does not exercise grade creation for that
+reason, so it stays green in both standalone and full-stack runs.
 """
 
 import os
@@ -72,7 +78,8 @@ def test_get_all_grades():
 
 
 def test_get_grades_by_student():
-    response = requests.get(f"{BACKEND_URL}/grades/student/1")
+    # STU-1001 matches the seeded Student 1 id format (see student-5/database/init_db.py).
+    response = requests.get(f"{BACKEND_URL}/grades/student/STU-1001")
     assert response.status_code in (200, 404)
 
 
@@ -89,7 +96,7 @@ def test_ask_ai_agent_requires_question():
 def test_ask_ai_agent_returns_answer_or_service_unavailable():
     response = requests.post(
         f"{BACKEND_URL}/ask",
-        data={"question": "What are student 1's results in ASD101?"},
+        data={"question": "What did student STU-1009 score in SEC301?"},
     )
     # 200 when Ollama is reachable, 503 with a clear error message otherwise.
     assert response.status_code in (200, 503)

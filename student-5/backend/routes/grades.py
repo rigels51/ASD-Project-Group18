@@ -9,6 +9,8 @@ from services.database_api import (
     delete_grade_response,
     get_grades_by_student_response,
     get_grades_by_course_response,
+    get_student_response,
+    get_all_students,
 )
 from views.html_formatters import format_grades_html, format_grade_html
 
@@ -16,10 +18,26 @@ from views.html_formatters import format_grades_html, format_grade_html
 grades_bp = Blueprint("grades", __name__)
 
 
+def _is_valid_student_id(student_id):
+    # Same shape Student 1 issues / Student 4 validates against: "STU-1001"
+    return student_id.startswith("STU-") and student_id[4:].isdigit()
+
+
+def _enrich_with_students(grades):
+    """Attach a student_name to each grade using Student 1's records
+    (relationship: Student 1 -> Student 5 via student_id)."""
+    students = get_all_students()
+    for g in grades:
+        student = students.get(str(g.get("student_id", "")).upper())
+        g["student_name"] = student["name"] if student else None
+    return grades
+
+
 @grades_bp.get("/grades")
 def get_grades_route():
     try:
         grades = get_grades()
+        grades = _enrich_with_students(grades)
         return format_grades_html(grades), 200
     except requests.RequestException as exc:
         return (
@@ -36,7 +54,11 @@ def get_grade_route(grade_id):
         if response.status_code == 404:
             return "<p>Grade not found.</p>", 404
         response.raise_for_status()
-        return format_grade_html(response.json()), 200
+        grade = response.json()
+        students = get_all_students()
+        student = students.get(str(grade.get("student_id", "")).upper())
+        grade["student_name"] = student["name"] if student else None
+        return format_grade_html(grade), 200
     except requests.RequestException as exc:
         return (
             "<p>Failed to retrieve grade from the database service.</p>"
@@ -50,7 +72,7 @@ def create_grade_route():
     form = request.form
     payload = {
         "assessment_id": form.get("assessment_id", "").strip(),
-        "student_id": form.get("student_id", "").strip(),
+        "student_id": form.get("student_id", "").strip().upper(),
         "mark": form.get("mark", "").strip(),
         "grade": form.get("grade", "").strip(),
         "feedback": form.get("feedback", "").strip(),
@@ -60,19 +82,34 @@ def create_grade_route():
     if not payload["assessment_id"] or not payload["student_id"] or not payload["date_recorded"]:
         return "<p>Assessment ID, Student ID, and Date Recorded are required.</p>", 400
 
+    if not _is_valid_student_id(payload["student_id"]):
+        return "<p>Student ID must use the Student 1 format, e.g. STU-1001.</p>", 400
+
     try:
         payload["assessment_id"] = int(payload["assessment_id"])
-        payload["student_id"] = int(payload["student_id"])
         payload["mark"] = float(payload["mark"]) if payload["mark"] else None
     except ValueError:
-        return "<p>Assessment ID, Student ID, and Mark must be numeric.</p>", 400
+        return "<p>Assessment ID and Mark must be numeric.</p>", 400
+
+    try:
+        # Relationship check: student_id must exist in Student 1's records.
+        student_response = get_student_response(payload["student_id"])
+        if student_response.status_code == 404:
+            return "<p>Student not found in Student 1 records.</p>", 404
+        student_response.raise_for_status()
+    except requests.RequestException as exc:
+        return (
+            "<p>Could not verify student against Student 1's service.</p>"
+            f"<pre>{exc}</pre>",
+            503,
+        )
 
     try:
         response = create_grade_response(payload)
         if response.status_code == 400:
             return f"<p>{response.json().get('error', 'Invalid request')}</p>", 400
         response.raise_for_status()
-        grades = get_grades()
+        grades = _enrich_with_students(get_grades())
         return format_grades_html(grades), 201
     except requests.RequestException as exc:
         return (
@@ -94,12 +131,28 @@ def update_grade_route(grade_id):
         "date_recorded": form.get("date_recorded"),
     }.items() if v not in (None, "")}
 
+    if "student_id" in payload:
+        payload["student_id"] = payload["student_id"].strip().upper()
+        if not _is_valid_student_id(payload["student_id"]):
+            return "<p>Student ID must use the Student 1 format, e.g. STU-1001.</p>", 400
+        try:
+            student_response = get_student_response(payload["student_id"])
+            if student_response.status_code == 404:
+                return "<p>Student not found in Student 1 records.</p>", 404
+            student_response.raise_for_status()
+        except requests.RequestException as exc:
+            return (
+                "<p>Could not verify student against Student 1's service.</p>"
+                f"<pre>{exc}</pre>",
+                503,
+            )
+
     try:
         response = update_grade_response(grade_id, payload)
         if response.status_code == 404:
             return "<p>Grade not found.</p>", 404
         response.raise_for_status()
-        grades = get_grades()
+        grades = _enrich_with_students(get_grades())
         return format_grades_html(grades), 200
     except requests.RequestException as exc:
         return (
@@ -116,7 +169,7 @@ def delete_grade_route(grade_id):
         if response.status_code == 404:
             return "<p>Grade not found.</p>", 404
         response.raise_for_status()
-        grades = get_grades()
+        grades = _enrich_with_students(get_grades())
         return format_grades_html(grades), 200
     except requests.RequestException as exc:
         return (
@@ -126,14 +179,16 @@ def delete_grade_route(grade_id):
         )
 
 
-@grades_bp.get("/grades/student/<int:student_id>")
+@grades_bp.get("/grades/student/<student_id>")
 def get_grades_by_student_route(student_id):
+    student_id = student_id.strip().upper()
     try:
         response = get_grades_by_student_response(student_id)
         if response.status_code == 404:
             return f"<p>No grades found for student {student_id}.</p>", 404
         response.raise_for_status()
-        return format_grades_html(response.json()), 200
+        grades = _enrich_with_students(response.json())
+        return format_grades_html(grades), 200
     except requests.RequestException as exc:
         return (
             "<p>Failed to retrieve grades for student.</p>"
@@ -149,7 +204,8 @@ def get_grades_by_course_route(course_id):
         if response.status_code == 404:
             return f"<p>No grades found for course {course_id}.</p>", 404
         response.raise_for_status()
-        return format_grades_html(response.json()), 200
+        grades = _enrich_with_students(response.json())
+        return format_grades_html(grades), 200
     except requests.RequestException as exc:
         return (
             "<p>Failed to retrieve grades for course.</p>"
