@@ -13,16 +13,19 @@ from openai import OpenAI
 ENV_PATH = Path(__file__).with_name(".env")
 load_dotenv(dotenv_path=ENV_PATH)
 
-PROMPT_DIR = Path(__file__).with_name("prompts")
+# Prompts are stored in the project root /prompts folder
+PROMPT_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
+# Student 4 database service is exposed on localhost:5032
 DATABASE_SERVICE_URL = os.getenv(
     "DATABASE_SERVICE_URL",
-    "http://127.0.0.1:5002"
+    "http://127.0.0.1:5032"
 )
 
+# Student 4 enrolment service is exposed on localhost:5031
 ENROLMENT_SERVICE_URL = os.getenv(
     "ENROLMENT_SERVICE_URL",
-    "http://127.0.0.1:5001"
+    "http://127.0.0.1:5031"
 )
 
 OLLAMA_BASE_URL = os.getenv(
@@ -175,7 +178,6 @@ def observe_data_quality():
         if not ok:
             all_ok = False
 
-
     print(f"  Enrolments found: {len(enrolments)}")
 
     if len(enrolments) < 10:
@@ -194,7 +196,6 @@ def observe_data_quality():
 
         if not ok:
             all_ok = False
-
 
     if all_ok:
         return True, (
@@ -284,7 +285,6 @@ def observe_live_endpoints():
 
         results.append(line)
 
-
     # Database APIs
     check(
         "/courses",
@@ -298,7 +298,6 @@ def observe_live_endpoints():
         f"{DATABASE_SERVICE_URL}/enrolments"
     )
 
-
     # Basic AI Mode
     check(
         "/ask",
@@ -310,7 +309,6 @@ def observe_live_endpoints():
                 "Management system do?"
         }
     )
-
 
     # AI with database context
     check(
@@ -536,7 +534,6 @@ def main():
 
     print("=" * 65)
 
-
     # ---------------- PLAN ----------------
 
     print()
@@ -549,7 +546,6 @@ def main():
 
     print(PLAN)
 
-
     # ---------------- ACT ----------------
 
     print()
@@ -559,7 +555,6 @@ def main():
         "Run database, API, availability "
         "and AI validation checks."
     )
-
 
     # ---------------- OBSERVE: DATA ----------------
 
@@ -572,7 +567,6 @@ def main():
 
     print(msg_data)
 
-
     # ---------------- OBSERVE: AVAILABILITY ----------------
 
     print()
@@ -581,7 +575,6 @@ def main():
     ok_availability, msg_availability = (
         observe_course_availability()
     )
-
 
     # ---------------- OBSERVE: ENDPOINTS ----------------
 
@@ -592,7 +585,6 @@ def main():
         observe_live_endpoints()
     )
 
-
     # Combine evidence
     observe_message = (
         f"Database validation: {msg_data}. "
@@ -601,7 +593,6 @@ def main():
         f"Live endpoint checks: "
         + "; ".join(live_results)
     )
-
 
     # ---------------- IMPLEMENTATION AGENT ----------------
 
@@ -633,7 +624,6 @@ def main():
             "Implementation agent unavailable."
         )
 
-
     # ---------------- REVIEW AGENT ----------------
 
     print()
@@ -660,7 +650,6 @@ def main():
         print()
         print(review_error)
 
-
     # ---------------- HUMAN DECISION ----------------
 
     print()
@@ -673,11 +662,9 @@ def main():
         f"Decision: {decision}"
     )
 
-
     # ---------------- ADAPT ----------------
 
     adapt(decision)
-
 
     print()
     print("LOOP COMPLETE")
