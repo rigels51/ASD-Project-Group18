@@ -44,7 +44,7 @@ def format_staff_edit_row_html(staff_member):
     staff_id = staff_member["staff_id"]
     full_time_selected = "selected" if staff_member["employment_type"] == "Full-time" else ""
     part_time_selected = "selected" if staff_member["employment_type"] == "Part-time" else ""
-    contractor_selected = "selected" if staff_member["employment_type"] == "Contractor" else ""
+    contractor_selected = "selected" if staff_member["employment_type"] == "Contract" else ""
 
     return f"""<tr id="staff-row-{staff_id}">
   <td colspan="5">
