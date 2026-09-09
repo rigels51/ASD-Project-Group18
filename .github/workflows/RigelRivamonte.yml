@@ -1,9 +1,12 @@
 name: Rigel Rivamonte - Student Records
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
-      - Student1
+      - rigel
+      - main
     paths:
       - 'student-1/**'
       - '.github/workflows/RigelRivamonte.yml'
@@ -31,11 +34,13 @@ jobs:
         with:
           python-version: "3.11"
 
-
       - name: Install Student1 dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r student-1/enrolment-service/requirements.txt
+
+      - name: Run student records tests
+        run: python -m unittest student-1/tests/test_student_records.py
 
 
       - name: Validate Python syntax
