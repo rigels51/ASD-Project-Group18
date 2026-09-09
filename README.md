@@ -2,22 +2,6 @@
 
 University Management System — ASD 2026 Group Project
 
-## Project Overview
-
-This project is a University Management System developed using a microservice architecture.
-
-The system includes five main features:
-
-- Student Records Management
-- Staff Management
-- Timetable & Class Scheduling
-- Course & Enrollment Management
-- Assessment & Grades
-
-Each feature is developed as an independent microservice with its own frontend, backend/API, and database components where required.
-
-The project also uses Docker, Docker Compose, Ollama AI, GitHub Actions, REST APIs, and Agentic AI workflows.
-
 ## Team Members
 
 | No. | Student Name | Student ID | UTS Email |
@@ -27,6 +11,22 @@ The project also uses Docker, Docker Compose, Ollama AI, GitHub Actions, REST AP
 | 3 | Lazizbek Ismoilov | 14567426 | Lazizbek.Ismoilov@student.uts.edu.au |
 | 4 | Yi Zhang | 25402140 | Yi.Zhang-41@student.uts.edu.au |
 | 5 | Vu Tien Thanh Nguyen | 14673154 | Vu.T.Nguyen-5@student.uts.edu.au |
+
+## Project Structure
+
+```text
+ASD-Project-Group18/
+├── .github/
+│   └── workflows/
+├── shared/
+├── student-1/
+├── student-2/
+├── student-3/
+├── student-4/
+├── student-5/
+├── agentic_loop/
+├── docker-compose.yml
+└── README.md
 ## Services
 
 ### Student 3 — Timetable & Class Scheduling
