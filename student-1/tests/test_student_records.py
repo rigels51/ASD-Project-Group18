@@ -57,6 +57,11 @@ class StudentRecordsApiTest(unittest.TestCase):
         self.assertEqual(len(payload), 1)
         self.assertEqual(payload[0]["student_id"], "STU-1001")
 
+    def test_empty_search_returns_no_students(self):
+        response = self.client.get("/students/search", query_string={"query": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), [])
+
     def test_create_and_search_student(self):
         response = self.client.post(
             "/students",
