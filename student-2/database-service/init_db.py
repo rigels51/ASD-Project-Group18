@@ -11,7 +11,7 @@ os.makedirs(DATA_DIR, exist_ok=True)
 conn = sqlite3.connect(DATABASE_NAME)
 cursor = conn.cursor()
 
-cursor.execute("""IF EXISTS staff DROP TABLE staff""")
+cursor.execute("""DROP TABLE IF EXISTS staff""")
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS staff (
