@@ -56,7 +56,7 @@ def format_staff_edit_row_html(staff_member):
       <select name="employment_type">
         <option value="Full-time" {full_time_selected}>Full-time</option>
         <option value="Part-time" {part_time_selected}>Part-time</option>
-        <option value="Contractor"{contractor_selected}>Contractor</option>
+        <option value="Contract" {contractor_selected}>Contract</option>
       </select>
       <button type="submit" class="btn btn-primary btn-sm">Save</button>
       <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-id="{staff_id}">Cancel</button>
