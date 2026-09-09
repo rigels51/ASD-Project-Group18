@@ -6,8 +6,12 @@ DATABASE_NAME = os.path.join(DATA_DIR, "staff.db")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
+
+
 conn = sqlite3.connect(DATABASE_NAME)
 cursor = conn.cursor()
+
+cursor.execute("""IF EXISTS staff DROP TABLE staff""")
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS staff (
@@ -19,6 +23,7 @@ CREATE TABLE IF NOT EXISTS staff (
     employment_type TEXT NOT NULL
 )
 """)
+
 conn.commit()
 
 # Only seed if the table is empty, so re-running this on every container
