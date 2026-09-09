@@ -29,6 +29,26 @@ ASD-Project-Group18/
 └── README.md
 ```
 
+## How to Run the Project
+
+Make sure Docker Desktop and Ollama are running.
+
+From the project root folder, run:
+
+`docker compose up --build -d`
+
+Check that the containers are running:
+
+`docker ps`
+
+Open the shared homepage:
+
+`http://localhost:8090`
+
+To stop the project:
+
+`docker compose down`
+
 ## Services
 
 ### Student 3 — Timetable & Class Scheduling
