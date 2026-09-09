@@ -7,11 +7,22 @@ from services.database_api import (
     create_assessment_response,
     update_assessment_response,
     delete_assessment_response,
+    get_all_courses,
 )
 from views.html_formatters import format_assessments_html, format_assessment_detail_html
 
 
 assessments_bp = Blueprint("assessments", __name__)
+
+
+def _enrich_with_courses(assessments):
+    """Attach a course_name to each assessment using Student 4's records
+    (relationship: Student 4 -> Student 5 via course_id / course_code)."""
+    courses = get_all_courses()
+    for a in assessments:
+        course = courses.get(str(a.get("course_id", "")).upper())
+        a["course_name"] = course["course_name"] if course else None
+    return assessments
 
 
 @assessments_bp.get("/assessments")
@@ -22,6 +33,7 @@ def get_assessments_route():
 
     try:
         assessments = get_assessments(course_id=course_id, assessment_type=assessment_type, q=q)
+        assessments = _enrich_with_courses(assessments)
         return format_assessments_html(assessments), 200
     except requests.RequestException as exc:
         return (
@@ -38,7 +50,11 @@ def get_assessment_route(assessment_id):
         if response.status_code == 404:
             return "<p>Assessment not found.</p>", 404
         response.raise_for_status()
-        return format_assessment_detail_html(response.json()), 200
+        assessment = response.json()
+        courses = get_all_courses()
+        course = courses.get(str(assessment.get("course_id", "")).upper())
+        assessment["course_name"] = course["course_name"] if course else None
+        return format_assessment_detail_html(assessment), 200
     except requests.RequestException as exc:
         return (
             "<p>Failed to retrieve assessment from the database service.</p>"
@@ -73,7 +89,7 @@ def create_assessment_route():
     try:
         response = create_assessment_response(payload)
         response.raise_for_status()
-        assessments = get_assessments()
+        assessments = _enrich_with_courses(get_assessments())
         return format_assessments_html(assessments), 201
     except requests.RequestException as exc:
         return (
@@ -101,7 +117,7 @@ def update_assessment_route(assessment_id):
         if response.status_code == 404:
             return "<p>Assessment not found.</p>", 404
         response.raise_for_status()
-        assessments = get_assessments()
+        assessments = _enrich_with_courses(get_assessments())
         return format_assessments_html(assessments), 200
     except requests.RequestException as exc:
         return (
@@ -118,7 +134,7 @@ def delete_assessment_route(assessment_id):
         if response.status_code == 404:
             return "<p>Assessment not found.</p>", 404
         response.raise_for_status()
-        assessments = get_assessments()
+        assessments = _enrich_with_courses(get_assessments())
         return format_assessments_html(assessments), 200
     except requests.RequestException as exc:
         return (

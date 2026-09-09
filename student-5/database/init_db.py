@@ -22,11 +22,16 @@ CREATE TABLE IF NOT EXISTS assessments (
 )
 """)
 
+# NOTE (relationship fix): student_id is now TEXT so it can store the exact
+# same "STU-XXXX" identifiers issued by Student 1's database-service
+# (student-1/database-service/app.py -> students.student_id TEXT PRIMARY KEY).
+# It used to be INTEGER holding plain numbers (1, 2, 3 ...) which never
+# matched a real Student 1 record, so the relationship was decorative only.
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS grades (
     grade_id INTEGER PRIMARY KEY AUTOINCREMENT,
     assessment_id INTEGER NOT NULL,
-    student_id INTEGER NOT NULL,
+    student_id TEXT NOT NULL,
     mark REAL,
     grade TEXT,
     feedback TEXT,
@@ -62,19 +67,22 @@ cursor.executemany(
     assessments,
 )
 
+# student_id values below are real STU-100X ids seeded by Student 1
+# (student-1/database-service/app.py), so /grades/student/<id> and the
+# Student 1 lookup performed by the backend actually resolve to a person.
 grades = [
-    (1, 1, 1, 88, "HD", "Excellent design coverage.",        "2026-09-10"),
-    (2, 1, 2, 74, "D",  "Good structure, minor gaps.",       "2026-09-10"),
-    (3, 2, 1, 42, "D",  "Strong understanding of concepts.", "2026-09-20"),
-    (4, 2, 2, 35, "C",  "Solid but rushed in places.",       "2026-09-20"),
-    (5, 4, 3, 91, "HD", "Polished, responsive UI.",           "2026-09-11"),
-    (6, 4, 4, 68, "C",  "Functional but limited styling.",   "2026-09-11"),
-    (7, 6, 5, 80, "D",  "Well-normalised schema.",            "2026-09-14"),
-    (8, 6, 6, 55, "P",  "Meets minimum requirements.",        "2026-09-14"),
-    (9, 8, 7, 48, "D",  "Consistent weekly submissions.",     "2026-09-18"),
-    (10, 9, 9, 92, "HD", "Thorough audit methodology.",       "2026-09-25"),
-    (11, 9, 10, 77, "D", "Good coverage, missing one CVE.",   "2026-09-25"),
-    (12, 3, 1, None, None, None,                              "2026-10-24"),
+    (1, 1, "STU-1001", 88, "HD", "Excellent design coverage.",        "2026-09-10"),
+    (2, 1, "STU-1002", 74, "D",  "Good structure, minor gaps.",       "2026-09-10"),
+    (3, 2, "STU-1001", 42, "D",  "Strong understanding of concepts.", "2026-09-20"),
+    (4, 2, "STU-1002", 35, "C",  "Solid but rushed in places.",       "2026-09-20"),
+    (5, 4, "STU-1003", 91, "HD", "Polished, responsive UI.",           "2026-09-11"),
+    (6, 4, "STU-1004", 68, "C",  "Functional but limited styling.",   "2026-09-11"),
+    (7, 6, "STU-1005", 80, "D",  "Well-normalised schema.",            "2026-09-14"),
+    (8, 6, "STU-1006", 55, "P",  "Meets minimum requirements.",        "2026-09-14"),
+    (9, 8, "STU-1007", 48, "D",  "Consistent weekly submissions.",     "2026-09-18"),
+    (10, 9, "STU-1009", 92, "HD", "Thorough audit methodology.",       "2026-09-25"),
+    (11, 9, "STU-1010", 77, "D", "Good coverage, missing one CVE.",   "2026-09-25"),
+    (12, 3, "STU-1001", None, None, None,                              "2026-10-24"),
 ]
 
 cursor.executemany(

@@ -14,10 +14,13 @@ def format_assessments_html(assessments):
     rows = []
     for a in assessments:
         type_slug = _slug(a["assessment_type"])
+        course_label = a["course_id"]
+        if a.get("course_name"):
+            course_label = f"{a['course_id']} <span class='helper-text'>({a['course_name']})</span>"
         rows.append(
             "<tr>"
             f"<td class='mono'>{a['assessment_id']}</td>"
-            f"<td>{a['course_id']}</td>"
+            f"<td>{course_label}</td>"
             f"<td><strong>{a['assessment_name']}</strong></td>"
             f"<td><span class='pill type-{type_slug}'>{a['assessment_type']}</span></td>"
             f"<td class='mono'>{a['due_date']}</td>"
@@ -44,9 +47,12 @@ def format_assessments_html(assessments):
 
 def format_assessment_detail_html(a):
     type_slug = _slug(a["assessment_type"])
+    course_value = a["course_id"]
+    if a.get("course_name"):
+        course_value = f"{a['course_id']} — {a['course_name']}"
     return (
         "<div class='field'>"
-        f"<div class='stat-row'><span class='l'>Course</span><span class='n mono' style='font-size:15px'>{a['course_id']}</span></div>"
+        f"<div class='stat-row'><span class='l'>Course</span><span class='n mono' style='font-size:15px'>{course_value}</span></div>"
         f"<div class='stat-row'><span class='l'>Name</span><span>{a['assessment_name']}</span></div>"
         f"<div class='stat-row'><span class='l'>Type</span><span class='pill type-{type_slug}'>{a['assessment_type']}</span></div>"
         f"<div class='stat-row'><span class='l'>Description</span><span>{a.get('description') or '—'}</span></div>"
@@ -79,13 +85,16 @@ def format_grades_html(grades):
         course_id = g.get("course_id", "—")
         mark = g["mark"] if g.get("mark") is not None else "—"
         feedback = g.get("feedback") or "—"
+        student_label = g["student_id"]
+        if g.get("student_name"):
+            student_label = f"{g['student_id']} <span class='helper-text'>({g['student_name']})</span>"
 
         rows.append(
             "<tr>"
             f"<td class='mono'>{g['grade_id']}</td>"
             f"<td><strong>{assessment_name}</strong></td>"
             f"<td>{course_id}</td>"
-            f"<td class='mono'>{g['student_id']}</td>"
+            f"<td class='mono'>{student_label}</td>"
             f"<td class='mark-cell'>{mark}</td>"
             f"<td>{_grade_pill(g.get('grade'))}</td>"
             f"<td>{feedback}</td>"
@@ -109,11 +118,14 @@ def format_grades_html(grades):
 
 def format_grade_html(g):
     mark = g["mark"] if g.get("mark") is not None else "—"
+    student_value = g["student_id"]
+    if g.get("student_name"):
+        student_value = f"{g['student_id']} — {g['student_name']}"
     return (
         "<div class='field'>"
         f"<div class='stat-row'><span class='l'>Grade ID</span><span class='n mono' style='font-size:15px'>{g['grade_id']}</span></div>"
         f"<div class='stat-row'><span class='l'>Assessment ID</span><span class='mono'>{g['assessment_id']}</span></div>"
-        f"<div class='stat-row'><span class='l'>Student ID</span><span class='mono'>{g['student_id']}</span></div>"
+        f"<div class='stat-row'><span class='l'>Student ID</span><span class='mono'>{student_value}</span></div>"
         f"<div class='stat-row'><span class='l'>Mark</span><span class='mono'>{mark}</span></div>"
         f"<div class='stat-row'><span class='l'>Grade</span>{_grade_pill(g.get('grade'))}</div>"
         f"<div class='stat-row'><span class='l'>Feedback</span><span>{g.get('feedback') or '—'}</span></div>"

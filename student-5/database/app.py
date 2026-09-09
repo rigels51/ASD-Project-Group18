@@ -200,7 +200,7 @@ def create_grade():
         """,
         (
             data["assessment_id"],
-            data["student_id"],
+            str(data["student_id"]).strip().upper(),
             data.get("mark"),
             data.get("grade"),
             data.get("feedback", ""),
@@ -236,7 +236,7 @@ def update_grade(grade_id):
         """,
         (
             merged["assessment_id"],
-            merged["student_id"],
+            str(merged["student_id"]).strip().upper(),
             merged.get("mark"),
             merged.get("grade"),
             merged.get("feedback", ""),
@@ -265,7 +265,9 @@ def delete_grade(grade_id):
     return jsonify({"deleted": grade_id})
 
 
-@app.get("/grades/student/<int:student_id>")
+# NOTE (relationship fix): student_id is now a plain string route segment
+# (was <int:student_id>) since real ids look like "STU-1001", not a number.
+@app.get("/grades/student/<student_id>")
 def get_grades_by_student(student_id):
     conn = get_db_connection()
     rows = conn.execute(
@@ -273,9 +275,9 @@ def get_grades_by_student(student_id):
         SELECT grades.*, assessments.assessment_name, assessments.course_id, assessments.max_mark
         FROM grades
         JOIN assessments ON grades.assessment_id = assessments.assessment_id
-        WHERE grades.student_id = ?
+        WHERE UPPER(grades.student_id) = ?
         """,
-        (student_id,),
+        (student_id.strip().upper(),),
     ).fetchall()
     conn.close()
 
