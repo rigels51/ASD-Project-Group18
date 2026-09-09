@@ -1,27 +1,13 @@
 Application Name:
-Student Enrolment App
+Staff Registry App
 
-Database Schema:
-- student_id (integer, primary key)
-- student_name (text, required)
-- subject_code (text, required, NOT UNIQUE)
+Available staff fields:
+- staff_id
+- given_name
+- family_name
+- email
+- department
+- employment_type
 
-Important Domain Rule:
-- subject_code is NOT unique.
-- Multiple students may enrol in the same subject.
-- Never recommend a unique constraint on subject_code.
-
-Endpoints (ONLY these exist):
-
-GET Endpoints (Read-Only):
-- GET /students
-- GET /students/{student_id}
-- GET /students/by-id
-- GET /students/by-subject
-
-POST Endpoints (AI Queries):
-- POST /ask
-- POST /ask-with-context
-
-Forbidden Operations:
-Do not mention or suggest create, add, update, delete, or edit operations for students — they are not implemented in this application.
+The staff snapshot included in the user message is the source of truth. Treat it as
+read-only evidence and do not make up missing values.
