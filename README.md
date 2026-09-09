@@ -27,6 +27,8 @@ ASD-Project-Group18/
 ├── agentic_loop/
 ├── docker-compose.yml
 └── README.md
+```
+
 ## Services
 
 ### Student 3 — Timetable & Class Scheduling
