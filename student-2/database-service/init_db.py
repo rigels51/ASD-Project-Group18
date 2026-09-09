@@ -27,16 +27,16 @@ existing_count = cursor.execute("SELECT COUNT(*) FROM staff").fetchone()[0]
 
 if existing_count == 0:
     staff = [
-        (1, "John", "Smith", "john.smith@example.com", "ASD", "Full-time"),
-        (2, "Sarah", "Jones", "sarah.jones@example.com", "ASD", "Full-time"),
-        (3, "Michael", "Lee", "michael.lee@example.com", "WEB201", "Part-time"),
-        (4, "Emma", "Brown", "emma.brown@example.com", "WEB201", "Part-time"),
-        (5, "James", "Wilson", "james.wilson@example.com", "DBS101", "Full-time"),
-        (6, "Olivia", "White", "olivia.white@example.com", "DBS101", "Full-time"),
-        (7, "Daniel", "Green", "daniel.green@example.com", "NET201", "Part-time"),
-        (8, "Sophia", "Hall", "sophia.hall@example.com", "NET201", "Part-time"),
-        (9, "Liam", "King", "liam.king@example.com", "SEC301", "Full-time"),
-        (10, "Chloe", "Young", "chloe.young@example.com", "SEC301", "Full-time"),
+        (1, "Jet", "Smith", "jet.smith@example.com", "Computer Science", "Full-time"),
+        (2, "Nero", "Garcia", "nero.garcia@example.com", "Arts", "Full-time"),
+        (3, "Denver", "Mesa", "denver.mesa@example.com", "Engineering", "Part-time"),
+        (4, "Leona", "Pilapil", "leona.pilapil@example.com", "Nursing", "Part-time"),
+        (5, "Jerome", "Wilson", "jerome.wilson@example.com", "Marketing", "Full-time"),
+        (6, "Angelina", "Kim", "angelina.kim@example.com", "Psychology", "Full-time"),
+        (7, "Joey", "Wu", "joey.wu@example.com", "Psychology", "Part-time"),
+        (8, "Tiffany", "Day", "tiffany.day@example.com", "Arts", "Part-time"),
+        (9, "Jane", "Remover", "jane.remover@example.com", "Arts", "Full-time"),
+        (10, "Dave", "Banks", "dave.banks@example.com", "Finance", "Full-time"),
     ]
 
     cursor.executemany(
