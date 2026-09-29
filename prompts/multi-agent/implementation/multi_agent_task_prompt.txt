@@ -1,0 +1,8 @@
+Validate the shared multi-agent orchestration layer used across student features.
+
+Requirements:
+- each agent role has a clearly defined responsibility and boundary
+- agent-to-agent handoffs are logged as evidence
+- the final response states which agents contributed and why
+
+Reply in at most 40 words and stay evidence-based.

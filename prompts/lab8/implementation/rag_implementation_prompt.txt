@@ -1,0 +1,13 @@
+Implement or validate the shared local RAG pipeline.
+
+Constraints:
+- local, open-source stack only (Python, ChromaDB, MCP) — no hosted commercial APIs
+- required tools: refresh_corpus, retrieve_context, answer_question
+
+Requirements:
+- structured outputs and structured errors
+- citations for every claim
+- a confidence category based on retrieval quality
+- audit logging for every tool call
+
+Reply in at most 40 words and stay evidence-based.
