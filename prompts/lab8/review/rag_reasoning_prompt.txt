@@ -1,0 +1,14 @@
+Evaluate the RAG architecture using only the supplied evidence.
+
+Check:
+- corpus design
+- chunking strategy
+- embedding and vector store usage
+- governance risks (e.g. stale corpus, missing citations)
+
+Return exactly:
+Strengths:
+Risks:
+Recommendations:
+
+Maximum 45 words.
