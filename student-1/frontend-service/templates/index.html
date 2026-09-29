@@ -224,6 +224,13 @@
     .chat-head .s { font-size: 11.5px; color: #c7cbdb; font-family: Arial, sans-serif; margin-top: 2px; }
     .chat-head button { background: none; border: none; color: #fff; font-size: 19px; cursor: pointer; opacity: 0.8; }
     .chat-head button:hover { opacity: 1; }
+    .chat-mode-tabs { display: flex; gap: 6px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--paper-raised); flex-wrap: wrap; }
+    .mode-tab {
+      font-family: inherit; font-size: 11.5px; font-weight: 600; background: var(--paper); border: 1px solid var(--line);
+      color: var(--ink-soft); border-radius: 999px; padding: 5px 11px; cursor: pointer;
+    }
+    .mode-tab:hover { border-color: var(--brass); color: var(--ink); }
+    .mode-tab.is-active { background: var(--ink); color: #fff; border-color: var(--ink); }
     .chat-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--paper); }
     .msg { max-width: 86%; padding: 9px 13px; border-radius: 11px; font-size: 13.5px; line-height: 1.45; }
     .msg.user { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 3px; }
@@ -440,6 +447,12 @@
         <div class="t">AI CHAT MODE</div>
       </div>
       <button id="chat-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="chat-mode-tabs" id="chat-mode-tabs">
+      <button class="mode-tab is-active" type="button" data-mode="normal">Normal</button>
+      <button class="mode-tab" type="button" data-mode="mcp">MCP</button>
+      <button class="mode-tab" type="button" data-mode="rag">RAG</button>
+      <button class="mode-tab" type="button" data-mode="multi-agent">Multi-Agent</button>
     </div>
     <div class="chat-body" id="chat-body">
       <div class="msg ai">How can I help you?</div>
@@ -774,6 +787,24 @@
     const chatBody = document.getElementById("chat-body");
     const chatInput = document.getElementById("chat-input");
 
+    let chatMode = "normal";
+    const MODE_LABELS = { normal: "Normal", mcp: "MCP", rag: "RAG", "multi-agent": "Multi-Agent" };
+
+    document.querySelectorAll(".mode-tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        if (tab.dataset.mode === chatMode) return;
+        document.querySelectorAll(".mode-tab").forEach((t) => t.classList.remove("is-active"));
+        tab.classList.add("is-active");
+        chatMode = tab.dataset.mode;
+        
+        if (chatMode !== "normal") {
+          addMessage(`(${MODE_LABELS[chatMode]} mode placeholder text)`, "ai"); // just placeholder text
+        } else {
+          addMessage("Back to Normal mode.", "ai");
+        }
+      });
+    });
+
     function openChat() {
       chatPanel.classList.add("is-open");
       chatLauncher.classList.add("is-hidden");
@@ -801,8 +832,15 @@
     async function askAI(question) {
       document.getElementById("chat-suggest").style.display = "none";
       addMessage(question, "user");
-      const pending = addMessage("Checking the records…", "ai pending");
       chatInput.value = "";
+
+      if (chatMode !== "normal") {
+        // Modes not implemented yet - reply with a placeholder instead of calling the backend.
+        addMessage(`${MODE_LABELS[chatMode]} mode is not implemented yet, so this question wasn't sent anywhere.`, "ai");
+        return;
+      }
+
+      const pending = addMessage("Checking the records…", "ai pending");
       document.getElementById("chat-send").disabled = true;
 
       try {
