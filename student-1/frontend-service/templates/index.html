@@ -231,6 +231,16 @@
     }
     .mode-tab:hover { border-color: var(--brass); color: var(--ink); }
     .mode-tab.is-active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .chat-mode-toggle-row {
+      display: none; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--paper-raised);
+    }
+    .chat-mode-toggle-row.is-visible { display: flex; }
+    .chat-mode-toggle-row .toggle-label-group { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+    .chat-mode-toggle-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--active); cursor: pointer; }
+    .mode-state { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.04em; }
+    .mode-state.mode-on { background: var(--active-bg); color: var(--active); }
+    .mode-state.mode-off { background: var(--former-bg); color: var(--former); }
     .chat-body { flex: 1; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; background: var(--paper); }
     .msg { max-width: 86%; padding: 9px 13px; border-radius: 11px; font-size: 13.5px; line-height: 1.45; }
     .msg.user { align-self: flex-end; background: var(--ink); color: #fff; border-bottom-right-radius: 3px; }
@@ -453,6 +463,13 @@
       <button class="mode-tab" type="button" data-mode="mcp">MCP</button>
       <button class="mode-tab" type="button" data-mode="rag">RAG</button>
       <button class="mode-tab" type="button" data-mode="multi-agent">Multi-Agent</button>
+    </div>
+    <div class="chat-mode-toggle-row" id="chat-mode-toggle-row">
+      <label class="toggle-label-group" for="mode-enabled-toggle">
+        <input type="checkbox" id="mode-enabled-toggle">
+        <span id="mode-enabled-label">MCP Enabled</span>
+      </label>
+      <span class="mode-state mode-off" id="mode-enabled-state">OFF</span>
     </div>
     <div class="chat-body" id="chat-body">
       <div class="msg ai">How can I help you?</div>
@@ -789,19 +806,71 @@
 
     let chatMode = "normal";
     const MODE_LABELS = { normal: "Normal", mcp: "MCP", rag: "RAG", "multi-agent": "Multi-Agent" };
+    // Per-mode enable/disable state; Normal (AI chat) mode is always on and has no toggle.
+    const modeEnabled = { mcp: false, rag: false, "multi-agent": false };
+
+    const modeToggleRow = document.getElementById("chat-mode-toggle-row");
+    const modeEnabledToggle = document.getElementById("mode-enabled-toggle");
+    const modeEnabledLabel = document.getElementById("mode-enabled-label");
+    const modeEnabledState = document.getElementById("mode-enabled-state");
+
+    function updateModeStateBadge() {
+      const on = modeEnabledToggle.checked;
+      modeEnabledState.textContent = on ? "ON" : "OFF";
+      modeEnabledState.classList.toggle("mode-on", on);
+      modeEnabledState.classList.toggle("mode-off", !on);
+    }
+
+    function renderModeToggleRow() {
+      if (chatMode === "normal") {
+        modeToggleRow.classList.remove("is-visible");
+        return;
+      }
+      modeToggleRow.classList.add("is-visible");
+      modeEnabledLabel.textContent = `${MODE_LABELS[chatMode]} Enabled`;
+      modeEnabledToggle.checked = modeEnabled[chatMode];
+      updateModeStateBadge();
+    }
+
+    modeEnabledToggle.addEventListener("change", () => {
+      modeEnabled[chatMode] = modeEnabledToggle.checked;
+      updateModeStateBadge();
+      addMessage(`${MODE_LABELS[chatMode]} mode is now ${modeEnabledToggle.checked ? "ON" : "OFF"}.`, "ai");
+    });
+
+    // Per-mode conversation history, keyed by mode, so switching tabs doesn't lose earlier messages.
+    const chatHistories = {};
+
+    function snapshotCurrentChat() {
+      chatHistories[chatMode] = chatBody.innerHTML;
+    }
+
+    function restoreOrStartChat(mode) {
+      if (chatHistories[mode]) {
+        chatBody.innerHTML = chatHistories[mode];
+        chatBody.scrollTop = chatBody.scrollHeight;
+        return;
+      }
+
+      chatBody.innerHTML = "";
+      if (mode === "normal") {
+        addMessage("Back to Normal mode.", "ai");
+      } else if (!modeEnabled[mode]) {
+        addMessage(`${MODE_LABELS[mode]} Mode is OFF.`, "ai");
+      } else {
+        addMessage(`(${MODE_LABELS[mode]} mode switched - placeholder text)`, "ai"); // just placeholder text
+      }
+    }
 
     document.querySelectorAll(".mode-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
         if (tab.dataset.mode === chatMode) return;
         document.querySelectorAll(".mode-tab").forEach((t) => t.classList.remove("is-active"));
         tab.classList.add("is-active");
+        snapshotCurrentChat();
         chatMode = tab.dataset.mode;
-        
-        if (chatMode !== "normal") {
-          addMessage(`(${MODE_LABELS[chatMode]} mode placeholder text)`, "ai"); // just placeholder text
-        } else {
-          addMessage("Back to Normal mode.", "ai");
-        }
+        renderModeToggleRow();
+        restoreOrStartChat(chatMode);
       });
     });
 
@@ -835,6 +904,10 @@
       chatInput.value = "";
 
       if (chatMode !== "normal") {
+        if (!modeEnabled[chatMode]) {
+          addMessage(`${MODE_LABELS[chatMode]} Mode is OFF. Enable it above to try the placeholder.`, "ai error");
+          return;
+        }
         // Modes not implemented yet - reply with a placeholder instead of calling the backend.
         addMessage(`${MODE_LABELS[chatMode]} mode is not implemented yet, so this question wasn't sent anywhere.`, "ai");
         return;

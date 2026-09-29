@@ -1,1 +1,1 @@
-# Multi-Agent System service and orchestration. placeholder for future development
+# Multi-Agent System service and orchestration jsut a placeholder
