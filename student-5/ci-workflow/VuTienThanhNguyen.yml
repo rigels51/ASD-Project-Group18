@@ -1,9 +1,3 @@
-# NOTE: GitHub Actions only runs workflows that live in .github/workflows/
-# at the repo root — this file can't run from inside student-5/. Copy it to:
-#   .github/workflows/VuTienThanhNguyen.yml
-# (rename to match your own name/username, consistent with JerikoArceo.yml,
-# RigelRivamonte.yml, YIZhang.yml already in that folder.)
-
 name: Student 5 - Assessment & Grades CI
 
 on:

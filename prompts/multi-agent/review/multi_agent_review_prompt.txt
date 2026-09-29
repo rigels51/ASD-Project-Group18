@@ -1,0 +1,13 @@
+Review the multi-agent run using only the supplied handoff evidence.
+
+Checks:
+- each agent stayed within its defined role
+- handoffs are logged and traceable
+- the final response is grounded in agent outputs, not invented
+
+Output format:
+Strengths:
+Risks:
+Recommendations:
+
+Maximum 45 words total.
