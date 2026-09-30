@@ -256,7 +256,31 @@ const API_BASE = "http://127.0.0.1:5003";
 const roleButtons = document.querySelectorAll("#role-list button");
 const tabButtons = document.querySelectorAll("#tab-list button");
 
+// Every panel that shows a result. On a role switch each one goes back to its
+// initial empty state, so one role never sees output produced under another.
+const RESULT_PANEL_IDS = [
+    "timetable-result", "create-result", "edit-result", "clash-result",
+    "ask-result", "mcp-result", "rag-result",
+];
+const initialPanels = Object.fromEntries(RESULT_PANEL_IDS.map(id => {
+    const el = document.getElementById(id);
+    return [id, { html: el.innerHTML, display: el.style.display }];
+}));
+
+function resetResultPanels() {
+    RESULT_PANEL_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        el.innerHTML = initialPanels[id].html;
+        el.style.display = initialPanels[id].display;
+    });
+    document.getElementById("create-error").textContent = "";
+}
+
+let currentRole = null;
+
 function applyRole(role) {
+    if (currentRole !== null && role !== currentRole) resetResultPanels();
+    currentRole = role;
     roleButtons.forEach(b => b.classList.toggle("is-active", b.dataset.role === role));
     document.getElementById("lecturer-lookup").classList.toggle("is-hidden", role !== "lecturer");
 
