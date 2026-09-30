@@ -1,12 +1,20 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
 
   <title>Course & Enrollment Management</title>
 
-  <link rel="stylesheet" href="css/styles.css" />
+  <link
+    rel="stylesheet"
+    href="css/styles.css"
+  />
 </head>
 
 <body>
@@ -16,20 +24,34 @@
     <header class="app-header">
 
       <div>
+
         <p class="eyebrow">
           UNIVERSITY MANAGEMENT · COURSE & ENROLMENT
         </p>
 
-        <h1>Course & Enrollment Management</h1>
+        <h1>
+          Course & Enrollment Management
+        </h1>
 
         <p class="subtitle">
           Manage courses, student enrolments and AI-assisted queries
         </p>
+
       </div>
 
       <div>
-        <a class="btn btn-ghost home-link" href="http://localhost:8090">Home</a>
-        <span class="term-badge">Spring 2026</span>
+
+        <a
+          class="btn btn-ghost home-link"
+          href="http://localhost:8090"
+        >
+          Home
+        </a>
+
+        <span class="term-badge">
+          Spring 2026
+        </span>
+
       </div>
 
     </header>
@@ -53,6 +75,14 @@
         AI Mode
       </button>
 
+      <button
+        class="top-tab"
+        data-page="mcp"
+        type="button"
+      >
+        MCP Mode
+      </button>
+
     </nav>
 
 
@@ -72,6 +102,13 @@
         title="AI Mode"
       ></iframe>
 
+      <iframe
+        id="mcp-page"
+        class="page-frame"
+        src="tabs/mcp.html"
+        title="MCP Mode"
+      ></iframe>
+
     </section>
 
   </main>
@@ -79,11 +116,27 @@
 
   <script>
 
-    const buttons = document.querySelectorAll(".top-tab");
+    const buttons =
+      document.querySelectorAll(".top-tab");
+
 
     const pages = {
-      normal: document.getElementById("normal-page"),
-      ai: document.getElementById("ai-page")
+
+      normal:
+        document.getElementById(
+          "normal-page"
+        ),
+
+      ai:
+        document.getElementById(
+          "ai-page"
+        ),
+
+      mcp:
+        document.getElementById(
+          "mcp-page"
+        )
+
     };
 
 
@@ -91,18 +144,28 @@
 
       try {
 
-        const doc = frame.contentWindow.document;
+        const doc =
+          frame.contentWindow.document;
+
 
         const height = Math.max(
+
           doc.body.scrollHeight,
+
           doc.documentElement.scrollHeight
+
         );
 
-        frame.style.height = (height + 40) + "px";
 
-      } catch (error) {
+        frame.style.height =
+          (height + 40) + "px";
 
-        frame.style.height = "900px";
+      }
+
+      catch (error) {
+
+        frame.style.height =
+          "900px";
 
       }
 
@@ -111,84 +174,130 @@
 
     function showPage(pageName) {
 
-      buttons.forEach(button => {
+      buttons.forEach(
+        button => {
 
-        button.classList.toggle(
-          "active",
-          button.dataset.page === pageName
-        );
+          button.classList.toggle(
+            "active",
+            button.dataset.page === pageName
+          );
 
-      });
-
-
-      Object.entries(pages).forEach(([name, frame]) => {
-
-        const active = name === pageName;
-
-        frame.classList.toggle("active", active);
-
-        if (active) {
-          resizeFrame(frame);
         }
+      );
 
-      });
+
+      Object.entries(
+        pages
+      ).forEach(
+        ([name, frame]) => {
+
+          const active =
+            name === pageName;
 
 
-      window.location.hash = pageName;
+          frame.classList.toggle(
+            "active",
+            active
+          );
+
+
+          if (active) {
+
+            resizeFrame(frame);
+
+          }
+
+        }
+      );
+
+
+      window.location.hash =
+        pageName;
 
     }
 
 
-    buttons.forEach(button => {
+    buttons.forEach(
+      button => {
 
-      button.addEventListener("click", () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-        showPage(button.dataset.page);
+            showPage(
+              button.dataset.page
+            );
 
-      });
+          }
+        );
 
-    });
+      }
+    );
 
 
-    Object.values(pages).forEach(frame => {
+    Object.values(
+      pages
+    ).forEach(
+      frame => {
 
-      frame.addEventListener("load", () => {
+        frame.addEventListener(
+          "load",
+          () => {
 
-        resizeFrame(frame);
+            resizeFrame(frame);
 
-        try {
 
-          const observer = new MutationObserver(
-            () => resizeFrame(frame)
-          );
+            try {
 
-          observer.observe(
-            frame.contentWindow.document.body,
-            {
-              childList: true,
-              subtree: true,
-              attributes: true
+              const observer =
+                new MutationObserver(
+                  () =>
+                    resizeFrame(frame)
+                );
+
+
+              observer.observe(
+                frame.contentWindow.document.body,
+                {
+                  childList: true,
+                  subtree: true,
+                  attributes: true
+                }
+              );
+
             }
-          );
 
-        } catch (error) {
-          // Ignore
-        }
+            catch (error) {
 
-      });
+              // Ignore iframe resize errors
 
-    });
+            }
+
+          }
+        );
+
+      }
+    );
 
 
     const hash =
-      window.location.hash.replace("#", "");
+      window.location.hash
+        .replace("#", "");
 
 
     if (hash === "ai") {
 
       showPage("ai");
 
-    } else {
+    }
+
+    else if (hash === "mcp") {
+
+      showPage("mcp");
+
+    }
+
+    else {
 
       showPage("normal");
 
@@ -197,4 +306,5 @@
   </script>
 
 </body>
+
 </html>

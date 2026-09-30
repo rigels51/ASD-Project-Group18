@@ -92,7 +92,13 @@ services:
         networks:
             - enrolment-network
         healthcheck:
-            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/', timeout=2).read()"]
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/', timeout=2).read()"
+                ]
             interval: 10s
             timeout: 3s
             retries: 5
@@ -112,7 +118,13 @@ services:
         networks:
             - enrolment-network
         healthcheck:
-            test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), 2).close()"]
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import socket; socket.create_connection(('localhost', 8000), 2).close()"
+                ]
             interval: 10s
             timeout: 3s
             retries: 5
@@ -137,7 +149,13 @@ services:
         networks:
             - enrolment-network
         healthcheck:
-            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=2).read()"]
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=2).read()"
+                ]
             interval: 10s
             timeout: 3s
             retries: 5
@@ -181,6 +199,8 @@ services:
             STUDENT_SERVICE_URL: http://student1-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
+            MCP_SERVER_URL: http://host.docker.internal:8000/mcp
+            MCP_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:

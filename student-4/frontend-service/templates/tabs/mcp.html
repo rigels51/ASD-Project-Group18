@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Student 4 MCP Mode</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background: transparent;
+        }
+
+        .mcp-container {
+            padding: 20px;
+        }
+
+        .mcp-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .mcp-form {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .mcp-form input {
+            padding: 8px;
+            margin-right: 8px;
+        }
+
+        .mcp-result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            min-height: 80px;
+            overflow-x: auto;
+        }
+
+        .mcp-status {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="mcp-container">
+
+    <h2>MCP Mode</h2>
+
+    <p>
+        Use the shared MCP server to access
+        Course & Enrollment Management tools.
+    </p>
+
+    <div class="mcp-status">
+        <strong>MCP Status:</strong>
+        <span>Enabled</span>
+    </div>
+
+    <div class="mcp-actions">
+
+        <button
+            type="button"
+            hx-post="http://localhost:5031/mcp/course-count"
+            hx-target="#mcp-result"
+            hx-swap="innerHTML">
+            Get Course Count
+        </button>
+
+        <button
+            type="button"
+            hx-post="http://localhost:5031/mcp/courses"
+            hx-target="#mcp-result"
+            hx-swap="innerHTML">
+            List Courses
+        </button>
+
+        <button
+            type="button"
+            hx-post="http://localhost:5031/mcp/enrolments"
+            hx-target="#mcp-result"
+            hx-swap="innerHTML">
+            List Enrolments
+        </button>
+
+    </div>
+
+    <form
+        class="mcp-form"
+        hx-post="http://localhost:5031/mcp/course"
+        hx-target="#mcp-result"
+        hx-swap="innerHTML">
+
+        <label for="course_id">
+            Course ID:
+        </label>
+
+        <input
+            id="course_id"
+            name="course_id"
+            type="number"
+            min="1"
+            placeholder="Example: 1"
+            required>
+
+        <button type="submit">
+            Find Course
+        </button>
+
+    </form>
+
+    <div
+        id="mcp-result"
+        class="mcp-result">
+        MCP tool results will appear here.
+    </div>
+
+</div>
+
+</body>
+</html>
