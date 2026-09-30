@@ -12,7 +12,7 @@ on:
       - 'ai-services/rag-server/**'
       - 'prompts/**'
       - 'docker-compose.yml'
-      - '.github/workflows/student-4.yml'
+      - '.github/workflows/YiZhang.yml'
 
   pull_request:
     branches:
@@ -23,7 +23,7 @@ on:
       - 'ai-services/rag-server/**'
       - 'prompts/**'
       - 'docker-compose.yml'
-      - '.github/workflows/student-4.yml'
+      - '.github/workflows/YiZhang.yml'
 
 
 jobs:
