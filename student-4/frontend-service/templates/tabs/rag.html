@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>RAG Mode</title>
+
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+    }
+
+    .app-shell {
+      max-width: none;
+      padding: 0;
+    }
+  </style>
+</head>
+
+
+<body>
+
+<main class="app-shell">
+
+
+  <div class="section-heading">
+
+    <div>
+
+      <p class="section-label">
+        RETRIEVAL AUGMENTED GENERATION
+      </p>
+
+      <h2>RAG Mode</h2>
+
+      <p>
+        Retrieve Course & Enrollment evidence and generate grounded answers.
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>RAG Status</h3>
+
+        <p>
+          Shared RAG integration for Course & Enrollment Management.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Enabled
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="primary-btn"
+      hx-post="http://localhost:5031/rag/refresh"
+      hx-target="#rag-result"
+      hx-swap="innerHTML"
+    >
+      Refresh Corpus
+    </button>
+
+  </section>
+
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Retrieve Context</h3>
+
+        <p>
+          Search for relevant Course & Enrollment evidence.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <form
+      class="vertical-form"
+      hx-post="http://localhost:5031/rag/retrieve"
+      hx-target="#rag-result"
+      hx-swap="innerHTML"
+    >
+
+      <div class="field">
+
+        <label for="retrieve-query">
+          Query
+        </label>
+
+        <input
+          id="retrieve-query"
+          name="query"
+          type="text"
+          placeholder="e.g. What is ASD101?"
+          required
+        >
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="secondary-btn"
+      >
+        Retrieve Context
+      </button>
+
+    </form>
+
+  </section>
+
+
+  <section class="content-card ai-highlight">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Answer With Citations</h3>
+
+        <p>
+          Generate a grounded answer using retrieved evidence.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Grounded AI
+      </span>
+
+    </div>
+
+
+    <form
+      class="vertical-form"
+      hx-post="http://localhost:5031/rag/answer"
+      hx-target="#rag-result"
+      hx-swap="innerHTML"
+    >
+
+      <div class="field">
+
+        <label for="answer-query">
+          Question
+        </label>
+
+        <textarea
+          id="answer-query"
+          name="query"
+          rows="4"
+          placeholder="e.g. What is ASD101?"
+          required
+        ></textarea>
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="primary-btn"
+      >
+        Answer With Citations
+      </button>
+
+    </form>
+
+  </section>
+
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>RAG Result</h3>
+
+        <p>
+          Retrieved evidence, citations and confidence will appear below.
+        </p>
+
+      </div>
+
+    </div>
+
+
+    <div
+      id="rag-result"
+      class="panel"
+    >
+      <p class="muted">
+        Run a RAG action to display results.
+      </p>
+    </div>
+
+  </section>
+
+
+</main>
+
+</body>
+</html>
