@@ -7,6 +7,9 @@ on:
       - jeriko-workingAttempt
     paths:
       - 'student-2/**'
+      - 'ai-services/mcp-server/**'
+      - 'ai-services/rag-server/**'
+      - 'docker-compose.yml'
 
   pull_request:
     branches:
@@ -14,6 +17,9 @@ on:
       - jeriko-workingAttempt
     paths:
       - 'student-2/**'
+      - 'ai-services/mcp-server/**'
+      - 'ai-services/rag-server/**'
+      - 'docker-compose.yml'
 
 jobs:
   build-and-validate:
@@ -36,6 +42,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r student-2/backend-service/requirements.txt
+          pip install -r ai-services/mcp-server/requirements.txt
 
 
       - name: Validate Python syntax
@@ -47,6 +54,17 @@ jobs:
           python -m py_compile student-2/backend-service/services/database_api.py
           python -m py_compile student-2/backend-service/services/llm_client.py
           python -m py_compile student-2/backend-service/views/html_formatters.py
+          python -m py_compile ai-services/mcp-server/tools.py
+          python -m py_compile ai-services/mcp-server/server.py
+          python -m py_compile ai-services/rag-server/rag_pipeline.py
+          python -m py_compile ai-services/rag-server/rag_http_server.py
+
+
+      - name: Run Release 1 behavior tests
+        run: |
+          python -m unittest discover -s ai-services/mcp-server -p 'test_*.py' -v
+          python -m unittest discover -s ai-services/rag-server -p 'test_*.py' -v
+          python -m unittest discover -s student-2/backend-service/tests -p 'test_*.py' -v
 
 
       - name: Build frontend service
@@ -71,6 +89,22 @@ jobs:
             -f student-2/database-service/Dockerfile \
             -t jeriko-staff-database \
             student-2/database-service
+
+
+      - name: Build MCP service
+        run: |
+          docker build \
+            -f ai-services/mcp-server/Dockerfile \
+            -t jeriko-staff-mcp \
+            .
+
+
+      - name: Build RAG service
+        run: |
+          docker build \
+            -f ai-services/rag-server/Dockerfile \
+            -t jeriko-staff-rag \
+            .
 
 
       - name: Validate Docker Compose
