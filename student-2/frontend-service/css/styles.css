@@ -151,6 +151,24 @@ tbody tr:hover{background:#fbfaf6;}
 .tab-panel{display:none;}
 .tab-panel.is-active{display:block;}
 
+.feature-description{color:var(--slate); font-size:13.5px; margin:-4px 0 16px;}
+.feature-form{display:grid; gap:9px; max-width:520px; margin:14px 0 18px;}
+.feature-form label{font-size:12px; font-weight:600; color:var(--slate);}
+.feature-form input, .feature-form select, .feature-form textarea{
+  width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:7px;
+  font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);
+}
+.feature-form input:focus, .feature-form select:focus, .feature-form textarea:focus{
+  outline:2px solid var(--brass); outline-offset:1px; border-color:var(--brass);
+}
+.feature-field{display:grid; gap:8px;}
+.rag-form{margin-top:20px;}
+.structured-result{
+  max-width:100%; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere;
+  background:#fbfaf7; border:1px solid var(--line); border-radius:7px; padding:14px;
+  color:var(--ink-soft); font:12.5px/1.55 'IBM Plex Mono', monospace;
+}
+
 /* ---------- AI Mode ---------- */
 .ai-form-row{margin-bottom:10px;}
 .ai-form-row select{

@@ -26,6 +26,8 @@
   <nav class="tab-nav" aria-label="Application modes">
     <button class="tab-btn is-active" data-tab="normal" type="button">Normal UI</button>
     <button class="tab-btn" data-tab="ai-mode" type="button">AI Mode</button>
+    <button class="tab-btn" data-tab="mcp" type="button">MCP Tools</button>
+    <button class="tab-btn" data-tab="rag" type="button">RAG Answers</button>
   </nav>
 
   <!-- ================= NORMAL UI TAB ================= -->
@@ -97,6 +99,54 @@
       </form>
 
       <div id="ai-conversation" class="ai-conversation"></div>
+    </section>
+  </section>
+
+  <section class="tab-panel" id="tab-mcp">
+    <section class="panel">
+      <h3>Staff registry tools</h3>
+      <p class="feature-description">Read-only MCP tools for verified staff registry data.</p>
+      <form id="mcp-form" class="feature-form">
+        <label for="mcp-tool">Tool</label>
+        <select id="mcp-tool" name="tool">
+          <option value="get_staff_count">Count staff</option>
+          <option value="list_staff">List staff</option>
+          <option value="get_staff_member">Find staff member</option>
+          <option value="get_employment_summary">Summarize employment</option>
+          <option value="refresh_corpus">Refresh RAG corpus</option>
+          <option value="retrieve_context">Retrieve RAG context</option>
+          <option value="answer_question">Answer with RAG</option>
+        </select>
+        <div id="mcp-department-field" class="feature-field" hidden>
+          <label for="mcp-department">Department (optional)</label>
+          <input id="mcp-department" name="department" type="text" maxlength="100" placeholder="e.g. Arts">
+        </div>
+        <div id="mcp-staff-id-field" class="feature-field" hidden>
+          <label for="mcp-staff-id">Staff ID</label>
+          <input id="mcp-staff-id" name="staff_id" type="number" min="1" step="1">
+        </div>
+        <div id="mcp-query-field" class="feature-field" hidden>
+          <label for="mcp-query">Query</label>
+          <input id="mcp-query" name="query" type="text" maxlength="1000">
+        </div>
+        <button type="submit" class="btn btn-primary">Run MCP tool</button>
+      </form>
+      <pre id="mcp-result" class="structured-result" aria-live="polite">Tool results will appear here.</pre>
+    </section>
+  </section>
+
+  <section class="tab-panel" id="tab-rag">
+    <section class="panel">
+      <h3>Grounded staff answers</h3>
+      <p class="feature-description">Answers are based on retrieved staff records and include source citations.</p>
+      <button id="rag-refresh" type="button" class="btn btn-ghost">Refresh staff index</button>
+      <form id="rag-form" class="feature-form rag-form">
+        <label for="rag-question">Question</label>
+        <textarea id="rag-question" rows="3" maxlength="1000" required
+                  placeholder="Which staff members work in Arts?"></textarea>
+        <button type="submit" class="btn btn-primary">Answer with RAG</button>
+      </form>
+      <pre id="rag-result" class="structured-result" aria-live="polite">Retrieved answers and citations will appear here.</pre>
     </section>
   </section>
 
@@ -205,6 +255,8 @@
   const tabPanels = {
     "normal": document.getElementById("tab-normal"),
     "ai-mode": document.getElementById("tab-ai-mode"),
+    "mcp": document.getElementById("tab-mcp"),
+    "rag": document.getElementById("tab-rag"),
   };
 
   function activateTab(tabName) {
@@ -217,6 +269,88 @@
 
   const hashTab = window.location.hash.replace("#", "");
   if (hashTab && tabPanels[hashTab]) activateTab(hashTab);
+
+  // ================= MCP tools =================
+  const mcpForm = document.getElementById("mcp-form");
+  const mcpTool = document.getElementById("mcp-tool");
+  const mcpResult = document.getElementById("mcp-result");
+  const mcpDepartmentField = document.getElementById("mcp-department-field");
+  const mcpStaffIdField = document.getElementById("mcp-staff-id-field");
+  const mcpQueryField = document.getElementById("mcp-query-field");
+
+  function updateMcpFields() {
+    mcpDepartmentField.hidden = mcpTool.value !== "list_staff";
+    mcpStaffIdField.hidden = mcpTool.value !== "get_staff_member";
+    mcpQueryField.hidden = !["retrieve_context", "answer_question"].includes(mcpTool.value);
+  }
+
+  mcpTool.addEventListener("change", updateMcpFields);
+  updateMcpFields();
+
+  mcpForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const tool = mcpTool.value;
+    const toolArguments = {};
+    if (tool === "list_staff") {
+      toolArguments.department = document.getElementById("mcp-department").value.trim();
+    } else if (tool === "get_staff_member") {
+      toolArguments.staff_id = Number(document.getElementById("mcp-staff-id").value);
+    } else if (["retrieve_context", "answer_question"].includes(tool)) {
+      toolArguments.query = document.getElementById("mcp-query").value.trim();
+      toolArguments.k = 5;
+    }
+    mcpResult.textContent = "Calling MCP server…";
+    try {
+      const response = await fetch(`${API_BASE}/mcp/call`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool, arguments: toolArguments }),
+      });
+      const payload = await response.json();
+      mcpResult.textContent = JSON.stringify(payload, null, 2);
+    } catch (err) {
+      mcpResult.textContent = `MCP request failed: ${err}`;
+    }
+  });
+
+  // ================= Grounded RAG =================
+  const ragResult = document.getElementById("rag-result");
+  const ragHeaders = {
+    "Content-Type": "application/json",
+    "X-RAG-Mode": "on",
+  };
+
+  document.getElementById("rag-refresh").addEventListener("click", async () => {
+    ragResult.textContent = "Refreshing staff index…";
+    try {
+      const response = await fetch(`${API_BASE}/rag/refresh`, {
+        method: "POST",
+        headers: ragHeaders,
+        body: JSON.stringify({}),
+      });
+      const payload = await response.json();
+      ragResult.textContent = JSON.stringify(payload, null, 2);
+    } catch (err) {
+      ragResult.textContent = `RAG refresh failed: ${err}`;
+    }
+  });
+
+  document.getElementById("rag-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const question = document.getElementById("rag-question").value.trim();
+    ragResult.textContent = "Retrieving evidence and generating an answer…";
+    try {
+      const response = await fetch(`${API_BASE}/rag/answer`, {
+        method: "POST",
+        headers: ragHeaders,
+        body: JSON.stringify({ question }),
+      });
+      const payload = await response.json();
+      ragResult.textContent = JSON.stringify(payload, null, 2);
+    } catch (err) {
+      ragResult.textContent = `RAG request failed: ${err}`;
+    }
+  });
 
   // ================= AI Mode =================
   // These fields use "question", these use "architecture_request" (per ai_mode.py)

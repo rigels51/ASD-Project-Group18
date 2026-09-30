@@ -33,6 +33,13 @@ ASD-Project-Group18/
 
 Make sure Docker Desktop and Ollama are running.
 
+For the group's local AI and grounded-answer features, install the required Ollama models:
+
+```bash
+ollama pull qwen2.5:0.5b
+ollama pull nomic-embed-text
+```
+
 From the project root folder, run:
 
 `docker compose up --build -d`
@@ -48,6 +55,12 @@ Open the shared homepage:
 To stop the project:
 
 `docker compose down`
+
+### Student 2 — Staff Registry, MCP, and RAG
+
+The Student 2 feature is available at `http://localhost:8082`. Its MCP and RAG services run on the shared Compose network; the MCP endpoint is also published on port `8052` for local MCP clients. RAG embeddings and answers use Ollama on the host, while Chroma data persists in a named Docker volume.
+
+For setup, service commands, tests, and Release 1 evidence, see [docs/release-1/README.md](docs/release-1/README.md).
 
 ## Services
 

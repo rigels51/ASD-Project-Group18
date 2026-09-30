@@ -74,14 +74,73 @@ services:
             - "5011:5001"
         environment:
             DATABASE_SERVICE_URL: http://student2-database:5002
+            MCP_SERVER_URL: http://student2-mcp:8000/mcp
+            MCP_ENABLED: "true"
+            RAG_SERVICE_URL: http://student2-rag:5003
+            RAG_ENABLED: "true"
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
+            student2-database:
+                condition: service_started
+            student2-mcp:
+                condition: service_healthy
+            student2-rag:
+                condition: service_healthy
+        networks:
+            - enrolment-network
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/', timeout=2).read()"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+
+    student2-mcp:
+        build:
+            context: .
+            dockerfile: ai-services/mcp-server/Dockerfile
+        container_name: student2-mcp
+        ports:
+            - "8052:8000"
+        environment:
+            DATABASE_SERVICE_URL: http://student2-database:5002
+        depends_on:
             - student2-database
         networks:
             - enrolment-network
+        healthcheck:
+            test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), 2).close()"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+        restart: unless-stopped
+
+    student2-rag:
+        build:
+            context: .
+            dockerfile: ai-services/rag-server/Dockerfile
+        container_name: student2-rag
+        environment:
+            DATABASE_SERVICE_URL: http://student2-database:5002
+            OLLAMA_HOST: http://host.docker.internal:11434
+            OLLAMA_MODEL: qwen2.5:0.5b
+            OLLAMA_EMBED_MODEL: nomic-embed-text
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        volumes:
+            - student2_rag_chroma:/app/chroma
+        depends_on:
+            - student2-database
+        networks:
+            - enrolment-network
+        healthcheck:
+            test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=2).read()"]
+            interval: 10s
+            timeout: 3s
+            retries: 5
         restart: unless-stopped
 
     student2-database:
@@ -226,6 +285,7 @@ services:
 volumes:
     student1_database_data:
     student2_database_data:
+    student2_rag_chroma:
     student4_database_data:
     assessment_grades_data:
 
