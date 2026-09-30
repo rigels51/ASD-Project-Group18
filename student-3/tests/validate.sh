@@ -89,6 +89,58 @@ check "POST /ask (AI agent, valid question)" "200" "$CODE"
 CODE=$(curl -s -o /tmp/r16.txt -w "%{http_code}" -X POST "$BASE/ask" -d "question=")
 check "POST /ask (empty question)" "400" "$CODE"
 
+# ---------- RELEASE 1: JSON API ----------
+CODE=$(curl -s -o /tmp/r17.txt -w "%{http_code}" "$BASE/api/timetable")
+check "GET /api/timetable (JSON for MCP server)" "200" "$CODE"
+
+# ---------- RELEASE 1: MCP ----------
+CODE=$(curl -s -o /tmp/r18.txt -w "%{http_code}" "$BASE/mcp/tools")
+check "GET /mcp/tools (list MCP tools)" "200" "$CODE"
+echo "     Tools: $(grep -o '"name": *"[a-z_]*"' /tmp/r18.txt | sed 's/.*"\([a-z_]*\)"$/\1/' | tr '\n' ' ')"
+
+CODE=$(curl -s -o /tmp/r19.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"check_room_availability","arguments":{"room":"CB01.02.15","day":"Monday","start_time":"10:00","end_time":"11:00"}}')
+check "MCP check_room_availability (busy slot)" "200" "$CODE"
+grep -q '"available": *false' /tmp/r19.txt && echo "     Correctly reported BOOKED (conflicts with session 1)" || echo "     WARNING: expected available=false"
+
+CODE=$(curl -s -o /tmp/r20.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"check_room_availability","arguments":{"room":"CB01.02.15","day":"Monday","start_time":"11:00","end_time":"12:00"}}')
+check "MCP check_room_availability (back-to-back slot)" "200" "$CODE"
+grep -q '"available": *true' /tmp/r20.txt && echo "     Correctly reported AVAILABLE" || echo "     WARNING: expected available=true"
+
+CODE=$(curl -s -o /tmp/r21.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"get_sessions_by_course","arguments":{"course_code":"ASD101"}}')
+check "MCP get_sessions_by_course (ASD101)" "200" "$CODE"
+grep -q '"session_count": *2' /tmp/r21.txt && echo "     2 ASD101 sessions returned" || echo "     WARNING: expected 2 sessions"
+
+CODE=$(curl -s -o /tmp/r22.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"find_timetable_clashes","arguments":{}}')
+check "MCP find_timetable_clashes" "200" "$CODE"
+
+CODE=$(curl -s -o /tmp/r23.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"check_room_availability","arguments":{"room":"CB01.02.15","day":"Funday","start_time":"10:00","end_time":"11:00"}}')
+check "MCP check_room_availability (invalid day rejected)" "400" "$CODE"
+
+CODE=$(curl -s -o /tmp/r24.txt -w "%{http_code}" -X POST "$BASE/mcp/call" -H "Content-Type: application/json" \
+    -d '{"tool":"drop_table","arguments":{}}')
+check "MCP unknown tool rejected" "400" "$CODE"
+
+# ---------- RELEASE 1: RAG ----------
+CODE=$(curl -s -o /tmp/r25.txt -w "%{http_code}" -X POST "$BASE/rag/answer" -H "Content-Type: application/json" \
+    -d '{"question":"Do two sessions clash if one ends at 11:00 and the next starts at 11:00 in the same room?"}')
+check "RAG grounded answer (policy question)" "200" "$CODE"
+echo "     Confidence: $(grep -o '"confidence_category": *"[a-z]*"' /tmp/r25.txt | head -1 | sed 's/.*"\([a-z]*\)"$/\1/')"
+echo "     Citations:  $(grep -o '"chunk_id": *"policy-[0-9]*"' /tmp/r25.txt | sed 's/.*"\(policy-[0-9]*\)"$/\1/' | tr '\n' ' ')"
+
+CODE=$(curl -s -o /tmp/r26.txt -w "%{http_code}" -X POST "$BASE/rag/answer" -H "Content-Type: application/json" \
+    -d '{"question":"Who won the 2022 football World Cup?"}')
+check "RAG off-topic question (should abstain)" "200" "$CODE"
+grep -q '"confidence_category": *"low"' /tmp/r26.txt && echo "     Correctly abstained (low confidence, no citations)" || echo "     WARNING: expected abstention — check RAG_MIN_SIMILARITY"
+
+CODE=$(curl -s -o /tmp/r27.txt -w "%{http_code}" -X POST "$BASE/rag/answer" -H "Content-Type: application/json" \
+    -d '{"question":""}')
+check "RAG empty question" "400" "$CODE"
+
 # ---------- NFR: response time ----------
 echo ""
 echo "=== NFR check: GET /timetable response time (target <= 500ms) ==="

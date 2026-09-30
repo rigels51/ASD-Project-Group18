@@ -7,12 +7,22 @@ on:
       - 'student-3/**'
     paths:
       - 'student-3/**'
+      - 'ai-services/mcp-server/timetable_tools.py'
+      - 'ai-services/mcp-server/test_timetable_tools.py'
+      - 'ai-services/rag-server/timetable_rag.py'
+      - 'ai-services/rag-server/test_timetable_rag.py'
+      - 'ai-services/rag-server/corpus/timetable_policy.md'
       - '.github/workflows/student-3.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'student-3/**'
+      - 'ai-services/mcp-server/timetable_tools.py'
+      - 'ai-services/mcp-server/test_timetable_tools.py'
+      - 'ai-services/rag-server/timetable_rag.py'
+      - 'ai-services/rag-server/test_timetable_rag.py'
+      - 'ai-services/rag-server/corpus/timetable_policy.md'
       - '.github/workflows/student-3.yml'
 
 jobs:
@@ -29,10 +39,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install backend dependencies
-        working-directory: student-3/backend
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r student-3/backend/requirements.txt
 
       - name: Initialise database
         working-directory: student-3/backend
@@ -49,8 +58,23 @@ jobs:
           print(f'Database check passed: {count} records')
           "
 
-      - name: Start backend server
+      - name: Unit tests - backend MCP/RAG routes (servers mocked)
         working-directory: student-3/backend
+        run: python -m unittest discover -s tests -v
+
+      - name: Unit tests - Timetable tools on the shared MCP server
+        working-directory: ai-services/mcp-server
+        run: python -m unittest test_timetable_tools -v
+
+      - name: Unit tests - Timetable domain on the shared RAG server (Ollama mocked)
+        working-directory: ai-services/rag-server
+        run: python -m unittest test_timetable_rag -v
+
+      - name: Start backend server (MCP and RAG disabled)
+        working-directory: student-3/backend
+        env:
+          MCP_ENABLED: "false"
+          RAG_ENABLED: "false"
         run: |
           nohup python app.py > flask.log 2>&1 &
           sleep 3
@@ -60,15 +84,24 @@ jobs:
           curl -sf http://127.0.0.1:5003/timetable -o /dev/null
           curl -sf http://127.0.0.1:5003/timetable/1 -o /dev/null
           curl -sf http://127.0.0.1:5003/timetable/clashes -o /dev/null
+          curl -sf http://127.0.0.1:5003/api/timetable -o /dev/null
           echo "All core endpoints responded successfully"
 
+      - name: Validate MCP and RAG routes report disabled
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:5003/mcp/call \
+            -H "Content-Type: application/json" -d '{"tool":"find_timetable_clashes","arguments":{}}')
+          test "$code" = "503" || { echo "Expected 503 from /mcp/call, got $code"; exit 1; }
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:5003/rag/answer \
+            -H "Content-Type: application/json" -d '{"question":"When do sessions clash?"}')
+          test "$code" = "503" || { echo "Expected 503 from /rag/answer, got $code"; exit 1; }
+          echo "MCP and RAG are correctly feature-flagged off in CI"
+
       - name: Build backend Docker image
-        working-directory: student-3/backend
-        run: docker build -t timetable-backend .
+        run: docker build -t timetable-backend student-3/backend
 
       - name: Build frontend Docker image
-        working-directory: student-3/frontend
-        run: docker build -t timetable-frontend .
+        run: docker build -t timetable-frontend student-3/frontend
 
       - name: Show backend logs on failure
         if: failure()

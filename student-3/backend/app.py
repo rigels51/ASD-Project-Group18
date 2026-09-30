@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -6,6 +6,9 @@ import sqlite3
 import os
 
 load_dotenv()
+
+import mcp_client
+import rag_client
 
 DATABASE_NAME = "timetable.db"
 
@@ -230,6 +233,71 @@ def get_clashes():
     html += "</ul>"
 
     return html
+
+
+# ---------- JSON API (read by the Timetable MCP server) ----------
+
+@app.route("/api/timetable")
+def get_timetable_json():
+    conn = get_db_connection()
+    sessions = conn.execute("SELECT * FROM timetable ORDER BY session_id").fetchall()
+    conn.close()
+    return jsonify([row_to_dict(s) for s in sessions])
+
+
+# ---------- RELEASE 1: MCP TOOLS ----------
+
+@app.route("/mcp/tools")
+def mcp_list_tools():
+    if not mcp_client.MCP_ENABLED:
+        return jsonify({"status": "disabled", "error": "MCP is disabled (MCP_ENABLED=false)"}), 503
+    try:
+        return jsonify({"status": "success", "tools": mcp_client.list_timetable_tools()})
+    except Exception:
+        return jsonify({"status": "error", "error": f"MCP server unavailable at {mcp_client.MCP_SERVER_URL}"}), 503
+
+
+@app.route("/mcp/call", methods=["POST"])
+def mcp_call_tool():
+    if not mcp_client.MCP_ENABLED:
+        return jsonify({"status": "disabled", "error": "MCP is disabled (MCP_ENABLED=false)"}), 503
+
+    payload = request.get_json(silent=True) or {}
+    tool = payload.get("tool", "")
+    arguments = payload.get("arguments") or {}
+
+    if tool not in mcp_client.ALLOWED_TOOLS:
+        return jsonify({"status": "error", "error": f"Unknown tool '{tool}'"}), 400
+    if not isinstance(arguments, dict):
+        return jsonify({"status": "error", "error": "arguments must be a JSON object"}), 400
+
+    try:
+        result = mcp_client.call_timetable_tool(tool, arguments)
+        return jsonify({"status": "success", "tool": tool, "arguments": arguments, "result": result})
+    except RuntimeError as exc:
+        return jsonify({"status": "error", "tool": tool, "error": str(exc)}), 400
+    except Exception:
+        return jsonify({"status": "error", "tool": tool, "error": f"MCP server unavailable at {mcp_client.MCP_SERVER_URL}"}), 503
+
+
+# ---------- RELEASE 1: RAG GROUNDED ANSWERS ----------
+
+@app.route("/rag/answer", methods=["POST"])
+def rag_answer():
+    if not rag_client.RAG_ENABLED:
+        return jsonify({"status": "disabled", "error": "RAG is disabled (RAG_ENABLED=false)"}), 503
+
+    payload = request.get_json(silent=True) or {}
+    question = str(payload.get("question", "")).strip()
+
+    if not question:
+        return jsonify({"status": "error", "error": "question is required"}), 400
+
+    try:
+        result, status_code = rag_client.ask_rag(question)
+        return jsonify(result), status_code
+    except Exception:
+        return jsonify({"status": "error", "error": f"RAG server unavailable at {rag_client.RAG_SERVER_URL}"}), 503
 
 
 # ---------- AI AGENT ----------

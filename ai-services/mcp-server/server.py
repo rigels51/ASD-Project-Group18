@@ -5,6 +5,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 import requests
 
 from tools import employment_summary, staff_count, staff_directory, staff_member
+from timetable_tools import register_timetable_tools
 
 
 mcp = MCPServer(
@@ -14,6 +15,7 @@ mcp = MCPServer(
 		"email addresses; do not infer missing staff information."
 	),
 )
+register_timetable_tools(mcp)  # Student 3 - Timetable & Class Scheduling
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://student2-rag:5003").rstrip("/")
 
 

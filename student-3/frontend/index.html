@@ -41,6 +41,8 @@
                     <li><button type="button" data-tab="manage" data-role-required="admin">Manage</button></li>
                     <li><button type="button" data-tab="clashes" data-role-required="admin">Clashes</button></li>
                     <li><button type="button" data-tab="ask">Ask AI</button></li>
+                    <li><button type="button" data-tab="mcp">MCP Tools</button></li>
+                    <li><button type="button" data-tab="rag">Policy Q&amp;A</button></li>
                 </ul>
             </div>
         </aside>
@@ -130,6 +132,53 @@
                     <button id="ask-btn" type="button" class="btn btn-primary" style="margin-top:10px;">Ask</button>
                 </div>
                 <div id="ask-result" class="ask-response" style="margin-top:14px;"></div>
+            </section>
+
+            <section class="tab-panel" id="panel-mcp">
+                <div class="panel">
+                    <h3>Run a timetable MCP tool</h3>
+                    <div class="field">
+                        <label for="mcp_tool">Tool</label>
+                        <select id="mcp_tool">
+                            <option value="check_room_availability">check_room_availability</option>
+                            <option value="get_sessions_by_course">get_sessions_by_course</option>
+                            <option value="find_timetable_clashes">find_timetable_clashes</option>
+                        </select>
+                    </div>
+                    <p class="note" id="mcp_tool_desc" style="margin:6px 0 10px; color:var(--slate); font-size:13px;"></p>
+
+                    <div id="mcp_args_room" class="field-row">
+                        <div class="field"><label for="m_room">Room</label><input id="m_room" type="text" value="CB01.02.15"></div>
+                        <div class="field"><label for="m_day">Day</label>
+                            <select id="m_day"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select>
+                        </div>
+                        <div class="field"><label for="m_start">Start</label><input id="m_start" type="time" value="10:00"></div>
+                        <div class="field"><label for="m_end">End</label><input id="m_end" type="time" value="11:00"></div>
+                    </div>
+                    <div id="mcp_args_course" class="field is-hidden">
+                        <label for="m_course">Course code</label><input id="m_course" type="text" value="ASD101">
+                    </div>
+
+                    <button id="mcp-run-btn" type="button" class="btn btn-primary" style="margin-top:12px;">Run tool</button>
+                </div>
+                <div id="mcp-result" class="table-wrap" style="margin-top:14px;">
+                    <div class="empty-state">
+                        <h3>No tool run yet</h3>
+                        <p>Frontend → timetable backend → Timetable MCP server → live timetable data.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel" id="panel-rag">
+                <div class="panel">
+                    <h3>Ask the scheduling policy (RAG)</h3>
+                    <p class="note" style="margin:0 0 10px; color:var(--slate); font-size:13px;">Answers are grounded in the Room Booking &amp; Scheduling Policy and cite the sections they used. Off-topic questions are refused.</p>
+                    <div class="field">
+                        <textarea id="rag_question" rows="3" style="padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);">Do two sessions clash if one ends at 11:00 and the next starts at 11:00 in the same room?</textarea>
+                    </div>
+                    <button id="rag-ask-btn" type="button" class="btn btn-primary" style="margin-top:10px;">Ask policy</button>
+                </div>
+                <div id="rag-result" class="ask-response" style="margin-top:14px;"></div>
             </section>
 
         </main>
@@ -343,6 +392,136 @@ document.getElementById("ask-btn").addEventListener("click", async () => {
     form.set("question", document.getElementById("question").value);
     const res = await fetch(`${API_BASE}/ask`, { method: "POST", body: form });
     document.getElementById("ask-result").innerHTML = await res.text();
+});
+
+// ---------- Release 1 helpers ----------
+function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function sessionsTableHtml(sessions) {
+    if (!sessions.length) return "";
+    const rows = sessions.map(s => `
+        <tr><td>${esc(s.session_id)}</td><td>${esc(s.course_code)}</td>
+        <td><span class="pill ${typePillClass(s.session_type)}">${esc(s.session_type)}</span></td>
+        <td>${esc(s.day)}</td><td class="mono">${esc(s.start_time)}–${esc(s.end_time)}</td>
+        <td class="mono">${esc(s.room)}</td><td>${esc(s.semester)}</td></tr>`).join("");
+    return `<table><thead><tr><th>ID</th><th>Course</th><th>Type</th><th>Day</th><th>Time</th><th>Room</th><th>Semester</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function rawJsonHtml(data) {
+    return `<details style="padding:0 16px 16px;"><summary style="cursor:pointer; color:var(--slate); font-size:13px;">Raw MCP tool result (JSON)</summary>
+        <pre class="mono" style="white-space:pre-wrap; font-size:12px; background:var(--paper); border:1px solid var(--line); border-radius:7px; padding:10px; margin-top:8px;">${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+}
+
+// ---------- MCP tools ----------
+const TOOL_DESCRIPTIONS = {
+    check_room_availability: "Checks if a room is free for a time slot and lists any conflicting sessions.",
+    get_sessions_by_course: "Lists every scheduled session for a course code.",
+    find_timetable_clashes: "Finds all sessions booked in the same room at overlapping times.",
+};
+
+function syncMcpArgs() {
+    const tool = document.getElementById("mcp_tool").value;
+    document.getElementById("mcp_tool_desc").textContent = TOOL_DESCRIPTIONS[tool];
+    document.getElementById("mcp_args_room").classList.toggle("is-hidden", tool !== "check_room_availability");
+    document.getElementById("mcp_args_course").classList.toggle("is-hidden", tool !== "get_sessions_by_course");
+}
+document.getElementById("mcp_tool").addEventListener("change", syncMcpArgs);
+syncMcpArgs();
+
+function mcpArguments(tool) {
+    if (tool === "check_room_availability") {
+        return {
+            room: document.getElementById("m_room").value.trim(),
+            day: document.getElementById("m_day").value,
+            start_time: document.getElementById("m_start").value,
+            end_time: document.getElementById("m_end").value,
+        };
+    }
+    if (tool === "get_sessions_by_course") return { course_code: document.getElementById("m_course").value.trim() };
+    return {};
+}
+
+function renderMcpResult(tool, result) {
+    if (tool === "check_room_availability") {
+        const pill = result.available ? `<span class="pill clear">Available</span>` : `<span class="pill clash">Booked</span>`;
+        const summary = `${esc(result.room)} · ${esc(result.day)} ${esc(result.start_time)}–${esc(result.end_time)}`;
+        const detail = result.available ? "<p>No sessions overlap this slot.</p>" : `<p>Conflicting sessions:</p>${sessionsTableHtml(result.conflicts)}`;
+        return `<div style="padding:16px;">${pill} <span class="mono" style="margin-left:8px;">${summary}</span><div style="margin-top:10px;">${detail}</div></div>`;
+    }
+    if (tool === "get_sessions_by_course") {
+        const head = `<div style="padding:16px;"><span class="pill type-lecture">${esc(result.course_code)}</span> <span style="margin-left:8px;">${esc(result.session_count)} session(s)</span></div>`;
+        return head + (result.session_count ? sessionsTableHtml(result.sessions) : `<div class="empty-state"><p>No sessions found for this course.</p></div>`);
+    }
+    if (!result.clash_count) {
+        return `<div class="empty-state"><span class="pill clear">Clear</span><h3 style="margin-top:10px;">No clashes detected</h3></div>`;
+    }
+    const items = result.clashes.map(c => `<li>${esc(c.room)} on ${esc(c.day)}: session ${esc(c.session_a.session_id)} (${esc(c.session_a.course_code)} ${esc(c.session_a.start_time)}–${esc(c.session_a.end_time)}) overlaps session ${esc(c.session_b.session_id)} (${esc(c.session_b.course_code)} ${esc(c.session_b.start_time)}–${esc(c.session_b.end_time)})</li>`).join("");
+    return `<div style="padding:16px;"><span class="pill clash">${esc(result.clash_count)} clash(es)</span><ul style="margin-top:10px;">${items}</ul></div>`;
+}
+
+document.getElementById("mcp-run-btn").addEventListener("click", async () => {
+    const tool = document.getElementById("mcp_tool").value;
+    const target = document.getElementById("mcp-result");
+    target.innerHTML = `<div class="empty-state"><p>Calling ${esc(tool)}…</p></div>`;
+    try {
+        const res = await fetch(`${API_BASE}/mcp/call`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tool, arguments: mcpArguments(tool) }),
+        });
+        const data = await res.json();
+        if (data.status !== "success") {
+            target.innerHTML = `<div class="empty-state"><span class="pill clash">Tool error</span><p style="margin-top:10px;">${esc(data.error)}</p></div>`;
+            return;
+        }
+        target.innerHTML = renderMcpResult(tool, data.result) + rawJsonHtml(data);
+    } catch (err) {
+        target.innerHTML = `<div class="empty-state"><span class="pill clash">Unavailable</span><p style="margin-top:10px;">Could not reach the timetable backend.</p></div>`;
+    }
+});
+
+// ---------- RAG grounded answers ----------
+const CONFIDENCE_PILL = { high: "clear", medium: "type-lecture", low: "clash" };
+
+document.getElementById("rag-ask-btn").addEventListener("click", async () => {
+    const question = document.getElementById("rag_question").value.trim();
+    const target = document.getElementById("rag-result");
+    if (!question) return;
+    target.innerHTML = "<p>Retrieving policy sections…</p>";
+    try {
+        const res = await fetch(`${API_BASE}/rag/answer`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question }),
+        });
+        const data = await res.json();
+        if (data.status !== "success") {
+            target.innerHTML = `<span class="pill clash">RAG error</span><p style="margin-top:10px;">${esc(data.error)}</p>`;
+            return;
+        }
+        const conf = data.confidence_category;
+        const citations = data.citations.length
+            ? `<ul style="margin-top:6px;">${data.citations.map(c => `<li><span class="mono">[${esc(c.chunk_id)}]</span> ${esc(c.section)} <span class="mono" style="color:var(--slate);">sim ${esc(c.similarity)}</span></li>`).join("")}</ul>`
+            : "<p>No policy section was relevant enough to cite.</p>";
+        const wf = data.agentic_workflow;
+        target.innerHTML = `
+            <span class="pill ${CONFIDENCE_PILL[conf] || "clash"}">Confidence: ${esc(conf)}</span>
+            <p style="margin-top:10px;">${esc(data.answer)}</p>
+            <h4 style="margin-top:12px; font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate);">Sources</h4>
+            ${citations}
+            <details style="margin-top:10px;"><summary style="cursor:pointer; color:var(--slate); font-size:13px;">Plan → Act → Observe → Adapt</summary>
+                <ul style="margin-top:6px;">
+                    <li><strong>Plan:</strong> ${esc(wf.plan)}</li>
+                    <li><strong>Act:</strong> ${esc(wf.act)}</li>
+                    <li><strong>Observe:</strong> ${esc(wf.observe.evidence_count)} section(s) passed the threshold (top similarity ${esc(data.retrieval_summary.top_similarity)}, min ${esc(data.retrieval_summary.min_similarity)})</li>
+                    <li><strong>Adapt:</strong> ${esc(wf.adapt)}</li>
+                </ul>
+            </details>`;
+    } catch (err) {
+        target.innerHTML = `<span class="pill clash">Unavailable</span><p style="margin-top:10px;">Could not reach the timetable backend.</p>`;
+    }
 });
 </script>
 
