@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
   <meta charset="utf-8">
-  <title>Student 4 RAG Mode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>RAG Mode</title>
 
   <link rel="stylesheet" href="/css/styles.css">
 
@@ -14,146 +17,212 @@
       background: transparent;
     }
 
-    .rag-container {
-      padding: 20px;
-    }
-
-    .rag-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .rag-form {
-      margin-top: 20px;
-      margin-bottom: 20px;
-    }
-
-    .rag-form input {
-      padding: 8px;
-      min-width: 320px;
-      margin-right: 8px;
-    }
-
-    .rag-result {
-      margin-top: 20px;
-      padding: 15px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      min-height: 100px;
-      overflow-x: auto;
-    }
-
-    .rag-status {
-      margin-bottom: 15px;
-    }
-
-    .hint {
-      margin-top: 8px;
-      font-size: 14px;
+    .app-shell {
+      max-width: none;
+      padding: 0;
     }
   </style>
 </head>
 
+
 <body>
 
-  <div class="rag-container">
+<main class="app-shell">
 
-    <h2>RAG Mode</h2>
 
-    <p>
-      Ask questions using retrieved Course & Enrollment evidence.
-    </p>
+  <div class="section-heading">
 
-    <div class="rag-status">
-      <strong>RAG Status:</strong>
-      <span>Enabled</span>
+    <div>
+
+      <p class="section-label">
+        RETRIEVAL AUGMENTED GENERATION
+      </p>
+
+      <h2>RAG Mode</h2>
+
+      <p>
+        Retrieve Course & Enrollment evidence and generate grounded answers.
+      </p>
+
     </div>
 
-    <div class="rag-actions">
+  </div>
 
-      <button
-        type="button"
-        hx-post="http://localhost:5031/rag/refresh"
-        hx-target="#rag-result"
-        hx-swap="innerHTML"
-      >
-        Refresh Corpus
-      </button>
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>RAG Status</h3>
+
+        <p>
+          Shared RAG integration for Course & Enrollment Management.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Enabled
+      </span>
+
+    </div>
+
+
+    <button
+      type="button"
+      class="primary-btn"
+      hx-post="http://localhost:5031/rag/refresh"
+      hx-target="#rag-result"
+      hx-swap="innerHTML"
+    >
+      Refresh Corpus
+    </button>
+
+  </section>
+
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Retrieve Context</h3>
+
+        <p>
+          Search for relevant Course & Enrollment evidence.
+        </p>
+
+      </div>
 
     </div>
 
 
     <form
-      class="rag-form"
+      class="vertical-form"
       hx-post="http://localhost:5031/rag/retrieve"
       hx-target="#rag-result"
       hx-swap="innerHTML"
     >
 
-      <label for="retrieve-query">
-        Retrieve Context:
-      </label>
+      <div class="field">
 
-      <br><br>
+        <label for="retrieve-query">
+          Query
+        </label>
 
-      <input
-        id="retrieve-query"
-        name="query"
-        type="text"
-        placeholder="Example: What is ASD101?"
-        required
+        <input
+          id="retrieve-query"
+          name="query"
+          type="text"
+          placeholder="e.g. What is ASD101?"
+          required
+        >
+
+      </div>
+
+
+      <button
+        type="submit"
+        class="secondary-btn"
       >
-
-      <button type="submit">
-        Retrieve
+        Retrieve Context
       </button>
 
     </form>
 
+  </section>
+
+
+  <section class="content-card ai-highlight">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Answer With Citations</h3>
+
+        <p>
+          Generate a grounded answer using retrieved evidence.
+        </p>
+
+      </div>
+
+      <span class="feature-badge">
+        Grounded AI
+      </span>
+
+    </div>
+
 
     <form
-      class="rag-form"
+      class="vertical-form"
       hx-post="http://localhost:5031/rag/answer"
       hx-target="#rag-result"
       hx-swap="innerHTML"
     >
 
-      <label for="answer-query">
-        Ask with RAG:
-      </label>
+      <div class="field">
 
-      <br><br>
+        <label for="answer-query">
+          Question
+        </label>
 
-      <input
-        id="answer-query"
-        name="query"
-        type="text"
-        placeholder="Example: What is ASD101?"
-        required
-      >
+        <textarea
+          id="answer-query"
+          name="query"
+          rows="4"
+          placeholder="e.g. What is ASD101?"
+          required
+        ></textarea>
 
-      <button type="submit">
-        Answer with Citations
-      </button>
-
-      <div class="hint">
-        The answer should include retrieved evidence,
-        citations and confidence.
       </div>
 
+
+      <button
+        type="submit"
+        class="primary-btn"
+      >
+        Answer With Citations
+      </button>
+
     </form>
+
+  </section>
+
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>RAG Result</h3>
+
+        <p>
+          Retrieved evidence, citations and confidence will appear below.
+        </p>
+
+      </div>
+
+    </div>
 
 
     <div
       id="rag-result"
-      class="rag-result"
+      class="panel"
     >
-      RAG results will appear here.
+      <p class="muted">
+        Run a RAG action to display results.
+      </p>
     </div>
 
-  </div>
+  </section>
+
+
+</main>
 
 </body>
 </html>
