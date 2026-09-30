@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>MCP Mode</title>
+
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+    }
+
+    .feature-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .app-shell {
+      max-width: none;
+      padding: 0;
+    }
+  </style>
+
+</head>
+
+
+<body>
+
+<main class="app-shell">
+
+
+  <div class="section-heading">
+
+    <div>
+
+      <p class="section-label">
+        MODEL CONTEXT PROTOCOL
+      </p>
+
+      <h2>MCP Mode</h2>
+
+      <p>
+        Access Course & Enrollment data through controlled MCP tools.
+      </p>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- MCP Status -->
+
+  <section class="content-card">
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>MCP Status</h3>
+
+        <p>
+          Shared MCP integration for Student 4 Course & Enrollment Management.
+        </p>
+
+      </div>
+
+
+      <span class="feature-badge">
+        Enabled
+      </span>
+
+
+    </div>
+
+
+  </section>
+
+
+
+
+  <!-- MCP Tools -->
+
+  <section class="content-card">
+
+
+    <div class="card-header">
+
+      <div>
+
+        <h3>Course Tools</h3>
+
+        <p>
+          Run MCP tools against the Course & Enrollment database.
+        </p>
+
+      </div>
+
+    </div>
+
+
+
+    <div class="feature-actions">
+
+
+      <button
+        type="button"
+        class="primary-btn"
+        hx-post="http://localhost:5031/mcp/course-count"
+        hx-target="#mcp-result"
+        hx-swap="innerHTML"
+      >
+        Get Course Count
+      </button>
+
+
+
+      <button
+        type="button"
+        class="primary-btn"
+        hx-post="http://localhost:5031/mcp/courses"
+        hx-target="#mcp-result"
+        hx-swap="innerHTML"
+      >
+        List Courses
+      </button>
+
+
+
+      <button
+        type="button"
+        class="primary-btn"
+        hx-post="http://localhost:5031/mcp/enrolments"
+        hx-target="#mcp-result"
+        hx-swap="innerHTML"
+      >
+        List Enrolments
+      </button>
+
+
+    </div>
+
+
+  </section>
+
+
+
+
+
+  <!-- Find Course -->
+
+
+  <section class="content-card">
+
+
+    <div class="card-header">
+
+
+      <div>
+
+        <h3>Find Course</h3>
+
+        <p>
+          Retrieve one course using its course ID.
+        </p>
+
+      </div>
+
+
+    </div>
+
+
+
+
+    <form
+      class="vertical-form"
+      hx-post="http://localhost:5031/mcp/course"
+      hx-target="#mcp-result"
+      hx-swap="innerHTML"
+    >
+
+
+
+      <div class="field">
+
+
+        <label for="course_id">
+          Course ID
+        </label>
+
+
+
+        <input
+          id="course_id"
+          name="course_id"
+          type="number"
+          min="1"
+          placeholder="e.g. 1"
+          required
+        >
+
+
+      </div>
+
+
+
+
+      <button
+        type="submit"
+        class="primary-btn"
+      >
+        Find Course
+      </button>
+
+
+
+
+    </form>
+
+
+  </section>
+
+
+
+
+
+
+  <!-- Result -->
+
+
+  <section class="content-card">
+
+
+    <div class="card-header">
+
+
+      <div>
+
+        <h3>MCP Result</h3>
+
+
+        <p>
+          Tool responses will appear below.
+        </p>
+
+
+      </div>
+
+
+    </div>
+
+
+
+
+    <div
+      id="mcp-result"
+      class="panel"
+    >
+
+      <p class="muted">
+        Run an MCP tool to display results.
+      </p>
+
+
+    </div>
+
+
+
+  </section>
+
+
+
+
+</main>
+
+
+</body>
+
+</html>
