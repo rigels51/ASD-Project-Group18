@@ -83,6 +83,14 @@
         MCP Mode
       </button>
 
+      <button
+        class="top-tab"
+        data-page="rag"
+        type="button"
+      >
+        RAG Mode
+      </button>
+
     </nav>
 
 
@@ -107,6 +115,13 @@
         class="page-frame"
         src="tabs/mcp.html"
         title="MCP Mode"
+      ></iframe>
+
+      <iframe
+        id="rag-page"
+        class="page-frame"
+        src="tabs/rag.html"
+        title="RAG Mode"
       ></iframe>
 
     </section>
@@ -135,6 +150,11 @@
       mcp:
         document.getElementById(
           "mcp-page"
+        ),
+
+      rag:
+        document.getElementById(
+          "rag-page"
         )
 
     };
@@ -294,6 +314,12 @@
     else if (hash === "mcp") {
 
       showPage("mcp");
+
+    }
+
+    else if (hash === "rag") {
+
+      showPage("rag");
 
     }
 
