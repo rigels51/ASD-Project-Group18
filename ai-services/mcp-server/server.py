@@ -7,6 +7,7 @@ import requests
 from tools import employment_summary, staff_count, staff_directory, staff_member
 from timetable_tools import register_timetable_tools
 from student4_tools import register_student4_tools
+from student5_tools import register_student5_tools
 
 mcp = MCPServer(
 	"Student 2 Staff Registry",
@@ -17,6 +18,7 @@ mcp = MCPServer(
 )
 register_timetable_tools(mcp)  # Student 3 - Timetable & Class Scheduling
 register_student4_tools(mcp)
+register_student5_tools(mcp)  # Student 5
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://student2-rag:5003").rstrip("/")
 
 

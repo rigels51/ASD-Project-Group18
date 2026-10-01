@@ -1,0 +1,165 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Assessment & Grades RAG Answers</title>
+    <!-- Shared design system: tokens, .panel/.btn/.pill/.table-wrap/.field -->
+    <link rel="stylesheet" href="/css/styles.css" />
+    <!-- Feature-only additions, scoped under .ag-app -->
+    <link rel="stylesheet" href="/css/features/assessment-grades.css" />
+    <!-- Release 1 MCP / RAG tab styles -->
+    <link rel="stylesheet" href="/css/features/mcp-rag.css" />
+  </head>
+  <body>
+    <main class="app-shell ag-app">
+      <header class="app-header">
+        <div>
+          <span class="eyebrow">Assessment & Grades System</span>
+          <h1>RAG Answers</h1>
+          <p class="sub">
+            Grounded answers from assessment records and the assessment policy —
+            with sources and a confidence level. No evidence, no guess.
+          </p>
+        </div>
+        <div>
+          <a class="btn btn-ghost home-link" href="http://localhost:8090" target="_top">Home</a>
+          <span class="term-badge mono">RAG</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Shared RAG server</h3>
+              <span class="pill status-pill" id="rag-status">Checking…</span>
+            </div>
+            <p class="helper-text">UI → assessment-service :5021 → RAG server :5050 (host), domain <code>assessment</code></p>
+            <div id="rag-health" class="tools-box"></div>
+            <button class="btn btn-ghost btn-small" type="button" id="refresh-index">Refresh index</button>
+            <div id="refresh-result" class="tools-box"></div>
+          </div>
+
+          <div class="panel">
+            <h3>Try asking</h3>
+            <ul class="example-list">
+              <li><button type="button" data-q="What assessments do I have for this course?" data-course="ASD101">What assessments do I have for this course? <span class="mono">(ASD101)</span></button></li>
+              <li><button type="button" data-q="When is the capstone presentation due?" data-course="SEC301">When is the capstone presentation due? <span class="mono">(SEC301)</span></button></li>
+              <li><button type="button" data-q="What is the penalty for late submission?" data-course="">What is the penalty for late submission?</button></li>
+              <li><button type="button" data-q="What mark do I need for a Distinction?" data-course="">What mark do I need for a Distinction?</button></li>
+              <li><button type="button" data-q="Who won the 2022 football World Cup?" data-course="">Who won the 2022 football World Cup? <span class="mono">(out of scope)</span></button></li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="main">
+          <div class="panel">
+            <h3>Ask about assessments</h3>
+            <form id="rag-form" class="rag-form">
+              <div class="field">
+                <label for="rag-course">Course (optional — used for "this course")</label>
+                <select id="rag-course" name="course_id">
+                  <option value="">Any course</option>
+                  <option>ASD101</option>
+                  <option>WEB201</option>
+                  <option>DBS101</option>
+                  <option>NET201</option>
+                  <option>SEC301</option>
+                </select>
+              </div>
+              <div class="chat-input-row">
+                <input
+                  type="text"
+                  id="rag-question"
+                  name="question"
+                  maxlength="500"
+                  placeholder="e.g. What assessments do I have for this course?"
+                />
+                <button class="btn btn-primary" type="submit">Ask</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Answer</h3>
+              <span class="helper-text" id="rag-result-status"></span>
+            </div>
+            <div id="rag-result">
+              <p class="helper-text">Answers show the sources they were built from and a confidence category (high / medium / low).</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const BACKEND_URL = "http://localhost:5021";
+
+      async function fetchText(url, options = {}) {
+        try {
+          const response = await fetch(url, options);
+          return { status: response.status, body: await response.text() };
+        } catch (e) {
+          return {
+            status: 0,
+            body: `<div class="notice notice-error"><strong>Backend unreachable</strong><p>Could not reach ${BACKEND_URL}. Is the assessment-service container running?</p></div>`,
+          };
+        }
+      }
+
+      async function loadHealth() {
+        const statusEl = document.getElementById("rag-status");
+        const { status, body } = await fetchText(`${BACKEND_URL}/rag/health`);
+        statusEl.classList.remove("ok", "off", "err");
+        if (status === 200) { statusEl.textContent = "Connected"; statusEl.classList.add("ok"); }
+        else if (body.includes("notice-disabled")) { statusEl.textContent = "Disabled"; statusEl.classList.add("off"); }
+        else { statusEl.textContent = "Unavailable"; statusEl.classList.add("err"); }
+        document.getElementById("rag-health").innerHTML = body;
+      }
+
+      document.getElementById("refresh-index").addEventListener("click", async () => {
+        const out = document.getElementById("refresh-result");
+        out.innerHTML = '<p class="helper-text">Refreshing…</p>';
+        const { body } = await fetchText(`${BACKEND_URL}/rag/refresh`, { method: "POST" });
+        out.innerHTML = body;
+      });
+
+      async function ask(question, courseId) {
+        const result = document.getElementById("rag-result");
+        const statusEl = document.getElementById("rag-result-status");
+        statusEl.textContent = "Retrieving context and generating…";
+        result.classList.add("is-loading");
+
+        const params = new URLSearchParams();
+        params.set("question", question);
+        params.set("course_id", courseId);
+        const { status, body } = await fetchText(`${BACKEND_URL}/rag/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params,
+        });
+        result.classList.remove("is-loading");
+        statusEl.textContent = `HTTP ${status || "—"}`;
+        result.innerHTML = body;
+      }
+
+      document.getElementById("rag-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const question = document.getElementById("rag-question").value.trim();
+        if (!question) return;
+        ask(question, document.getElementById("rag-course").value);
+      });
+
+      document.querySelectorAll(".example-list button").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.getElementById("rag-question").value = button.dataset.q;
+          document.getElementById("rag-course").value = button.dataset.course;
+          ask(button.dataset.q, button.dataset.course);
+        });
+      });
+
+      loadHealth();
+    </script>
+  </body>
+</html>

@@ -17,18 +17,21 @@ student-5/
 │   │   ├── index.html               # Standalone home page (same content as the tab)
 │   │   └── tabs/
 │   │       ├── normal.html
-│   │       └── ai-mode.html
+│   │       ├── ai-mode.html
+│   │       ├── mcp.html                 # Release 1 - MCP Tools tab
+│   │       └── rag.html                 # Release 1 - RAG Answers tab
 │   └── css/
 │       ├── styles.css
 │       └── features/
-│           └── assessment-grades.css
+│           ├── assessment-grades.css
+│           └── mcp-rag.css              # Release 1 tab styles
 ├── backend/                         # Flask API — CRUD + AI agent
 │   ├── app.py
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── routes/            (assessments.py, grades.py, ai_mode.py)
-│   ├── services/          (database_api.py, llm_client.py, prompt_loader.py)
-│   └── views/              html_formatters.py
+│   ├── routes/            (assessments.py, grades.py, ai_mode.py, mcp_mode.py, rag_mode.py)
+│   ├── services/          (database_api.py, llm_client.py, prompt_loader.py, mcp_api.py, rag_api.py)
+│   └── views/             (html_formatters.py, mcp_rag_formatters.py)
 ├── database/                        # Flask REST API over SQLite
 │   ├── app.py
 │   ├── Dockerfile
@@ -36,7 +39,8 @@ student-5/
 │   └── requirements.txt
 ├── prompts/assessment-grades/       # AI system + task prompts
 ├── tests/
-│   └── test_assessment_grades_service.py
+│   ├── test_assessment_grades_service.py
+│   └── test_mcp_rag_routes.py       # Release 1 - offline MCP/RAG route tests
 ├── ci-workflow/                     # copy into .github/workflows/
 │   └── VuTienThanhNguyen.yml
 └── docker-compose.snippet.yml
@@ -96,11 +100,84 @@ to the shared home page at `http://localhost:8090`, and
 
 ## CI
 
-`ci-workflow/VuTienThanhNguyen.yml` builds both Docker images, runs them
-together on a Docker network, smoke-tests the endpoints, then runs the full
-pytest suite. GitHub Actions only picks up workflows from `.github/workflows/`
-at the repo root, so copy this file there (it can't run from inside
-`student-5/`).
+`.github/workflows/student-5.yml` (repo root) builds the database, backend/API
+and frontend images, runs them together, smoke-tests every page and endpoint,
+runs the Release 0 pytest suite plus the offline MCP/RAG unit tests, and checks
+that the MCP and RAG routes answer **503 "disabled"**. MCP and RAG are switched
+off in CI with `MCP_ENABLED=false` / `RAG_ENABLED=false` — the integration code
+stays in the app. (`ci-workflow/VuTienThanhNguyen.yml` is the old Release 0 copy.)
+
+## Release 1 — MCP and RAG
+
+The feature calls the team's **shared, local (non-Docker)** MCP and RAG servers
+through its own backend — the frontend never talks to them directly:
+
+```
+MCP:  UI tab "MCP Tools"   -> assessment-service :5021 /mcp/call -> MCP server :8000/mcp (host)
+                              -> Student 5 tool -> assessment-database-service :5022
+RAG:  UI tab "RAG Answers" -> assessment-service :5021 /rag/ask  -> RAG server :5050 (host), domain "assessment"
+                              -> retrieve context -> Ollama grounded answer -> answer + sources + confidence
+```
+
+**MCP tools** (`ai-services/mcp-server/student5_tools.py`, all read-only, inputs validated):
+
+| Tool | Input | Structured result |
+|---|---|---|
+| `list_course_assessments` | `course_id` like `ASD101` | `course_id, assessment_count, total_weight, assessments[]` |
+| `get_student_grade_summary` | `student_id` like `STU-1001` | `student_id, found, graded_count, pending_count, average_percent, grades[]` |
+| `get_upcoming_assessments` | `from_date` YYYY-MM-DD, `limit` 1-20 | `from_date, limit, total_upcoming, assessments[]` |
+
+The backend only allows these three tools (`services/mcp_api.py` → `ALLOWED_TOOLS`).
+
+**RAG domain `assessment`** (`ai-services/rag-server/student5_rag.py`) indexes live
+assessment records, per-course summaries, anonymised per-course grade statistics,
+and `corpus/assessment_policy.md`. Individual student marks are *not* indexed
+(use the MCP tool for those). Answers carry citations and a `confidence_category`
+(high/medium/low). With no relevant context — an off-topic question, an unknown
+course code, or a single student's marks — it returns *"Insufficient evidence…"*
+with no citations instead of guessing. If Ollama is down or its output names a
+course/date not in the evidence, an extractive answer built from the cited
+evidence is returned instead (the `generator` field says which).
+
+**Backend routes** (HTML for the UI; add `?format=json` for JSON):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/mcp/tools` | Student 5 tools listed by the shared server |
+| POST | `/mcp/call` | `tool` + its arguments (form or JSON `{"tool","arguments"}`) |
+| GET | `/rag/health` | shared RAG server reachable + `assessment` domain hosted |
+| POST | `/rag/refresh` | rebuild the `assessment` index |
+| POST | `/rag/ask` | `question`, optional `course_id` (used for "this course") |
+
+Status codes: `200` ok, `400` input rejected / tool outside boundary, `503` disabled or server unreachable.
+
+### Run it locally
+
+```bash
+# 1. Ollama on the host
+ollama pull qwen2.5:0.5b
+
+# 2. Containers (frontend/backend/db) from the repo root
+docker compose up --build -d
+
+# 3. Shared servers on the host (two terminals, repo root)
+pip install -r ai-services/mcp-server/requirements.txt
+cd ai-services/mcp-server && python server.py          # http://localhost:8000/mcp
+cd ai-services/rag-server && python rag_http_server.py  # http://localhost:5050
+```
+
+Open http://localhost:8085 → **MCP Tools** (e.g. *Course assessments → ASD101*) and
+**RAG Answers** (e.g. *"What assessments do I have for this course?"* with ASD101).
+
+### Tests and agentic-loop evidence
+
+```bash
+python -m pytest student-5/tests/test_mcp_rag_routes.py -v
+cd ai-services/mcp-server && python -m unittest test_student5_tools -v
+cd ai-services/rag-server && python -m unittest test_student5_rag -v
+python -m agentic_loop.main --mode mcp   # -> docs/release-1/agentic-loop/mcp-validation.md
+python -m agentic_loop.main --mode rag   # -> docs/release-1/agentic-loop/rag-validation.md
+```
 
 ## API reference
 

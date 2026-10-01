@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Assessment & Grades MCP Tools</title>
+    <!-- Shared design system: tokens, .panel/.btn/.pill/.table-wrap/.field -->
+    <link rel="stylesheet" href="/css/styles.css" />
+    <!-- Feature-only additions, scoped under .ag-app -->
+    <link rel="stylesheet" href="/css/features/assessment-grades.css" />
+    <!-- Release 1 MCP / RAG tab styles -->
+    <link rel="stylesheet" href="/css/features/mcp-rag.css" />
+  </head>
+  <body>
+    <main class="app-shell ag-app">
+      <header class="app-header">
+        <div>
+          <span class="eyebrow">Assessment & Grades System</span>
+          <h1>MCP Tools</h1>
+          <p class="sub">
+            Calls read-only Assessment & Grades tools on the shared MCP server
+            through this feature's backend, and shows the structured result.
+          </p>
+        </div>
+        <div>
+          <a class="btn btn-ghost home-link" href="http://localhost:8090" target="_top">Home</a>
+          <span class="term-badge mono">MCP</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Shared MCP server</h3>
+              <span class="pill status-pill" id="mcp-status">Checking…</span>
+            </div>
+            <p class="helper-text">UI → assessment-service :5021 → MCP server :8000 (host)</p>
+            <div id="mcp-tools" class="tools-box"></div>
+            <button class="btn btn-ghost btn-small" type="button" id="reload-tools">Reload tools</button>
+          </div>
+        </aside>
+
+        <section class="main">
+          <div class="tool-grid">
+            <form class="panel tool-card" data-tool="list_course_assessments">
+              <h3>Course assessments</h3>
+              <p class="helper-text"><code>list_course_assessments</code> — assessments, due dates and total weight for one course.</p>
+              <div class="field">
+                <label for="mcp-course">Course code</label>
+                <select id="mcp-course" name="course_id">
+                  <option>ASD101</option>
+                  <option>WEB201</option>
+                  <option>DBS101</option>
+                  <option>NET201</option>
+                  <option>SEC301</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" type="submit">Call tool</button>
+            </form>
+
+            <form class="panel tool-card" data-tool="get_student_grade_summary">
+              <h3>Student grade summary</h3>
+              <p class="helper-text"><code>get_student_grade_summary</code> — one student's marks, pending work and average.</p>
+              <div class="field">
+                <label for="mcp-student">Student ID</label>
+                <input id="mcp-student" name="student_id" value="STU-1001" placeholder="STU-1001" />
+              </div>
+              <button class="btn btn-primary" type="submit">Call tool</button>
+            </form>
+
+            <form class="panel tool-card" data-tool="get_upcoming_assessments">
+              <h3>Upcoming assessments</h3>
+              <p class="helper-text"><code>get_upcoming_assessments</code> — what is due next, soonest first.</p>
+              <div class="field-row">
+                <div class="field">
+                  <label for="mcp-from">Due on/after</label>
+                  <input id="mcp-from" name="from_date" type="date" />
+                </div>
+                <div class="field">
+                  <label for="mcp-limit">Limit</label>
+                  <input id="mcp-limit" name="limit" type="number" min="1" max="20" value="5" />
+                </div>
+              </div>
+              <button class="btn btn-primary" type="submit">Call tool</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3 id="mcp-result-title">Result</h3>
+              <span class="helper-text" id="mcp-result-status"></span>
+            </div>
+            <div id="mcp-result">
+              <p class="helper-text">Pick a tool above. Try an invalid input (e.g. student <code>12345</code>) to see the tool reject it.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const BACKEND_URL = "http://localhost:5021";
+
+      async function fetchText(url, options = {}) {
+        try {
+          const response = await fetch(url, options);
+          return { status: response.status, body: await response.text() };
+        } catch (e) {
+          return {
+            status: 0,
+            body: `<div class="notice notice-error"><strong>Backend unreachable</strong><p>Could not reach ${BACKEND_URL}. Is the assessment-service container running?</p></div>`,
+          };
+        }
+      }
+
+      function setStatus(el, status) {
+        el.classList.remove("ok", "off", "err");
+        if (status === 200) { el.textContent = "Connected"; el.classList.add("ok"); }
+        else if (status === 503 && el.dataset.disabled === "1") { el.textContent = "Disabled"; el.classList.add("off"); }
+        else { el.textContent = "Unavailable"; el.classList.add("err"); }
+      }
+
+      async function loadTools() {
+        const statusEl = document.getElementById("mcp-status");
+        statusEl.textContent = "Checking…";
+        const { status, body } = await fetchText(`${BACKEND_URL}/mcp/tools`);
+        statusEl.dataset.disabled = body.includes("notice-disabled") ? "1" : "0";
+        setStatus(statusEl, status);
+        document.getElementById("mcp-tools").innerHTML = body;
+      }
+
+      document.getElementById("reload-tools").addEventListener("click", loadTools);
+
+      document.querySelectorAll(".tool-card").forEach((form) => {
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const tool = form.dataset.tool;
+          const params = new URLSearchParams(new FormData(form));
+          params.set("tool", tool);
+
+          const result = document.getElementById("mcp-result");
+          const statusEl = document.getElementById("mcp-result-status");
+          document.getElementById("mcp-result-title").textContent = `Result — ${tool}`;
+          statusEl.textContent = "Calling…";
+          result.classList.add("is-loading");
+
+          const { status, body } = await fetchText(`${BACKEND_URL}/mcp/call`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: params,
+          });
+          result.classList.remove("is-loading");
+          statusEl.textContent = `HTTP ${status || "—"}`;
+          result.innerHTML = body;
+        });
+      });
+
+      loadTools();
+    </script>
+  </body>
+</html>

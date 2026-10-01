@@ -50,6 +50,23 @@ MCP_TOOL_CASES = {
     "find_timetable_clashes": [
         {"arguments": {}, "expect": "success", "expect_keys": ["clash_count", "clashes"]},
     ],
+    # ---- Student 5: Assessment & Grades Management ----
+    "list_course_assessments": [
+        {"arguments": {"course_id": "ASD101"}, "expect": "success",
+         "expect_keys": ["course_id", "assessment_count", "total_weight", "assessments"]},
+        {"arguments": {"course_id": "DROP TABLE"}, "expect": "error"},
+    ],
+    "get_student_grade_summary": [
+        {"arguments": {"student_id": "STU-1001"}, "expect": "success",
+         "expect_keys": ["student_id", "found", "graded_count", "pending_count", "average_percent", "grades"]},
+        {"arguments": {"student_id": "12345"}, "expect": "error"},
+    ],
+    "get_upcoming_assessments": [
+        {"arguments": {"from_date": "2026-09-01", "limit": 3}, "expect": "success",
+         "expect_keys": ["from_date", "total_upcoming", "assessments"]},
+        {"arguments": {"from_date": "2026-09-01", "limit": 99}, "expect": "error"},
+        {"arguments": {"from_date": "01/09/2026", "limit": 3}, "expect": "error"},
+    ],
 }
 
 # Tools that call Ollama or rebuild indexes are listed but not exercised by the loop
@@ -68,4 +85,9 @@ RAG_CASES = [
      "question": "Do two sessions clash if one ends at 11:00 and the next starts at 11:00 in the same room?",
      "expect": "grounded"},
     {"domain": "timetable", "question": "Who won the 2022 football World Cup?", "expect": "abstain"},
+    # ---- Student 5: Assessment & Grades Management ----
+    {"domain": "assessment", "question": "What assessments do I have for ASD101?", "expect": "grounded"},
+    {"domain": "assessment", "question": "What is the penalty for late submission?", "expect": "grounded"},
+    {"domain": "assessment", "question": "What is the boiling point of water on Mars?", "expect": "abstain"},
+    {"domain": "assessment", "question": "What assessments are in XYZ999?", "expect": "abstain"},
 ]

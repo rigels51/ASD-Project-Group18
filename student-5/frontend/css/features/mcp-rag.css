@@ -1,0 +1,91 @@
+/* Release 1 — MCP Tools and RAG Answers tabs (Assessment & Grades).
+   Builds on styles.css tokens; scoped under .ag-app like assessment-grades.css. */
+
+/* ---------- Status pills ---------- */
+.ag-app .status-pill { background: var(--paper); color: var(--slate); border: 1px solid var(--line); }
+.ag-app .status-pill.ok  { background: var(--active-bg); color: var(--active); border-color: transparent; }
+.ag-app .status-pill.off { background: var(--leave-bg);  color: var(--leave);  border-color: transparent; }
+.ag-app .status-pill.err { background: var(--former-bg); color: var(--former); border-color: transparent; }
+
+.ag-app .btn-small { padding: 6px 12px; font-size: 12.5px; margin-top: 10px; }
+.ag-app .tools-box { margin-top: 10px; }
+
+/* ---------- Tool list (sidebar) ---------- */
+.ag-app .tool-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ag-app .tool-list li { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--slate); }
+.ag-app .tool-list code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink); }
+.ag-app code { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--paper); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- Tool cards ---------- */
+.ag-app .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.ag-app .tool-card { display: flex; flex-direction: column; gap: 12px; }
+.ag-app .tool-card h3 { margin-bottom: 0; }
+.ag-app .tool-card .btn { align-self: flex-start; margin-top: auto; }
+
+/* ---------- Results ---------- */
+.ag-app .is-loading { opacity: 0.45; transition: opacity 0.15s ease; }
+.ag-app .stat-strip { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.ag-app .stat-strip > div {
+    flex: 1; min-width: 110px; background: var(--paper); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.ag-app .stat-strip .n { font-family: 'Source Serif 4', serif; font-size: 19px; font-weight: 600; }
+.ag-app .stat-strip .l { font-size: 11.5px; color: var(--slate); text-transform: uppercase; letter-spacing: 0.05em; }
+.ag-app .result-meta { font-size: 11.5px; color: var(--slate); margin: 12px 0 6px; overflow-wrap: anywhere; }
+.ag-app .raw-json summary { cursor: pointer; font-size: 12.5px; color: var(--ink-soft); font-weight: 600; }
+.ag-app .raw-json pre {
+    background: var(--ink); color: #f6f4ef; border-radius: 8px; padding: 12px; margin: 8px 0 0;
+    font-size: 12px; max-height: 320px; overflow: auto;
+}
+
+/* ---------- Notices (disabled / error / rejected / ok) ---------- */
+.ag-app .notice { border-radius: 8px; padding: 10px 12px; font-size: 13px; border: 1px solid var(--line); }
+.ag-app .notice p { margin: 4px 0 0; }
+.ag-app .notice-disabled { background: var(--leave-bg);  color: var(--leave);  border-color: transparent; }
+.ag-app .notice-error    { background: var(--former-bg); color: var(--former); border-color: transparent; }
+.ag-app .notice-rejected { background: var(--brass-soft); color: var(--ink-soft); border-color: transparent; }
+.ag-app .notice-ok       { background: var(--active-bg); color: var(--active); border-color: transparent; }
+.ag-app .notice + .notice { margin-top: 8px; }
+
+/* ---------- RAG ---------- */
+.ag-app .rag-form { display: flex; flex-direction: column; gap: 12px; }
+.ag-app .rag-answer {
+    border: 1px solid var(--brass); border-radius: var(--radius); padding: 14px 16px;
+    background: var(--paper-raised); margin-bottom: 14px;
+}
+.ag-app .rag-answer.is-insufficient { border-color: var(--line); border-style: dashed; background: var(--paper); }
+.ag-app .rag-answer-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ag-app .rag-answer-head .eyebrow {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--brass); margin-right: auto;
+}
+.ag-app .rag-question { color: var(--slate); font-size: 13px; margin: 0 0 6px; }
+.ag-app .rag-answer-text { font-size: 15px; line-height: 1.55; margin: 0; white-space: pre-wrap; }
+
+.ag-app .pill.confidence-high   { background: var(--active-bg); color: var(--active); }
+.ag-app .pill.confidence-medium { background: var(--leave-bg);  color: var(--leave); }
+.ag-app .pill.confidence-low    { background: var(--former-bg); color: var(--former); }
+.ag-app .pill.insufficient-pill { background: var(--paper); color: var(--slate); border: 1px dashed var(--line); }
+
+.ag-app h4 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--slate);
+    margin: 4px 0 8px; font-weight: 600;
+}
+.ag-app .source-list { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; }
+.ag-app .source { font-size: 13px; }
+.ag-app .source-head { display: flex; justify-content: space-between; gap: 8px; }
+.ag-app .source-head .mono { font-size: 11px; color: var(--slate); }
+.ag-app .source-section { font-weight: 600; color: var(--ink); }
+.ag-app .source-id { font-size: 11px; color: var(--slate); overflow-wrap: anywhere; }
+.ag-app .source blockquote {
+    margin: 4px 0 0; padding: 6px 10px; border-left: 3px solid var(--brass-soft);
+    color: var(--ink-soft); font-size: 12.5px; background: var(--paper);
+}
+
+.ag-app .example-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ag-app .example-list button {
+    width: 100%; text-align: left; background: none; border: 1px solid transparent; cursor: pointer;
+    padding: 8px 10px; border-radius: 7px; font-size: 13px; color: var(--ink-soft); font-family: inherit;
+}
+.ag-app .example-list button:hover { background: var(--paper); border-color: var(--line); }
+.ag-app .example-list .mono { font-size: 11px; color: var(--slate); }

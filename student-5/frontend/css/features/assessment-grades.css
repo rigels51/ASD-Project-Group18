@@ -1,19 +1,4 @@
-/* ============================================================
-   Feature stylesheet: Assessment & Grades Management
-   Owner: Student 5 — Vu Tien Thanh Nguyen
 
-   Loaded IN ADDITION TO the shared shared/frontend/css/styles.css
-   (which supplies --ink, --brass, .panel, .btn, .pill, .table-wrap,
-   .drawer, .field, etc.). This file only adds the bits that are
-   specific to this feature, so it can never collide with another
-   student's feature.css. Everything here reuses the shared design
-   tokens rather than inventing new colours.
-
-   Convention for the team: every feature file is scoped under a
-   single top-level wrapper class (".ag-app" here) so class names
-   like ".empty" or ".chip" can be reused freely across features
-   without leaking into each other's tabs.
-   ============================================================ */
 
 .ag-app { display: flex; flex-direction: column; gap: 16px; }
 

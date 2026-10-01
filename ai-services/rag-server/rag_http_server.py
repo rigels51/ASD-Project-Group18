@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 
 import timetable_rag
 import student4_rag
+import student5_rag
 from rag_pipeline import answer_question, refresh_corpus, retrieve_context
 
 
@@ -29,6 +30,12 @@ DOMAINS = {
         lambda *args, **kwargs: student4_rag.refresh_corpus(*args, **kwargs),
         lambda *args, **kwargs: student4_rag.retrieve_context(*args, **kwargs),
         lambda *args, **kwargs: student4_rag.answer_question(*args, **kwargs),
+    ),
+        #Assessment & Grades Management
+    "assessment": (
+        lambda *args, **kwargs: student5_rag.refresh_corpus(*args, **kwargs),
+        lambda *args, **kwargs: student5_rag.retrieve_context(*args, **kwargs),
+        lambda *args, **kwargs: student5_rag.answer_question(*args, **kwargs),
     ),
 }
 

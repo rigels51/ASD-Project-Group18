@@ -12,6 +12,8 @@ if str(BASE_DIR) not in sys.path:
 from routes.assessments import assessments_bp
 from routes.grades import grades_bp
 from routes.ai_mode import ai_mode_bp
+from routes.mcp_mode import mcp_mode_bp  # Release 1 - shared MCP server
+from routes.rag_mode import rag_mode_bp  # Release 1 - shared RAG server
 
 
 def create_app():
@@ -21,6 +23,8 @@ def create_app():
     app.register_blueprint(assessments_bp)
     app.register_blueprint(grades_bp)
     app.register_blueprint(ai_mode_bp)
+    app.register_blueprint(mcp_mode_bp)
+    app.register_blueprint(rag_mode_bp)
 
     return app
 

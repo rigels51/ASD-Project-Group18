@@ -1,22 +1,3 @@
-"""
-Pre/post-testing evidence for the Assessment & Grades Management microservices
-(Student 5 — Vu Tien Thanh Nguyen).
-
-Run against a live stack, e.g.:
-    docker compose up -d
-    pytest student-5/tests/test_assessment_grades_service.py -v
-
-These tests hit the backend/API service (default: http://localhost:5021), which in
-turn proxies to the database service, so a pass demonstrates the whole chain works:
-frontend-facing API -> backend -> database.
-
-NOTE: POST /grades now validates student_id against Student 1's database-service
-(relationship: Student 1 -> Student 5 via student_id). When run standalone (e.g. in
-CI, without student1-database on the network) that call fails and the route returns
-503 rather than 201/400 — this suite does not exercise grade creation for that
-reason, so it stays green in both standalone and full-stack runs.
-"""
-
 import os
 import requests
 
