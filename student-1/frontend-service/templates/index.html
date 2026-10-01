@@ -248,6 +248,12 @@
     .msg.ai.pending { color: var(--slate); font-style: italic; }
     .msg.ai.error { border-color: var(--former); color: var(--former); }
     .chat-hint { font-size: 12px; color: var(--slate); padding: 2px 2px 0; }
+    .msg pre {
+      margin: 6px 0 0; font-family: Consolas, monospace; font-size: 11px; line-height: 1.4;
+      white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere;
+      max-height: 220px; overflow-y: auto; background: var(--paper);
+      border: 1px dashed var(--line); border-radius: 6px; padding: 8px;
+    }
     .chat-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 14px; background: var(--paper); }
     .chip {
       font-family: inherit; font-size: 12px; background: var(--paper-raised); border: 1px solid var(--line);
@@ -475,7 +481,7 @@
       <div class="msg ai">How can I help you?</div>
     </div>
     <div class="chat-suggest" id="chat-suggest"></div>
-    <div class="chat-input-row">
+    <div class="chat-input-row" id="chat-input-row">
       <input type="text" id="chat-input" placeholder="Ask a question about the records…">
       <button id="chat-send" aria-label="Send" type="button">
         Send
@@ -832,7 +838,7 @@
     modeEnabledToggle.addEventListener("change", () => {
       modeEnabled[chatMode] = modeEnabledToggle.checked;
       updateModeStateBadge();
-      addMessage(`${MODE_LABELS[chatMode]} mode is now ${modeEnabledToggle.checked ? "ON" : "OFF"}.`, "ai");
+      addMessage(`${MODE_LABELS[chatMode]} mode is now ${modeEnabledToggle.checked ? "ON" : "OFF"}.`);
     });
 
     // Per-mode conversation history, keyed by mode, so switching tabs doesn't lose earlier messages.
@@ -853,7 +859,11 @@
         { label: "Lookup STU-1001", q: "STU-1001" },
         { label: "Students on leave", q: "On Leave" }
       ],
-      rag: [],
+      rag: [
+        { label: "Refresh corpus", action: "refresh" },
+        { label: "Retrieve: Cybersecurity students", action: "retrieve", q: "Which students are enrolled in Cybersecurity?" },
+        { label: "Answer: Who's on leave?", q: "Which students are currently on leave?" }
+      ],
       "multi-agent": []
     };
 
@@ -865,11 +875,23 @@
         return;
       }
       chatSuggest.innerHTML = items
-        .map((item) => `<button class="chip" type="button" data-q="${escapeHtml(item.q)}">${escapeHtml(item.label)}</button>`)
+        .map((item) => `<button class="chip" type="button" data-q="${escapeHtml(item.q || "")}" data-action="${item.action || ""}">${escapeHtml(item.label)}</button>`)
         .join("");
       chatSuggest.style.display = "flex";
       chatSuggest.querySelectorAll(".chip").forEach((chip) => {
-        chip.addEventListener("click", () => askAI(chip.dataset.q));
+        chip.addEventListener("click", () => {
+          if (chip.dataset.action === "refresh") {
+            runRagRefresh();
+            return;
+          }
+          if (chip.dataset.action === "retrieve") {
+            chatSuggest.style.display = "none";
+            addMessage(chip.dataset.q, "user");
+            runRagRetrieve(chip.dataset.q);
+            return;
+          }
+          askAI(chip.dataset.q);
+        });
       });
     }
 
@@ -885,13 +907,15 @@
       renderSuggestions(mode);
 
       if (mode === "normal") {
-        addMessage("Back to Normal mode.", "ai");
+        addMessage("Back to Normal mode.");
       } else if (!modeEnabled[mode]) {
-        addMessage(`${MODE_LABELS[mode]} Mode is OFF.`, "ai");
+        addMessage(`${MODE_LABELS[mode]} Mode is OFF.`);
       } else if (mode === "mcp") {
-        addMessage("MCP mode ready. Try a student ID (e.g. STU-1001), a course name, a status, or \"count\".", "ai");
+        addMessage("MCP mode ready. Try a student ID (e.g. STU-1001), a course name, a status, or \"count\".");
+      } else if (mode === "rag") {
+        addMessage("RAG mode ready. Ask a question about the student records for a grounded answer with citations.");
       } else {
-        addMessage(`(${MODE_LABELS[mode]} mode switched - placeholder text)`, "ai"); // just placeholder text
+        addMessage(`(${MODE_LABELS[mode]} mode switched - placeholder text)`); // just placeholder text
       }
     }
 
@@ -922,7 +946,7 @@
     document.getElementById("open-chat-toolbar-btn").addEventListener("click", openChat);
     document.getElementById("chat-close").addEventListener("click", closeChat);
 
-    function addMessage(text, cssClass) {
+    function addMessage(text, cssClass = "ai") {
       const div = document.createElement("div");
       div.className = `msg ${cssClass}`;
       div.textContent = text;
@@ -946,9 +970,19 @@
         return;
       }
 
-      if (chatMode === "rag" || chatMode === "multi-agent") {
+      if (chatMode === "rag") {
+        const retrieveMatch = /^retrieve:\s*(.+)$/i.exec(question.trim());
+        if (retrieveMatch) {
+          await runRagRetrieve(retrieveMatch[1]);
+        } else {
+          await runRagQuery(question);
+        }
+        return;
+      }
+
+      if (chatMode === "multi-agent") {
         // Not implemented yet - reply with a placeholder instead of calling the backend.
-        addMessage(`${MODE_LABELS[chatMode]} mode is not implemented yet, so this question wasn't sent anywhere.`, "ai");
+        addMessage("Multi-Agent mode is not implemented yet, so this question wasn't sent anywhere.");
         return;
       }
 
@@ -1033,6 +1067,82 @@
         addMessage("The MCP server is unavailable right now — make sure it's running locally on port 8000.", "ai error");
       } finally {
         document.getElementById("chat-send").disabled = false;
+      }
+    }
+
+    function renderToolResult(toolName, data) {
+      const resultContainer = document.createElement("div");
+      resultContainer.className = "msg ai";
+      resultContainer.innerHTML = `<div class="chat-hint">RAG Tool: ${escapeHtml(toolName)}</div><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+      chatBody.appendChild(resultContainer);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    async function runRagQuery(question) {
+      if (!modeEnabled.rag) {
+        addMessage("RAG Mode is OFF. Enable it above to use it.", "ai error");
+        return;
+      }
+
+      const pending = addMessage("Asking the shared RAG server…", "ai pending");
+      document.getElementById("chat-send").disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/rag/answer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ query: question, k: "5" }).toString()
+        });
+        const data = await response.json();
+        pending.remove();
+        renderToolResult("answer_question", data);
+      } catch (error) {
+        pending.remove();
+        addMessage("The RAG server is unavailable right now — make sure it's running locally on port 5050.", "ai error");
+      } finally {
+        document.getElementById("chat-send").disabled = false;
+      }
+    }
+
+    async function runRagRetrieve(query) {
+      if (!modeEnabled.rag) {
+        addMessage("RAG Mode is OFF. Enable it above to use it.", "ai error");
+        return;
+      }
+
+      const pending = addMessage("Retrieving context from the shared RAG server…", "ai pending");
+
+      try {
+        const response = await fetch(`${API_BASE}/rag/retrieve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ query, k: "5" }).toString()
+        });
+        const data = await response.json();
+        pending.remove();
+        renderToolResult("retrieve_context", data);
+      } catch (error) {
+        pending.remove();
+        addMessage("The RAG server is unavailable right now — make sure it's running locally on port 5050.", "ai error");
+      }
+    }
+
+    async function runRagRefresh() {
+      if (!modeEnabled.rag) {
+        addMessage("RAG Mode is OFF. Enable it above to refresh the corpus.", "ai error");
+        return;
+      }
+
+      const pending = addMessage("Refreshing the shared RAG corpus…", "ai pending");
+
+      try {
+        const response = await fetch(`${API_BASE}/rag/refresh`, { method: "POST" });
+        const data = await response.json();
+        pending.remove();
+        renderToolResult("refresh_corpus", data);
+      } catch (error) {
+        pending.remove();
+        addMessage("The RAG server is unavailable right now — make sure it's running locally on port 5050.", "ai error");
       }
     }
 
