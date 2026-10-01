@@ -33,14 +33,31 @@ ASD-Project-Group18/
 
 Make sure Docker Desktop and Ollama are running.
 
-For the group's local AI and grounded-answer features, install the required Ollama models:
+For the group's AI and grounded-answer features, install the required Ollama models:
 
 ```bash
 ollama pull qwen2.5:0.5b
 ollama pull nomic-embed-text
 ```
 
-From the project root folder, run:
+Run the shared MCP and RAG services locally in separate terminals from the project root:
+
+```bash
+python -m pip install -r ai-services/mcp-server/requirements.txt
+python -m pip install -r ai-services/rag-server/requirements.txt
+```
+
+```bash
+cd ai-services/rag-server
+python rag_http_server.py
+```
+
+```bash
+cd ai-services/mcp-server
+python server.py
+```
+
+With both local servers running, start the Docker services from the project root:
 
 `docker compose up --build -d`
 
@@ -58,7 +75,7 @@ To stop the project:
 
 ### Student 2 — Staff Registry, MCP, and RAG
 
-The Student 2 feature is available at `http://localhost:8082`. Its MCP and RAG services run on the shared Compose network; the MCP endpoint is also published on port `8052` for local MCP clients. RAG embeddings and answers use Ollama on the host, while Chroma data persists in a named Docker volume.
+The Student 2 feature is available at `http://localhost:8082`. All Docker backends use the shared MCP server at `http://host.docker.internal:8000/mcp` and shared RAG server at `http://host.docker.internal:5050`. Chroma data is stored under `ai-services/rag-server/chroma`.
 
 For setup, service commands, tests, and Release 1 evidence, see [docs/release-1/README.md](docs/release-1/README.md).
 

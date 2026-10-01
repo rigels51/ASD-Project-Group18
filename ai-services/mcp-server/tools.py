@@ -5,7 +5,7 @@ import requests
 
 
 DATABASE_SERVICE_URL = os.getenv(
-	"DATABASE_SERVICE_URL", "http://student2-database:5002"
+	"DATABASE_SERVICE_URL", "http://localhost:5012"
 ).rstrip("/")
 PUBLIC_STAFF_FIELDS = ("staff_id", "given_name", "family_name", "department", "employment_type")
 

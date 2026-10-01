@@ -68,6 +68,28 @@ class RagPipelineTests(unittest.TestCase):
         self.assertEqual(result["citations"], [])
         self.assertIn("Abstained", result["agentic_workflow"]["adapt"])
 
+    @patch.object(rag_pipeline.requests, "post")
+    @patch.object(rag_pipeline.requests, "get")
+    def test_staff_count_uses_live_records_and_cites_every_match(self, get_staff, ollama_request):
+        staff_records = [
+            {"staff_id": 2, "given_name": "Nero", "family_name": "Garcia", "department": "Arts"},
+            {"staff_id": 8, "given_name": "Tiffany", "family_name": "Day", "department": "Arts"},
+            {"staff_id": 9, "given_name": "Jane", "family_name": "Remover", "department": "Arts"},
+            {"staff_id": 10, "given_name": "Dave", "family_name": "Banks", "department": "Finance"},
+        ]
+        get_staff.return_value.json.return_value = staff_records
+
+        result = rag_pipeline.answer_question("how many staff are in arts?")
+
+        self.assertEqual(result["status"], "success")
+        self.assertIn("There are 3 staff members in the Arts department.", result["answer"])
+        self.assertEqual(
+            [citation["chunk_id"] for citation in result["citations"]],
+            ["staff-2", "staff-8", "staff-9"],
+        )
+        self.assertEqual(result["confidence_category"], "high")
+        ollama_request.assert_not_called()
+
     def test_weak_nearest_match_abstains_without_calling_model(self):
         retrieval = {
             "status": "success",
