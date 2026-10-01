@@ -12,6 +12,7 @@
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
   <style>
+
     body {
       margin: 0;
       background: transparent;
@@ -21,7 +22,165 @@
       max-width: none;
       padding: 0;
     }
+
+    .rag-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .rag-answer-box {
+      margin-top: 10px;
+      padding: 18px;
+      border: 1px solid #dfdcd4;
+      border-radius: 8px;
+      background: #fbfaf7;
+    }
+
+    .rag-answer-box h4 {
+      margin: 0 0 10px;
+      color: #17213c;
+      font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+      font-size: 17px;
+    }
+
+    .rag-answer-box p {
+      margin: 0;
+      line-height: 1.7;
+      color: #30384d;
+    }
+
+    .rag-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 18px 0;
+    }
+
+    .confidence-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #e6efe8;
+      color: #3f7350;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .source-list {
+      margin-top: 18px;
+    }
+
+    .source-list h4 {
+      margin: 0 0 12px;
+      font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+      font-size: 17px;
+    }
+
+    .source-item {
+      margin-bottom: 10px;
+      padding: 13px 15px;
+      border-left: 3px solid #b6872f;
+      border-radius: 0 7px 7px 0;
+      background: #faf9f6;
+    }
+
+    .source-item strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #17213c;
+    }
+
+    .source-item p {
+      margin: 4px 0;
+      color: #636a79;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .retrieval-item {
+      margin-bottom: 12px;
+      padding: 15px;
+      border: 1px solid #e5e1d8;
+      border-radius: 7px;
+      background: #fbfaf7;
+    }
+
+    .retrieval-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .retrieval-item p {
+      margin: 5px 0;
+      line-height: 1.55;
+    }
+
+    .similarity-badge {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f4ead0;
+      color: #9a7020;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .raw-result {
+      margin-top: 18px;
+    }
+
+    .raw-result summary {
+      cursor: pointer;
+      color: #636a79;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .raw-result pre {
+      margin: 12px 0 0;
+      padding: 16px;
+      overflow-x: auto;
+      border: 1px solid #dfdcd4;
+      border-radius: 7px;
+      background: #f8f7f3;
+      color: #17213c;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: #4f8a61;
+    }
+
+    .error-box {
+      padding: 14px 16px;
+      border: 1px solid #ead4d0;
+      border-radius: 7px;
+      background: #fff8f7;
+      color: #8f3b34;
+    }
+
   </style>
+
 </head>
 
 
@@ -49,6 +208,8 @@
   </div>
 
 
+  <!-- Status -->
+
   <section class="content-card">
 
     <div class="card-header">
@@ -64,6 +225,7 @@
       </div>
 
       <span class="feature-badge">
+        <span class="status-dot"></span>
         Enabled
       </span>
 
@@ -72,7 +234,7 @@
 
     <button
       type="button"
-      class="primary-btn"
+      class="secondary-btn"
       hx-post="http://localhost:5031/rag/refresh"
       hx-target="#rag-result"
       hx-swap="innerHTML"
@@ -83,11 +245,17 @@
   </section>
 
 
+  <!-- Retrieve -->
+
   <section class="content-card">
 
     <div class="card-header">
 
       <div>
+
+        <p class="section-label">
+          RETRIEVAL
+        </p>
 
         <h3>Retrieve Context</h3>
 
@@ -124,23 +292,33 @@
       </div>
 
 
-      <button
-        type="submit"
-        class="secondary-btn"
-      >
-        Retrieve Context
-      </button>
+      <div class="rag-actions">
+
+        <button
+          type="submit"
+          class="secondary-btn"
+        >
+          Retrieve Context
+        </button>
+
+      </div>
 
     </form>
 
   </section>
 
 
+  <!-- Answer -->
+
   <section class="content-card ai-highlight">
 
     <div class="card-header">
 
       <div>
+
+        <p class="section-label">
+          GROUNDED ANSWER
+        </p>
 
         <h3>Answer With Citations</h3>
 
@@ -173,7 +351,7 @@
         <textarea
           id="answer-query"
           name="query"
-          rows="4"
+          rows="3"
           placeholder="e.g. What is ASD101?"
           required
         ></textarea>
@@ -181,17 +359,23 @@
       </div>
 
 
-      <button
-        type="submit"
-        class="primary-btn"
-      >
-        Answer With Citations
-      </button>
+      <div class="rag-actions">
+
+        <button
+          type="submit"
+          class="primary-btn"
+        >
+          Answer With Citations
+        </button>
+
+      </div>
 
     </form>
 
   </section>
 
+
+  <!-- Result -->
 
   <section class="content-card">
 
@@ -214,9 +398,11 @@
       id="rag-result"
       class="panel"
     >
+
       <p class="muted">
         Run a RAG action to display results.
       </p>
+
     </div>
 
   </section>
@@ -225,4 +411,5 @@
 </main>
 
 </body>
+
 </html>

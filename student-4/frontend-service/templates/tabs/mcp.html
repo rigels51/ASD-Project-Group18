@@ -17,18 +17,110 @@
       background: transparent;
     }
 
-    .feature-actions {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
     .app-shell {
       max-width: none;
       padding: 0;
     }
-  </style>
 
+    .tool-description {
+      margin: 8px 0 16px;
+      color: #777d88;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tool-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tool-action {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .tool-action .primary-btn {
+      min-width: 90px;
+    }
+
+    #course-id-field {
+      display: none;
+    }
+
+    .result-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .result-count {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #17213c;
+    }
+
+    .result-badge {
+      display: inline-block;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: #f4ead0;
+      color: #9a7020;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .result-table-wrap {
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+
+    .raw-result {
+      margin-top: 18px;
+    }
+
+    .raw-result summary {
+      cursor: pointer;
+      color: #636a79;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .raw-result pre {
+      margin: 12px 0 0;
+      padding: 16px;
+      overflow-x: auto;
+      border: 1px solid #dfdcd4;
+      border-radius: 7px;
+      background: #f8f7f3;
+      color: #17213c;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: #4f8a61;
+    }
+
+    .error-box {
+      padding: 14px 16px;
+      border: 1px solid #ead4d0;
+      border-radius: 7px;
+      background: #fff8f7;
+      color: #8f3b34;
+    }
+  </style>
 </head>
 
 
@@ -36,11 +128,8 @@
 
 <main class="app-shell">
 
-
   <div class="section-heading">
-
     <div>
-
       <p class="section-label">
         MODEL CONTEXT PROTOCOL
       </p>
@@ -50,214 +139,149 @@
       <p>
         Access Course & Enrollment data through controlled MCP tools.
       </p>
-
     </div>
-
   </div>
 
 
-
-  <!-- MCP Status -->
+  <!-- Status -->
 
   <section class="content-card">
 
     <div class="card-header">
 
       <div>
-
         <h3>MCP Status</h3>
 
         <p>
           Shared MCP integration for Student 4 Course & Enrollment Management.
         </p>
-
       </div>
 
-
       <span class="feature-badge">
+        <span class="status-dot"></span>
         Enabled
       </span>
 
-
     </div>
-
 
   </section>
 
 
-
-
-  <!-- MCP Tools -->
+  <!-- Tool Runner -->
 
   <section class="content-card">
-
 
     <div class="card-header">
 
       <div>
-
-        <h3>Course Tools</h3>
-
-        <p>
-          Run MCP tools against the Course & Enrollment database.
+        <p class="section-label">
+          COURSE & ENROLLMENT
         </p>
 
+        <h3>Run a Course & Enrollment MCP Tool</h3>
       </div>
 
     </div>
-
-
-
-    <div class="feature-actions">
-
-
-      <button
-        type="button"
-        class="primary-btn"
-        hx-post="http://localhost:5031/mcp/course-count"
-        hx-target="#mcp-result"
-        hx-swap="innerHTML"
-      >
-        Get Course Count
-      </button>
-
-
-
-      <button
-        type="button"
-        class="primary-btn"
-        hx-post="http://localhost:5031/mcp/courses"
-        hx-target="#mcp-result"
-        hx-swap="innerHTML"
-      >
-        List Courses
-      </button>
-
-
-
-      <button
-        type="button"
-        class="primary-btn"
-        hx-post="http://localhost:5031/mcp/enrolments"
-        hx-target="#mcp-result"
-        hx-swap="innerHTML"
-      >
-        List Enrolments
-      </button>
-
-
-    </div>
-
-
-  </section>
-
-
-
-
-
-  <!-- Find Course -->
-
-
-  <section class="content-card">
-
-
-    <div class="card-header">
-
-
-      <div>
-
-        <h3>Find Course</h3>
-
-        <p>
-          Retrieve one course using its course ID.
-        </p>
-
-      </div>
-
-
-    </div>
-
-
 
 
     <form
-      class="vertical-form"
-      hx-post="http://localhost:5031/mcp/course"
+      id="mcp-tool-form"
+      class="tool-form"
+      hx-post="http://localhost:5031/mcp/run"
       hx-target="#mcp-result"
       hx-swap="innerHTML"
     >
 
-
-
       <div class="field">
 
+        <label for="tool-name">
+          Tool
+        </label>
 
-        <label for="course_id">
+        <select
+          id="tool-name"
+          name="tool"
+          onchange="updateToolForm()"
+        >
+          <option value="list_courses">
+            List Courses
+          </option>
+
+          <option value="get_course_count">
+            Get Course Count
+          </option>
+
+          <option value="get_course">
+            Find Course
+          </option>
+
+          <option value="list_enrolments">
+            List Enrolments
+          </option>
+        </select>
+
+      </div>
+
+
+      <p
+        id="tool-description"
+        class="tool-description"
+      >
+        Lists all available courses.
+      </p>
+
+
+      <div
+        id="course-id-field"
+        class="field"
+      >
+
+        <label for="course-id">
           Course ID
         </label>
 
-
-
         <input
-          id="course_id"
+          id="course-id"
           name="course_id"
           type="number"
           min="1"
           placeholder="e.g. 1"
-          required
         >
-
 
       </div>
 
 
+      <div class="tool-action">
 
+        <button
+          type="submit"
+          class="primary-btn"
+        >
+          Run Tool
+        </button>
 
-      <button
-        type="submit"
-        class="primary-btn"
-      >
-        Find Course
-      </button>
-
-
-
+      </div>
 
     </form>
-
 
   </section>
 
 
-
-
-
-
   <!-- Result -->
-
 
   <section class="content-card">
 
-
     <div class="card-header">
 
-
       <div>
-
         <h3>MCP Result</h3>
 
-
         <p>
-          Tool responses will appear below.
+          Structured MCP tool results will appear below.
         </p>
-
-
       </div>
 
-
     </div>
-
-
 
 
     <div
@@ -266,21 +290,80 @@
     >
 
       <p class="muted">
-        Run an MCP tool to display results.
+        Select an MCP tool and click Run Tool.
       </p>
-
 
     </div>
 
-
-
   </section>
-
-
-
 
 </main>
 
+
+<script>
+
+  const toolDescriptions = {
+
+    list_courses:
+      "Lists all available courses.",
+
+    get_course_count:
+      "Returns the total number of courses.",
+
+    get_course:
+      "Retrieves one course using its course ID.",
+
+    list_enrolments:
+      "Lists all Course & Enrollment enrolment records."
+
+  };
+
+
+  function updateToolForm() {
+
+    const toolSelect =
+      document.getElementById("tool-name");
+
+    const description =
+      document.getElementById("tool-description");
+
+    const courseIdField =
+      document.getElementById("course-id-field");
+
+    const courseIdInput =
+      document.getElementById("course-id");
+
+
+    const selectedTool =
+      toolSelect.value;
+
+
+    description.textContent =
+      toolDescriptions[selectedTool];
+
+
+    if (selectedTool === "get_course") {
+
+      courseIdField.style.display = "flex";
+
+      courseIdInput.required = true;
+
+    } else {
+
+      courseIdField.style.display = "none";
+
+      courseIdInput.required = false;
+
+      courseIdInput.value = "";
+
+    }
+
+  }
+
+
+  updateToolForm();
+
+</script>
 
 </body>
 
