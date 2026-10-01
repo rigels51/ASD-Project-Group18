@@ -21,7 +21,7 @@ register_timetable_tools(mcp)  # Student 3 - Timetable & Class Scheduling
 register_student1_tools(mcp)  # Student 1 - Student Records
 register_student4_tools(mcp)
 register_student5_tools(mcp)  # Student 5
-RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://student2-rag:5003").rstrip("/")
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:5050").rstrip("/")
 
 
 def _run_tool(function, *args):

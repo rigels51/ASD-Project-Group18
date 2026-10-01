@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
@@ -13,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent
 CORPUS_PATH = BASE_DIR / "corpus" / "corpus.jsonl"
 CHROMA_PATH = BASE_DIR / "chroma"
 AUDIT_PATH = CHROMA_PATH / "rag-audit.jsonl"
-DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://student2-database:5002")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://host.docker.internal:11434").rstrip("/")
+DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://localhost:5012")
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 COLLECTION_NAME = "student2_staff_context"
@@ -255,8 +256,95 @@ def _department_filter(query: str, collection) -> dict[str, str] | None:
 		return None
 	return {"department": max(matches, key=len)}
 
+
+def _answer_staff_count(query: str, caller: str, started: float) -> dict[str, Any] | None:
+	if not re.search(r"\b(how many|number of|count)\b", query, re.IGNORECASE):
+		return None
+	if not re.search(r"\b(staff|employees?|faculty|people|personnel|workers?)\b", query, re.IGNORECASE):
+		return None
+
+	try:
+		response = requests.get(f"{DATABASE_SERVICE_URL}/staff", timeout=10)
+		response.raise_for_status()
+		staff_records = response.json()
+		if not isinstance(staff_records, list) or not all(isinstance(row, dict) for row in staff_records):
+			raise ValueError("Database service returned an invalid staff list")
+
+		departments = {
+			str(row["department"])
+			for row in staff_records
+			if row.get("department")
+		}
+		query_folded = query.casefold()
+		matching_departments = [
+			department
+			for department in departments
+			if re.search(rf"(?<!\w){re.escape(department.casefold())}(?!\w)", query_folded)
+		]
+		department = max(matching_departments, key=len) if matching_departments else None
+		matching_staff = [
+			row for row in staff_records
+			if department is None or str(row.get("department", "")).casefold() == department.casefold()
+		]
+		citations = [
+			{
+				"chunk_id": f"staff-{row['staff_id']}",
+				"source_id": f"student2-database:/staff/{row['staff_id']}",
+			}
+			for row in matching_staff
+			if row.get("staff_id") is not None
+		]
+		scope = f"in the {department} department" if department else "in the staff registry"
+		citation_labels = ", ".join(f"[{item['chunk_id']}]" for item in citations)
+		answer = f"There are {len(matching_staff)} staff members {scope}."
+		if citation_labels:
+			answer += f" Evidence: {citation_labels}."
+		result = {
+			"status": "success",
+			"query": query,
+			"answer": answer,
+			"citations": citations,
+			"confidence_category": "high",
+			"retrieval_summary": {
+				"retrieved_count": len(citations),
+				"top_chunk": citations[0]["chunk_id"] if citations else None,
+			},
+			"agentic_workflow": {
+				"plan": "Count matching staff records from the live staff registry.",
+				"act": "Query and count the authoritative staff records.",
+				"observe": {
+					"retrieved_count": len(citations),
+					"confidence_category": "high",
+					"citation_chunk_ids": [item["chunk_id"] for item in citations],
+				},
+				"adapt": "Returned an exact count from the staff registry.",
+			},
+		}
+		_audit(
+			"answer_question",
+			{"query": query, "caller": caller, "operation": "staff_count"},
+			"success",
+			started,
+			{"count": len(matching_staff), "department": department},
+		)
+		return result
+	except Exception as exc:
+		_audit(
+			"answer_question",
+			{"query": query, "caller": caller, "operation": "staff_count"},
+			"error",
+			started,
+			{"error_type": type(exc).__name__},
+		)
+		return {"status": "error", "query": query, "error": f"Staff count lookup failed: {exc}"}
+
+
 def answer_question(query: str, k: int = 5, caller: str = "student") -> dict[str, Any]:
 	started = time.monotonic()
+	staff_count_answer = _answer_staff_count(query, caller, started)
+	if staff_count_answer is not None:
+		return staff_count_answer
+
 	retrieval = retrieve_context(query=query, k=k, caller=caller)
 	if retrieval.get("status") != "success":
 		_audit("answer_question", {"query": query, "caller": caller}, "error", started)

@@ -2,7 +2,7 @@ import json
 import os
 
 
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://student2-mcp:8000/mcp")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 ALLOWED_TOOLS = {
     "get_staff_count",
     "list_staff",

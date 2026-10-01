@@ -9,7 +9,7 @@ from rag_pipeline import refresh_corpus, retrieve_context
 
 BASE_DIR = Path(__file__).resolve().parent
 METRICS_PATH = BASE_DIR / "retrieval-metrics.md"
-DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://student2-database:5002").rstrip("/")
+DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://localhost:5012").rstrip("/")
 K = 5
 
 

@@ -3,7 +3,7 @@ import os
 import requests
 
 
-RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://student2-rag:5003").rstrip("/")
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:5050").rstrip("/")
 RAG_ENABLED = os.getenv("RAG_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 
