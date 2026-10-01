@@ -31,6 +31,8 @@ services:
             DATABASE_SERVICE_URL: http://student1-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
+            MCP_SERVER_URL: http://host.docker.internal:8000/mcp
+            MCP_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
