@@ -33,6 +33,17 @@ INSUFFICIENT = (
     "data to answer this question."
 )
 
+
+STOPWORDS = {
+    "a", "about", "after", "all", "am", "an", "and", "any", "are", "as", "at", "be", "been",
+    "being", "by", "can", "could", "currently", "did", "do", "does", "for", "from", "get",
+    "give", "had", "has", "have", "how", "i", "if", "in", "into", "is", "it", "its", "me",
+    "much", "my", "of", "on", "or", "our", "please", "record", "show", "so", "student",
+    "students", "tell", "than", "that", "the", "their", "them", "then", "there", "these",
+    "they", "this", "those", "to", "up", "us", "was", "we", "were", "what", "when", "where",
+    "which", "who", "why", "will", "with", "would", "you", "your",
+}
+
 _INDEX: dict[str, Any] = {"chunks": []}
 
 
@@ -81,16 +92,19 @@ def load_chunks() -> list[dict[str, Any]]:
 
 
 def _text_score(query: str, text: str) -> float:
-    query_tokens = re.findall(r"[a-z0-9]+", query.lower())
-    text_lower = text.lower()
+    query_tokens = [
+        token for token in re.findall(r"[a-z0-9]+", query.lower())
+        if token not in STOPWORDS
+    ]
+    text_tokens = set(re.findall(r"[a-z0-9]+", text.lower()))
 
     if not query_tokens:
         return 0.0
 
-    matches = sum(1 for token in query_tokens if token in text_lower)
+    matches = sum(1 for token in query_tokens if token in text_tokens)
     score = (matches / len(query_tokens)) * 0.6
 
-    # Strong bonus for exact student IDs, e.g. STU-1001
+    text_lower = text.lower()
     for token in query_tokens:
         if re.fullmatch(r"stu\d+", token) and token in text_lower.replace("-", ""):
             score += 0.8
@@ -123,10 +137,10 @@ def retrieve_context(
     if not query:
         return {"status": "error", "error": "query is required"}
 
-    if not _INDEX["chunks"]:
-        result = refresh_corpus(caller="auto_refresh")
-        if result.get("status") != "success":
-            return result
+
+    result = refresh_corpus(caller="auto_refresh")
+    if result.get("status") != "success":
+        return result
 
     results = []
 
@@ -166,7 +180,6 @@ def _confidence(results: list[dict[str, Any]]) -> str:
 
 
 def _generate_answer(query: str, evidence: list[dict[str, Any]]) -> str:
-    # Exact student-ID question, e.g. "Who is STU-1001?"
     student_match = re.search(r"\bstu-?\s*\d+\b", query, re.IGNORECASE)
 
     if student_match:
@@ -176,7 +189,13 @@ def _generate_answer(query: str, evidence: list[dict[str, Any]]) -> str:
             if row.get("chunk_id") == f"student-{student_id}":
                 return f"{row['text']} [{row['chunk_id']}]"
 
-    # Other questions use Ollama, but only with retrieved evidence.
+   
+    student_rows = [row for row in evidence if row.get("chunk_id") != "student-summary"]
+    if len(student_rows) > 1:
+        lines = [f"- {row['text']} [{row['chunk_id']}]" for row in student_rows]
+        return "Answer:\n" + "\n".join(lines)
+
+
     context = "\n".join(f"[{row['chunk_id']}] {row['text']}" for row in evidence)
 
     prompt = f"""
