@@ -9,6 +9,9 @@ on:
       - main
     paths:
       - 'student-1/**'
+      - 'ai-services/mcp-server/**'
+      - 'ai-services/rag-server/**'
+      - 'docker-compose.yml'
       - '.github/workflows/RigelRivamonte.yml'
 
   pull_request:
@@ -16,6 +19,9 @@ on:
       - main
     paths:
       - 'student-1/**'
+      - 'ai-services/mcp-server/**'
+      - 'ai-services/rag-server/**'
+      - 'docker-compose.yml'
       - '.github/workflows/RigelRivamonte.yml'
 
 jobs:
@@ -38,22 +44,46 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r student-1/enrolment-service/requirements.txt
+          pip install -r ai-services/mcp-server/requirements.txt
+          pip install -r ai-services/rag-server/requirements.txt
 
       - name: Run student records tests
         run: python -m unittest student-1/tests/test_student_records.py
 
 
-      - name: Validate Python syntax
+      - name: Validate Student 1 database and backend syntax
         run: |
           python -m py_compile student-1/database-service/app.py
           python -m py_compile student-1/database-service/init_db.py
           python -m py_compile student-1/enrolment-service/app.py
           python -m py_compile student-1/enrolment-service/routes/normal_ui.py
           python -m py_compile student-1/enrolment-service/routes/ai_mode.py
+          python -m py_compile student-1/enrolment-service/routes/mcp_mode.py
+          python -m py_compile student-1/enrolment-service/routes/rag_mode.py
           python -m py_compile student-1/enrolment-service/services/database_api.py
           python -m py_compile student-1/enrolment-service/services/llm_client.py
           python -m py_compile student-1/enrolment-service/services/prompt_loader.py
+          python -m py_compile student-1/enrolment-service/services/mcp_api.py
+          python -m py_compile student-1/enrolment-service/services/rag_api.py
           python -m py_compile student-1/enrolment-service/views/html_formatters.py
+
+
+      - name: Validate Student 1 MCP integration
+        run: |
+          python -m py_compile ai-services/mcp-server/student1_tools.py
+          python -m py_compile ai-services/mcp-server/server.py
+
+
+      - name: Validate Student 1 RAG integration
+        run: |
+          python -m py_compile ai-services/rag-server/student1_rag.py
+          python -m py_compile ai-services/rag-server/rag_http_server.py
+
+
+      - name: Run shared MCP/RAG test suites
+        run: |
+          python -m unittest discover -s ai-services/mcp-server -p 'test_*.py' -v
+          python -m unittest discover -s ai-services/rag-server -p 'test_*.py' -v
 
 
       - name: Build frontend service
@@ -78,3 +108,34 @@ jobs:
             -f student-1/database-service/Dockerfile \
             -t student1-course-database \
             student-1/database-service
+
+
+      - name: Build MCP service
+        run: |
+          docker build \
+            -f ai-services/mcp-server/Dockerfile \
+            -t student1-course-mcp \
+            .
+
+
+      - name: Build RAG service
+        run: |
+          docker build \
+            -f ai-services/rag-server/Dockerfile \
+            -t student1-course-rag \
+            .
+
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config
+
+
+      - name: Verify Student 1 Release 1 configuration
+        run: |
+          grep -q "MCP_ENABLED" docker-compose.yml
+          grep -q "MCP_SERVER_URL" docker-compose.yml
+          grep -q "RAG_ENABLED" docker-compose.yml
+          grep -q "RAG_SERVER_URL" docker-compose.yml
+
+          echo "Student 1 MCP and RAG configuration found."
