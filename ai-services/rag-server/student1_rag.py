@@ -36,7 +36,7 @@ COLLECTION_NAME = "student1_students_context"
 MAX_RESULTS = 5
 
 # Chroma cosine distance thresholds (lower = more relevant).
-MAX_EVIDENCE_DISTANCE = 0.45
+MAX_EVIDENCE_DISTANCE = 0.50
 HIGH_CONFIDENCE_DISTANCE = 0.30
 
 INSUFFICIENT = (
