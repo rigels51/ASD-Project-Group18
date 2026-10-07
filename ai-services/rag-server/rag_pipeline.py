@@ -339,11 +339,106 @@ def _answer_staff_count(query: str, caller: str, started: float) -> dict[str, An
 		return {"status": "error", "query": query, "error": f"Staff count lookup failed: {exc}"}
 
 
+def _answer_staff_employment(query: str, caller: str, started: float) -> dict[str, Any] | None:
+	if not re.search(r"\b(staff|employees?|faculty|personnel|workers?)\b", query, re.IGNORECASE):
+		return None
+
+	employment_patterns = (
+		("Full-time", r"\bfull[\s-]?time\b"),
+		("Part-time", r"\bpart[\s-]?time\b"),
+		("Contract", r"\bcontracts?|contractors?\b"),
+	)
+	employment_type = next(
+		(
+			label
+			for label, pattern in employment_patterns
+			if re.search(pattern, query, re.IGNORECASE)
+		),
+		None,
+	)
+	if employment_type is None:
+		return None
+
+	try:
+		response = requests.get(f"{DATABASE_SERVICE_URL}/staff", timeout=10)
+		response.raise_for_status()
+		staff_records = response.json()
+		if not isinstance(staff_records, list) or not all(isinstance(row, dict) for row in staff_records):
+			raise ValueError("Database service returned an invalid staff list")
+
+		matching_staff = [
+			row for row in staff_records
+			if str(row.get("employment_type", "")).casefold() == employment_type.casefold()
+		]
+		citations = [
+			{
+				"chunk_id": f"staff-{row['staff_id']}",
+				"source_id": f"student2-database:/staff/{row['staff_id']}",
+			}
+			for row in matching_staff
+			if row.get("staff_id") is not None
+		]
+		names = [
+			" ".join(
+				part for part in (str(row.get("given_name") or ""), str(row.get("family_name") or "")) if part
+			)
+			for row in matching_staff
+		]
+		if names:
+			answer = f"The staff members with {employment_type} employment are: {', '.join(names)}."
+		else:
+			answer = f"No staff members have {employment_type} employment."
+		if citations:
+			answer += " Evidence: " + ", ".join(f"[{item['chunk_id']}]" for item in citations) + "."
+		chunk_ids = [item["chunk_id"] for item in citations]
+		result = {
+			"status": "success",
+			"query": query,
+			"answer": answer,
+			"citations": citations,
+			"confidence_category": "high",
+			"retrieval_summary": {
+				"retrieved_count": len(citations),
+				"top_chunk": chunk_ids[0] if chunk_ids else None,
+			},
+			"agentic_workflow": {
+				"plan": f"Find staff records with {employment_type} employment.",
+				"act": "Filter the authoritative live staff registry.",
+				"observe": {
+					"retrieved_count": len(citations),
+					"confidence_category": "high",
+					"citation_chunk_ids": chunk_ids,
+				},
+				"adapt": "Returned every matching staff record from the live registry.",
+			},
+		}
+		_audit(
+			"answer_question",
+			{"query": query, "caller": caller, "operation": "staff_employment_filter"},
+			"success",
+			started,
+			{"employment_type": employment_type, "count": len(matching_staff)},
+		)
+		return result
+	except Exception as exc:
+		_audit(
+			"answer_question",
+			{"query": query, "caller": caller, "operation": "staff_employment_filter"},
+			"error",
+			started,
+			{"error_type": type(exc).__name__},
+		)
+		return {"status": "error", "query": query, "error": f"Staff employment lookup failed: {exc}"}
+
+
 def answer_question(query: str, k: int = 5, caller: str = "student") -> dict[str, Any]:
 	started = time.monotonic()
 	staff_count_answer = _answer_staff_count(query, caller, started)
 	if staff_count_answer is not None:
 		return staff_count_answer
+	staff_employment_answer = _answer_staff_employment(query, caller, started)
+	if staff_employment_answer is not None:
+		return staff_employment_answer
 
 	retrieval = retrieve_context(query=query, k=k, caller=caller)
 	if retrieval.get("status") != "success":

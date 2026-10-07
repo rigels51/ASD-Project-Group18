@@ -90,6 +90,34 @@ class RagPipelineTests(unittest.TestCase):
         self.assertEqual(result["confidence_category"], "high")
         ollama_request.assert_not_called()
 
+    @patch.object(rag_pipeline.requests, "post")
+    @patch.object(rag_pipeline.requests, "get")
+    def test_staff_employment_filter_returns_all_six_full_time_members(self, get_staff, ollama_request):
+        staff_records = [
+            {"staff_id": 1, "given_name": "Jet", "family_name": "Smith", "employment_type": "Full-time"},
+            {"staff_id": 2, "given_name": "Nero", "family_name": "Garcia", "employment_type": "Full-time"},
+            {"staff_id": 3, "given_name": "Denver", "family_name": "Mesa", "employment_type": "Part-time"},
+            {"staff_id": 4, "given_name": "Leona", "family_name": "Pilapil", "employment_type": "Part-time"},
+            {"staff_id": 5, "given_name": "Jerome", "family_name": "Wilson", "employment_type": "Full-time"},
+            {"staff_id": 6, "given_name": "Angelina", "family_name": "Kim", "employment_type": "Full-time"},
+            {"staff_id": 7, "given_name": "Joey", "family_name": "Wu", "employment_type": "Part-time"},
+            {"staff_id": 8, "given_name": "Tiffany", "family_name": "Day", "employment_type": "Part-time"},
+            {"staff_id": 9, "given_name": "Jane", "family_name": "Remover", "employment_type": "Full-time"},
+            {"staff_id": 10, "given_name": "Dave", "family_name": "Banks", "employment_type": "Full-time"},
+        ]
+        get_staff.return_value.json.return_value = staff_records
+
+        result = rag_pipeline.answer_question("which staff members have full time contracts?")
+
+        self.assertEqual(result["status"], "success")
+        self.assertIn("Jet Smith, Nero Garcia, Jerome Wilson, Angelina Kim, Jane Remover, Dave Banks", result["answer"])
+        self.assertEqual(
+            [citation["chunk_id"] for citation in result["citations"]],
+            ["staff-1", "staff-2", "staff-5", "staff-6", "staff-9", "staff-10"],
+        )
+        self.assertEqual(result["retrieval_summary"]["retrieved_count"], 6)
+        ollama_request.assert_not_called()
+
     def test_weak_nearest_match_abstains_without_calling_model(self):
         retrieval = {
             "status": "success",
