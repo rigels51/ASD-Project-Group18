@@ -122,3 +122,36 @@ TESTING_STUDENTS = {
 }
 REQUIRED_PRECOMMIT_HOOKS = ("ruff-security", "detect-secrets", "pip-audit")
 MIN_ENDPOINTS_PER_STUDENT = 2
+
+
+# Release 2 - Cloud Deployment Review: what the deployed application must show.
+# The team writes CLOUD_EVIDENCE_FILE after each cloud deployment (template: deployment.example.json).
+CLOUD_EVIDENCE_FILE = "docs/release-2/cloud/deployment.json"
+CLOUD_DECISIONS_LOG = "docs/release-2/agentic-loop/cloud-release-decisions.jsonl"
+CLOUD_WORKFLOW = "cloud-deployment.yml"
+CLOUD_DEPLOY_SCRIPTS_DIR = "scripts/deploy"
+CLOUD_AI_FLAGS = ("MCP_ENABLED", "RAG_ENABLED", "MULTI_AGENT_ENABLED")
+CLOUD_RELEASE_DECISIONS = ("Release", "Release with conditions", "Do not release")
+CLOUD_TIMEOUT_SECONDS = float(os.getenv("CLOUD_TIMEOUT_SECONDS", "15"))
+
+# One entry per student backend. Probes are read-only so the review is safe to rerun on the
+# shared deployment. "read" must return 200. Each "ai" probe is (method, path, encoding, body),
+# matching how that backend reads its input (form vs JSON). Baseline: every AI route must answer
+# that it is disabled, unless deployment.json lists the service under "ai_enabled" (bonus profile).
+CLOUD_SERVICES = {
+    "student1-backend": {"owner": "S1 Rigel - Student Records", "read": "/students",
+                         "ai": [("POST", "/rag/answer", "form", {"query": "Who is on leave?"})]},
+    "student2-backend": {"owner": "S2 Jeriko - Staff Management", "read": "/staff",
+                         "ai": [("POST", "/rag/answer", "json", {"question": "Who works in Arts?"})]},
+    "timetable-backend": {"owner": "S3 Lazizbek - Timetable", "read": "/timetable",
+                          "ai": [("POST", "/rag/answer", "json", {"question": "When do sessions clash?"}),
+                                 ("POST", "/mcp/call", "json", {"tool": "find_timetable_clashes", "arguments": {}}),
+                                 ("POST", "/multi-agent/run", "json", {"question": "Summarise ASD101 sessions"})]},
+    "student4-backend": {"owner": "S4 Yi - Course & Enrollment", "read": "/courses",
+                         "ai": [("POST", "/rag/answer", "form", {"query": "What is ASD101?"})]},
+    "assessment-backend": {"owner": "S5 Vu - Assessment & Grades", "read": "/assessments",
+                           "ai": [("POST", "/rag/ask", "json", {"question": "What is the late penalty?"}),
+                                  ("POST", "/multi-agent/run", "json", {"question": "Summarise ASD101 assessments"})]},
+}
+CLOUD_FRONTENDS = ("homepage", "student1-frontend", "student2-frontend", "timetable-frontend",
+                   "student4-frontend", "assessment-frontend")

@@ -1,0 +1,24 @@
+{
+  "platform": "Azure Container Apps",
+  "deployed_at": "2026-10-23T10:00:00+11:00",
+  "commit": "abc1234",
+  "workflow_run_url": "https://github.com/rigels51/ASD-Project-Group18/actions/runs/000000000",
+  "conclusion": "success",
+  "ai_profile": "baseline",
+  "ai_enabled": [],
+  "frontends": {
+    "homepage": "https://group18-homepage.example.azurecontainerapps.io",
+    "student1-frontend": "https://student1-frontend.example.azurecontainerapps.io",
+    "student2-frontend": "https://student2-frontend.example.azurecontainerapps.io",
+    "timetable-frontend": "https://timetable-frontend.example.azurecontainerapps.io",
+    "student4-frontend": "https://student4-frontend.example.azurecontainerapps.io",
+    "assessment-frontend": "https://assessment-frontend.example.azurecontainerapps.io"
+  },
+  "backends": {
+    "student1-backend": "https://student1-backend.example.azurecontainerapps.io",
+    "student2-backend": "https://student2-backend.example.azurecontainerapps.io",
+    "timetable-backend": "https://timetable-backend.example.azurecontainerapps.io",
+    "student4-backend": "https://student4-backend.example.azurecontainerapps.io",
+    "assessment-backend": "https://assessment-backend.example.azurecontainerapps.io"
+  }
+}
