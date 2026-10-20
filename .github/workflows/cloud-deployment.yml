@@ -1,0 +1,111 @@
+name: Cloud Deployment - Azure Container Apps
+
+# Deploys the integrated application after CI succeeds:
+#   - automatically, when any student's CI workflow finishes successfully on main
+#   - or manually from the Actions tab ("Run workflow"), by any team member
+# The ci-gate job then checks that the LATEST run of every student workflow on main is green,
+# so one red feature blocks the release instead of shipping half-tested code.
+#
+# Baseline cloud profile: AI-Mode, MCP, RAG and Multi-Agent are disabled by default.
+# One-time setup: repository secret AZURE_CREDENTIALS (see scripts/deploy/README.md).
+
+on:
+  workflow_run:
+    workflows:
+      - "Rigel Rivamonte - Student Records"
+      - "Jeriko - Staff Management"
+      - "Student 3 - Timetable & Class Scheduling CI"
+      - "Yi Zhang - Course and Enrollment"
+      - "Student 5 - Assessment & Grades CI (Vu Tien Thanh Nguyen)"
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: cloud-deployment
+  cancel-in-progress: false
+
+env:
+  # Baseline cloud profile - the deploy script also forces these on every backend.
+  MCP_ENABLED: "false"
+  RAG_ENABLED: "false"
+  MULTI_AGENT_ENABLED: "false"
+
+jobs:
+  ci-gate:
+    name: CI gate - every student workflow green on main
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check latest run of each student workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## CI gate"
+            echo ""
+            echo "| Workflow | Latest run on main | Conclusion |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          for wf in RigelRivamonte.yml JerikoArceo.yml student-3.yml YiZhang.yml student-5.yml; do
+            row=$(gh run list -R "$REPO" --workflow "$wf" --branch main --status completed --limit 1 \
+                  --json conclusion,url,headSha --jq '.[0] | "\(.conclusion) \(.url) \(.headSha[0:7])"' || true)
+            conclusion=${row%% *}
+            [ -z "$row" ] && conclusion="no-run" && row="no-run - -"
+            url=$(echo "$row" | cut -d' ' -f2); sha=$(echo "$row" | cut -d' ' -f3)
+            echo "$wf: $conclusion ($sha) $url"
+            echo "| $wf | [$sha]($url) | $conclusion |" >> "$GITHUB_STEP_SUMMARY"
+            [ "$conclusion" = "success" ] || failed=1
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::Not every student workflow is green on main - deployment blocked."
+            exit 1
+          fi
+
+  deploy:
+    name: Deploy to Azure Container Apps
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the commit CI validated
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Deploy (scripts/deploy/deploy_azure.py)
+        run: python3 scripts/deploy/deploy_azure.py deploy
+
+      - name: Deployment record
+        if: always()
+        run: |
+          if [ -f docs/release-2/cloud/deployment.json ]; then
+            {
+              echo "## Deployment record (docs/release-2/cloud/deployment.json)"
+              echo '```json'
+              cat docs/release-2/cloud/deployment.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload deployment record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-record
+          path: docs/release-2/cloud/deployment.json
+          if-no-files-found: warn
