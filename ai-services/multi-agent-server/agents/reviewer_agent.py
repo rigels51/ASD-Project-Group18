@@ -9,6 +9,7 @@ import llm
 
 PROMPT = (Path(__file__).resolve().parents[1] / "prompts" / "reviewer_prompt.txt").read_text(encoding="utf-8").strip()
 RISK_LEVELS = ("low", "medium", "high")
+DECISION_STRICTNESS = ("Accept", "Partially Accept", "Correct", "Reject")
 
 
 def automatic_checks(plan: dict, worker: dict) -> list[dict]:
@@ -51,6 +52,13 @@ def review_output(user_request: str, plan: dict[str, Any], worker: dict[str, Any
     final_risk = max(risk, model_risk or risk, key=RISK_LEVELS.index)
 
     recommendation = {"low": "Accept", "medium": "Partially Accept", "high": "Reject"}[final_risk]
+    # Same rule for the decision: the model's own "Recommendation:" may make it stricter, never more lenient.
+    if text:
+        match = re.search(r"Recommendation:\s*(Partially Accept|Accept|Correct|Reject)", text, re.IGNORECASE)
+        model_rec = {"accept": "Accept", "partially accept": "Partially Accept", "correct": "Correct",
+                     "reject": "Reject"}[match.group(1).lower()] if match else None
+        if model_rec and DECISION_STRICTNESS.index(model_rec) > DECISION_STRICTNESS.index(recommendation):
+            recommendation = model_rec
     review = text or (
         f"Risk: {final_risk} - automatic checks failed: "
         + (", ".join(c["check"] for c in checks if not c["passed"]) or "none") + "\n"
