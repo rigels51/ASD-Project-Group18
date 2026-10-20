@@ -195,3 +195,5 @@ td.mono{font-size:13px;}
 @media (prefers-reduced-motion: reduce){
     .drawer, .scrim{transition:none;}
 }
+/* Release 2: button busy state (e.g. Multi-Agent run in progress) */
+.btn:disabled { opacity: .55; cursor: progress; }

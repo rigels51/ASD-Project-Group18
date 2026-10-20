@@ -681,13 +681,23 @@ async function loadMaHistory() {
     }</tbody></table>`;
 }
 
-document.getElementById("ma-run-btn").addEventListener("click", async () => {
+const maRunBtn = document.getElementById("ma-run-btn");
+maRunBtn.addEventListener("click", async () => {
     const question = document.getElementById("ma_question").value.trim();
-    if (!question) return;
+    if (!question || maRunBtn.disabled) return;
+    // One workflow per click: the button stays disabled until the agents finish,
+    // so waiting on the local models never starts duplicate workflows.
+    maRunBtn.disabled = true;
+    maRunBtn.textContent = "Agents running…";
     const target = document.getElementById("ma-result");
     target.innerHTML = `<div class="empty-state"><p>Planner → Worker → Reviewer running… (up to a minute on local models)</p></div>`;
-    renderWorkflow(await maCall("/multi-agent/run", { question }));
-    loadMaHistory();
+    try {
+        renderWorkflow(await maCall("/multi-agent/run", { question }));
+        loadMaHistory();
+    } finally {
+        maRunBtn.disabled = false;
+        maRunBtn.textContent = "Run agents";
+    }
 });
 </script>
 
