@@ -1,0 +1,22 @@
+# Student 5 - Vu Tien Thanh Nguyen - pre-commit security scan
+# date: 2026-10-20T07:57:08+00:00
+# commit: 7225905
+# scope: student-5/ (44 tracked files)
+# hooks: ruff-security, detect-secrets, pip-audit (.pre-commit-config.yaml)
+# exit_code: 0
+
+[INFO] Initializing environment for local:ruff==0.16.9.
+[INFO] Initializing environment for local:detect-secrets==1.5.0.
+[INFO] Initializing environment for local:pip-audit==2.10.1.
+[INFO] Installing environment for local.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+[INFO] Installing environment for local.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+[INFO] Installing environment for local.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+Ruff security rules (flake8-bandit S)....................................Passed
+detect-secrets (no new credentials)......................................Passed
+pip-audit (known-vulnerable dependencies)................................Passed

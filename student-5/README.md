@@ -236,3 +236,4 @@ UI tab "Multi-Agent" -> assessment-service :5021 /multi-agent/run -> Multi-Agent
 
 HTML by default, `?format=json` for JSON. `MULTI_AGENT_ENABLED=false` → 503 "disabled" (CI, cloud baseline).
 Tests: `python -m pytest student-5/tests/test_multi_agent_routes.py -v`.
+

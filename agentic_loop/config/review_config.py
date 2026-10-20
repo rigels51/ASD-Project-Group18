@@ -1,3 +1,10 @@
+"""Configuration for the shared agentic loop's Release 1 validation modes.
+
+Each student adds their own MCP tool cases and RAG domain cases here.
+A tool the MCP server lists but that has no case below is reported as
+"listed, not exercised" so gaps are visible in the loop output.
+"""
+
 import os
 
 
@@ -101,3 +108,17 @@ MULTI_AGENT_CASES = [
     {"domain": "assessment", "request": "Summarise the assessments and weights for ASD101.", "expect": "evidence"},
     {"domain": "assessment", "request": "List the assessments for XYZ999.", "expect": "no_evidence"},
 ]
+
+
+# Release 2 - Testing Review: where each student's evidence lives and which workflow is theirs.
+# Evidence is written by: python3 scripts/capture_test_evidence.py precommit|ci --student <n>
+TESTING_EVIDENCE_DIR = "docs/release-2/testing"
+TESTING_STUDENTS = {
+    1: {"name": "Rigel Rivamonte", "workflow": "RigelRivamonte.yml"},
+    2: {"name": "Jeriko Arceo", "workflow": "JerikoArceo.yml"},
+    3: {"name": "Lazizbek Ismoilov", "workflow": "student-3.yml"},
+    4: {"name": "Yi Zhang", "workflow": "YiZhang.yml"},
+    5: {"name": "Vu Tien Thanh Nguyen", "workflow": "student-5.yml"},
+}
+REQUIRED_PRECOMMIT_HOOKS = ("ruff-security", "detect-secrets", "pip-audit")
+MIN_ENDPOINTS_PER_STUDENT = 2

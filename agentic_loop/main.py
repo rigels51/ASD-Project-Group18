@@ -5,12 +5,14 @@ Modes:
     mcp       validate the shared MCP server  (Plan -> Act -> Observe -> Adapt)
     rag       validate the shared RAG server  (Plan -> Act -> Observe -> Adapt)
     multi-agent  Release 2 Multi-Agent Workflow Review (Planner -> Worker -> Reviewer -> Human)
+    testing      Release 2 Testing Review (pre-commit security scans + CI endpoint tests, all students)
     all       release0, then mcp, then rag, then multi-agent
 
 Run from the repository root, on the host (not in Docker):
     python -m agentic_loop.main --mode mcp
     python -m agentic_loop.main --mode rag
     python -m agentic_loop.main --mode multi-agent
+    python -m agentic_loop.main --mode testing
 Add --no-ai to skip the local Ollama suggestion in the ADAPT step.
 Release 1 modes save to docs/release-1/agentic-loop/<mode>-validation.md;
 Release 2 modes save to docs/release-2/agentic-loop/<mode>-validation.md.
@@ -35,7 +37,7 @@ def run_student4_loop():
 
     print("\nRunning Student 4 - Course and Enrollment Management")
 
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 - fixed args: this interpreter + a repo script, no user input
         [sys.executable, str(student4_loop)],
         cwd=PROJECT_ROOT
     )
@@ -56,7 +58,7 @@ def run_mode(title, pipeline, use_ai):
 
 def main():
     parser = argparse.ArgumentParser(description="Shared agentic loop (Release 0 + Release 1 validation modes)")
-    parser.add_argument("--mode", choices=["release0", "mcp", "rag", "multi-agent", "all"], default="release0")
+    parser.add_argument("--mode", choices=["release0", "mcp", "rag", "multi-agent", "testing", "all"], default="release0")
     parser.add_argument("--no-ai", action="store_true", help="skip the local Ollama suggestion in ADAPT")
     args = parser.parse_args()
     use_ai = not args.no_ai
@@ -73,6 +75,9 @@ def main():
     if args.mode in ("multi-agent", "all"):
         from agentic_loop.pipelines import multi_agent_pipeline
         ok = run_mode("MULTI-AGENT", multi_agent_pipeline, use_ai) and ok
+    if args.mode in ("testing", "all"):
+        from agentic_loop.pipelines import testing_pipeline
+        ok = run_mode("TESTING", testing_pipeline, use_ai) and ok
 
     print("\n" + "=" * 65)
     print("SHARED AGENTIC LOOP COMPLETE" + ("" if ok else " - WITH FAILURES"))
