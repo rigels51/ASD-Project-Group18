@@ -4,13 +4,16 @@ Modes:
     release0  (default) run the Release 0 loop (Student 4's agentic_loop.py), unchanged
     mcp       validate the shared MCP server  (Plan -> Act -> Observe -> Adapt)
     rag       validate the shared RAG server  (Plan -> Act -> Observe -> Adapt)
-    all       release0, then mcp, then rag
+    multi-agent  Release 2 Multi-Agent Workflow Review (Planner -> Worker -> Reviewer -> Human)
+    all       release0, then mcp, then rag, then multi-agent
 
 Run from the repository root, on the host (not in Docker):
     python -m agentic_loop.main --mode mcp
     python -m agentic_loop.main --mode rag
+    python -m agentic_loop.main --mode multi-agent
 Add --no-ai to skip the local Ollama suggestion in the ADAPT step.
-Each Release 1 mode saves its output to docs/release-1/agentic-loop/<mode>-validation.md.
+Release 1 modes save to docs/release-1/agentic-loop/<mode>-validation.md;
+Release 2 modes save to docs/release-2/agentic-loop/<mode>-validation.md.
 """
 
 import argparse
@@ -53,7 +56,7 @@ def run_mode(title, pipeline, use_ai):
 
 def main():
     parser = argparse.ArgumentParser(description="Shared agentic loop (Release 0 + Release 1 validation modes)")
-    parser.add_argument("--mode", choices=["release0", "mcp", "rag", "all"], default="release0")
+    parser.add_argument("--mode", choices=["release0", "mcp", "rag", "multi-agent", "all"], default="release0")
     parser.add_argument("--no-ai", action="store_true", help="skip the local Ollama suggestion in ADAPT")
     args = parser.parse_args()
     use_ai = not args.no_ai
@@ -67,6 +70,9 @@ def main():
     if args.mode in ("rag", "all"):
         from agentic_loop.pipelines import rag_pipeline
         ok = run_mode("RAG", rag_pipeline, use_ai) and ok
+    if args.mode in ("multi-agent", "all"):
+        from agentic_loop.pipelines import multi_agent_pipeline
+        ok = run_mode("MULTI-AGENT", multi_agent_pipeline, use_ai) and ok
 
     print("\n" + "=" * 65)
     print("SHARED AGENTIC LOOP COMPLETE" + ("" if ok else " - WITH FAILURES"))

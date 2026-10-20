@@ -1,0 +1,156 @@
+<section class="ma-panel">
+  <h2>Multi-Agent Workflow</h2>
+  <p>
+    Planner → Worker → Reviewer prepare an answer from your feature's live data.
+    You make the final decision.
+  </p>
+  <form id="ma-form">
+    <input
+      id="ma-question"
+      maxlength="500"
+      placeholder="e.g. Summarise the records for ASD101"
+      required
+    />
+    <button type="submit">Run agents</button>
+  </form>
+  <div id="ma-out"></div>
+  <h3>History</h3>
+  <div id="ma-history"></div>
+</section>
+
+<style>
+  .ma-panel pre {
+    white-space: pre-wrap;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 12.5px;
+  }
+  .ma-step {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 8px 0;
+  }
+  .ma-risk-low {
+    color: #3f6c51;
+  }
+  .ma-risk-medium {
+    color: #a2632a;
+  }
+  .ma-risk-high {
+    color: #8a3c3c;
+  }
+  .ma-panel form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .ma-panel form input,
+  .ma-panel form textarea {
+    flex: 1;
+    min-width: 200px;
+  }
+</style>
+
+<script>
+  (() => {
+    const MA_BACKEND = "http://localhost:5001"; // <-- your backend port
+    const out = document.getElementById("ma-out");
+    const esc = (v) =>
+      String(v ?? "—").replace(
+        /[&<>"']/g,
+        (c) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;",
+          })[c],
+      );
+
+    async function call(path, body) {
+      try {
+        const res = await fetch(
+          MA_BACKEND + path,
+          body === undefined
+            ? {}
+            : {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              },
+        );
+        return { status: res.status, data: await res.json() };
+      } catch (e) {
+        return {
+          status: 0,
+          data: { status: "error", error: "Backend unreachable" },
+        };
+      }
+    }
+
+    function render(wf) {
+      if (!wf.workflow_id || !wf.reviewer_result) {
+        out.innerHTML = `<p><strong>${esc(wf.status)}</strong>: ${esc(wf.error || wf.planner_result?.error)}</p>`;
+        return;
+      }
+      const r = wf.reviewer_result,
+        h = wf.human_decision || {};
+      const human = h.decision
+        ? `<p><strong>${esc(h.decision)}</strong> by ${esc(h.reviewer)} — ${esc(h.comment)}</p>${h.decision === "Correct" ? `<pre>${esc(h.final_output)}</pre>` : ""}`
+        : `<form id="ma-decide">
+           ${["Accept", "Partially Accept", "Correct", "Reject"].map((d) => `<label><input type="radio" name="decision" value="${d}" ${d === r.recommended_decision ? "checked" : ""}> ${d}</label>`).join(" ")}
+           <input name="reviewer" placeholder="Your name" required>
+           <input name="comment" placeholder="Comment (required unless Accept)">
+           <textarea name="corrected_output" placeholder="Corrected output (for Correct)"></textarea>
+           <button type="submit">Record decision</button>
+         </form>`;
+      out.innerHTML = `
+      <div class="ma-step"><strong>1 Planner</strong> <small>${esc(wf.planner_result.model)}</small><pre>${esc(wf.planner_result.plan)}</pre></div>
+      <div class="ma-step"><strong>2 Worker</strong> <small>${esc(wf.worker_result.model)} · ${esc(wf.worker_result.evidence_count)} records</small><pre>${esc(wf.worker_result.output)}</pre></div>
+      <div class="ma-step"><strong>3 Reviewer</strong> <span class="ma-risk-${esc(r.risk_level)}">risk ${esc(r.risk_level)}</span> · recommends ${esc(r.recommended_decision)}<pre>${esc(r.review)}</pre></div>
+      <div class="ma-step"><strong>4 Human review</strong> ${human}</div>
+      <small>workflow ${esc(wf.workflow_id)}</small>`;
+      const f = document.getElementById("ma-decide");
+      if (f)
+        f.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const body = Object.fromEntries(new FormData(f));
+          body.workflow_id = wf.workflow_id;
+          const { data } = await call("/multi-agent/decision", body);
+          data.workflow_id ? render(data) : alert(data.error);
+          loadHistory();
+        });
+    }
+
+    async function loadHistory() {
+      const { data } = await call("/multi-agent/history");
+      const list = data.workflows || [];
+      document.getElementById("ma-history").innerHTML = list.length
+        ? "<ul>" +
+          list
+            .map(
+              (w) =>
+                `<li>${esc(w.timestamp.slice(0, 16))} — ${esc(w.user_request)} — risk ${esc(w.risk_level)} — <strong>${esc(w.status)}</strong></li>`,
+            )
+            .join("") +
+          "</ul>"
+        : `<p>${esc(data.error || "No workflows yet.")}</p>`;
+    }
+
+    document.getElementById("ma-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      out.innerHTML =
+        "<p>Planner → Worker → Reviewer running… (can take up to a minute)</p>";
+      const { data } = await call("/multi-agent/run", {
+        question: document.getElementById("ma-question").value.trim(),
+      });
+      render(data);
+      loadHistory();
+    });
+    loadHistory();
+  })();
+</script>

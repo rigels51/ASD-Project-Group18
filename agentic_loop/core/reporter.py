@@ -1,15 +1,15 @@
-"""Prints each loop stage and saves the run as Markdown evidence for the Release 1 report."""
-
 from datetime import datetime
 from pathlib import Path
 
 
-REPORT_DIR = Path(__file__).resolve().parents[2] / "docs" / "release-1" / "agentic-loop"
+DOCS_DIR = Path(__file__).resolve().parents[2] / "docs"
+REPORT_DIR = DOCS_DIR / "release-1" / "agentic-loop"
 
 
 class Reporter:
-    def __init__(self, mode):
+    def __init__(self, mode, release="release-1"):
         self.mode = mode
+        self.report_dir = DOCS_DIR / release / "agentic-loop"
         self.started = datetime.now().astimezone()
         self.lines = [
             f"# Shared Agentic Loop — {mode.upper()} validation mode",
@@ -44,8 +44,8 @@ class Reporter:
         self.lines += ["```", text, "```", ""]
 
     def save(self):
-        REPORT_DIR.mkdir(parents=True, exist_ok=True)
-        path = REPORT_DIR / f"{self.mode}-validation.md"
+        self.report_dir.mkdir(parents=True, exist_ok=True)
+        path = self.report_dir / f"{self.mode}-validation.md"
         path.write_text("\n".join(self.lines) + "\n", encoding="utf-8")
-        print(f"\nSaved: {path.relative_to(REPORT_DIR.parents[2])}")
+        print(f"\nSaved: {path.relative_to(DOCS_DIR.parent)}")
         return path

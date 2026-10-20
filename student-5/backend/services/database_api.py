@@ -12,7 +12,7 @@ DATABASE_SERVICE_URL = os.getenv(
 # Student 4 -> Student 5 (course_id). Same pattern Student 4 already uses
 # to reach Student 1's database-service (see
 # student-4/enrolment-service/services/database_api.py).
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------
 STUDENT_SERVICE_URL = os.getenv(
     "STUDENT_SERVICE_URL", "http://student1-database:5002"
 )

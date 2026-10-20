@@ -35,6 +35,9 @@ services:
             MCP_ENABLED: "true"
             RAG_SERVER_URL: http://host.docker.internal:5050
             RAG_ENABLED: "true"
+            # Release 2: shared Multi-Agent server runs locally on the host (not in Docker)
+            MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5004
+            MULTI_AGENT_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -84,6 +87,9 @@ services:
             RAG_ENABLED: "true"
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
+            # Release 2: shared Multi-Agent server runs locally on the host (not in Docker)
+            MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5004
+            MULTI_AGENT_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -146,6 +152,9 @@ services:
             MCP_ENABLED: "true"
             RAG_SERVER_URL: http://host.docker.internal:5050
             RAG_ENABLED: "true"
+            # Release 2: shared Multi-Agent server runs locally on the host (not in Docker)
+            MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5004
+            MULTI_AGENT_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -197,11 +206,14 @@ services:
             COURSE_SERVICE_URL: http://student4-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
-            # Release 1: shared MCP / RAG servers run locally on the host (not in Docker)
+            # Release 1: shared MCP / RAG servers run locally on the host 
             MCP_SERVER_URL: http://host.docker.internal:8000/mcp
             MCP_ENABLED: "true"
             RAG_SERVER_URL: http://host.docker.internal:5050
             RAG_ENABLED: "true"
+            # Release 2: shared Multi-Agent server runs locally on the host 
+            MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5004
+            MULTI_AGENT_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -237,6 +249,9 @@ services:
             MCP_ENABLED: "true"
             RAG_SERVER_URL: http://host.docker.internal:5050
             RAG_ENABLED: "true"
+            # Release 2: shared Multi-Agent server runs locally on the host not in Docker
+            MULTI_AGENT_SERVICE_URL: http://host.docker.internal:5004
+            MULTI_AGENT_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         networks:

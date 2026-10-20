@@ -1,0 +1,28 @@
+/* Release 2 — Multi-Agent tab (Assessment & Grades). Scoped under .ag-app. */
+.ag-app .agent-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ag-app .agent-step { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; background: var(--paper-raised); }
+.ag-app .step-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ag-app .step-head h4 { margin: 0; text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--ink); }
+.ag-app .step-no {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
+}
+.ag-app .agent-text {
+    margin: 0; white-space: pre-wrap; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px;
+    background: var(--paper); border-radius: 7px; padding: 10px; color: var(--ink-soft);
+}
+.ag-app .check-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.ag-app .check-list li { padding: 3px 8px; border-radius: 999px; }
+.ag-app .check-list .pass { background: var(--active-bg); color: var(--active); }
+.ag-app .check-list .fail { background: var(--former-bg); color: var(--former); }
+.ag-app .decision-form { display: flex; flex-direction: column; gap: 10px; }
+.ag-app .decision-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.ag-app .decision-option {
+    display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 12px; font-size: 13px; cursor: pointer; text-transform: none; letter-spacing: 0; color: var(--ink);
+}
+.ag-app .decision-form textarea {
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 7px; font-family: inherit; font-size: 14px;
+    background: var(--paper); color: var(--ink);
+}
+.ag-app .decision-form .btn { align-self: flex-start; }

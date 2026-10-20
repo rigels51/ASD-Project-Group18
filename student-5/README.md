@@ -214,3 +214,25 @@ python -m agentic_loop.main --mode rag   # -> docs/release-1/agentic-loop/rag-va
 **grades** — `grade_id` (PK), `assessment_id` (FK), `student_id` (TEXT,
 matches Student 1's `STU-XXXX` format), `mark`, `grade`, `feedback`,
 `date_recorded`
+
+## Release 2 — Multi-Agent workflow
+
+The **Multi-Agent** tab (http://localhost:8085/#multi-agent) runs the shared server's
+Planner → Worker → Reviewer agents on live assessment data, then asks you to
+Accept / Partially Accept / Correct / Reject:
+
+```
+UI tab "Multi-Agent" -> assessment-service :5021 /multi-agent/run -> Multi-Agent server :5004 (host), domain "assessment"
+                     -> /multi-agent/decision -> /workflow/<id>/decision (human review, logged)
+```
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/multi-agent/health` | server reachable |
+| POST | `/multi-agent/run` | `question` |
+| POST | `/multi-agent/decision` | `workflow_id, decision, reviewer, comment, corrected_output` |
+| GET | `/multi-agent/workflow/<id>` | one workflow |
+| GET | `/multi-agent/history` | last 10 assessment workflows |
+
+HTML by default, `?format=json` for JSON. `MULTI_AGENT_ENABLED=false` → 503 "disabled" (CI, cloud baseline).
+Tests: `python -m pytest student-5/tests/test_multi_agent_routes.py -v`.

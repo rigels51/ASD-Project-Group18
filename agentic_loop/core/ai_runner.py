@@ -1,5 +1,3 @@
-"""ADAPT helper: ask the local Ollama model for one improvement based on observed results."""
-
 from agentic_loop.config.review_config import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 
@@ -32,3 +30,20 @@ def suggest_adaptation(mode, observe_summary):
         return response.choices[0].message.content.strip(), None
     except Exception as exc:  # noqa: BLE001
         return None, f"Local AI agent unavailable ({type(exc).__name__}: {exc})"
+
+
+def ask_model(model, system_prompt, user_prompt, max_tokens=200):
+    """Return (text, error) from one local Ollama model. Never raises."""
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(base_url=OLLAMA_BASE_URL, api_key="ollama", timeout=120)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+            max_tokens=max_tokens,
+            temperature=0.1,
+        )
+        return response.choices[0].message.content.strip(), None
+    except Exception as exc:  # noqa: BLE001
+        return None, f"{model} unavailable ({type(exc).__name__}: {exc})"

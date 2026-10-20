@@ -1,0 +1,161 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Assessment & Grades Multi-Agent</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/features/assessment-grades.css" />
+    <link rel="stylesheet" href="/css/features/mcp-rag.css" />
+    <link rel="stylesheet" href="/css/features/multi-agent.css" />
+  </head>
+  <body>
+    <main class="app-shell ag-app">
+      <header class="app-header">
+        <div>
+          <span class="eyebrow">Assessment & Grades System</span>
+          <h1>Multi-Agent Workflow</h1>
+          <p class="sub">
+            Planner → Worker → Reviewer agents prepare an answer from live assessment data.
+            Nothing is final until you accept, correct or reject it.
+          </p>
+        </div>
+        <div>
+          <a class="btn btn-ghost home-link" href="http://localhost:8090" target="_top">Home</a>
+          <span class="term-badge mono">Multi-Agent</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="sidebar">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Multi-Agent server</h3>
+              <span class="pill status-pill" id="ma-status">Checking…</span>
+            </div>
+            <p class="helper-text">UI → assessment-service :5021 → Multi-Agent server :5004 (host)</p>
+            <div id="ma-health" class="tools-box"></div>
+          </div>
+
+          <div class="panel">
+            <h3>Try asking</h3>
+            <ul class="example-list">
+              <li><button type="button" data-q="Summarise the assessments and their weights for ASD101.">Summarise assessments for ASD101</button></li>
+              <li><button type="button" data-q="Which assessments are due after 2026-10-01?">What is due after 1 October?</button></li>
+              <li><button type="button" data-q="Summarise the recorded grades for SEC301.">Summarise grades for SEC301</button></li>
+              <li><button type="button" data-q="List the assessments for XYZ999.">Unknown course XYZ999 <span class="mono">(expect high risk)</span></button></li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="main">
+          <div class="panel">
+            <h3>New workflow</h3>
+            <form id="ma-form" class="rag-form">
+              <div class="chat-input-row">
+                <input type="text" id="ma-question" name="question" maxlength="500"
+                       placeholder="e.g. Summarise the assessments and their weights for ASD101." />
+                <button class="btn btn-primary" type="submit">Run agents</button>
+              </div>
+              <p class="helper-text">Uses local models — a run can take up to a minute.</p>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Workflow</h3>
+              <span class="helper-text" id="ma-result-status"></span>
+            </div>
+            <div id="ma-result">
+              <p class="helper-text">Run a workflow to see each agent's output, the reviewer's risk level, and the human decision step.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>Workflow history</h3>
+              <button class="btn btn-ghost btn-small" type="button" id="ma-reload">Reload</button>
+            </div>
+            <div id="ma-history"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const BACKEND_URL = "http://localhost:5021";
+      const result = document.getElementById("ma-result");
+      const statusText = document.getElementById("ma-result-status");
+
+      async function fetchText(url, options = {}) {
+        try {
+          const response = await fetch(url, options);
+          return { status: response.status, body: await response.text() };
+        } catch (e) {
+          return { status: 0, body: `<div class="notice notice-error"><strong>Backend unreachable</strong><p>Could not reach ${BACKEND_URL}.</p></div>` };
+        }
+      }
+
+      function form(params) {
+        return { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(params) };
+      }
+
+      async function loadHealth() {
+        const pill = document.getElementById("ma-status");
+        const { status, body } = await fetchText(`${BACKEND_URL}/multi-agent/health`);
+        pill.classList.remove("ok", "off", "err");
+        if (status === 200) { pill.textContent = "Connected"; pill.classList.add("ok"); }
+        else if (body.includes("notice-disabled")) { pill.textContent = "Disabled"; pill.classList.add("off"); }
+        else { pill.textContent = "Unavailable"; pill.classList.add("err"); }
+        document.getElementById("ma-health").innerHTML = body;
+      }
+
+      async function loadHistory() {
+        const { body } = await fetchText(`${BACKEND_URL}/multi-agent/history`);
+        document.getElementById("ma-history").innerHTML = body;
+      }
+
+      async function show(promise, label) {
+        statusText.textContent = label;
+        result.classList.add("is-loading");
+        const { status, body } = await promise;
+        result.classList.remove("is-loading");
+        statusText.textContent = `HTTP ${status || "—"}`;
+        result.innerHTML = body;
+        loadHistory();
+      }
+
+      async function run(question) {
+        show(fetchText(`${BACKEND_URL}/multi-agent/run`, form({ question })), "Planner → Worker → Reviewer running…");
+      }
+
+      document.getElementById("ma-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const q = document.getElementById("ma-question").value.trim();
+        if (q) run(q);
+      });
+
+      document.querySelectorAll(".example-list button").forEach((b) =>
+        b.addEventListener("click", () => {
+          document.getElementById("ma-question").value = b.dataset.q;
+          run(b.dataset.q);
+        }));
+
+      // The decision form is rendered by the backend inside #ma-result.
+      result.addEventListener("submit", (e) => {
+        const f = e.target.closest("[data-decision-form]");
+        if (!f) return;
+        e.preventDefault();
+        show(fetchText(`${BACKEND_URL}/multi-agent/decision`, form(new FormData(f))), "Recording decision…");
+      });
+
+      document.getElementById("ma-history").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-open-workflow]");
+        if (b) show(fetchText(`${BACKEND_URL}/multi-agent/workflow/${b.dataset.openWorkflow}`), "Loading…");
+      });
+
+      document.getElementById("ma-reload").addEventListener("click", loadHistory);
+      loadHealth();
+      loadHistory();
+    </script>
+  </body>
+</html>

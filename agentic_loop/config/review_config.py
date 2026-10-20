@@ -1,10 +1,3 @@
-"""Configuration for the shared agentic loop's Release 1 validation modes.
-
-Each student adds their own MCP tool cases and RAG domain cases here.
-A tool the MCP server lists but that has no case below is reported as
-"listed, not exercised" so gaps are visible in the loop output.
-"""
-
 import os
 
 
@@ -13,6 +6,10 @@ RAG_SERVER_URL = os.getenv("RAG_SERVER_URL", "http://localhost:5050").rstrip("/"
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
+OLLAMA_REVIEW_MODEL = os.getenv("OLLAMA_REVIEW_MODEL", "llama3.1:8b")
+
+# ---- Release 2: shared Multi-Agent server ----
+MULTI_AGENT_SERVER_URL = os.getenv("MULTI_AGENT_SERVER_URL", "http://localhost:5004").rstrip("/")
 
 # A tool name no feature registers: calling it must be rejected (tool boundary).
 UNREGISTERED_TOOL = "drop_all_tables"
@@ -90,4 +87,17 @@ RAG_CASES = [
     {"domain": "assessment", "question": "What is the penalty for late submission?", "expect": "grounded"},
     {"domain": "assessment", "question": "What is the boiling point of water on Mars?", "expect": "abstain"},
     {"domain": "assessment", "question": "What assessments are in XYZ999?", "expect": "abstain"},
+]
+
+
+# Release 2 - one Planner -> Worker -> Reviewer case per feature domain.
+# expect: "evidence" -> worker must retrieve >= 1 record and reviewer risk must not be "high"
+#         "no_evidence" -> worker retrieves nothing and reviewer must flag risk "high"
+MULTI_AGENT_CASES = [
+    {"domain": "students", "request": "Summarise the students who are currently On Leave.", "expect": "evidence"},
+    {"domain": "staff", "request": "Summarise the staff in the Arts department.", "expect": "evidence"},
+    {"domain": "timetable", "request": "Summarise the timetable sessions for ASD101.", "expect": "evidence"},
+    {"domain": "course", "request": "Summarise course ASD101 and its enrolments.", "expect": "evidence"},
+    {"domain": "assessment", "request": "Summarise the assessments and weights for ASD101.", "expect": "evidence"},
+    {"domain": "assessment", "request": "List the assessments for XYZ999.", "expect": "no_evidence"},
 ]

@@ -1,0 +1,6 @@
+{"timestamp": "2026-10-20T05:56:40.536892+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "workflow_started", "caller": "terminal", "requested_domain": "assessment", "user_request": "Summarise the assessments for ASD101"}
+{"timestamp": "2026-10-20T05:56:42.432358+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "planner_completed", "status": "completed", "domain": "assessment", "model": "qwen2.5:0.5b", "duration_ms": 1895}
+{"timestamp": "2026-10-20T05:56:44.535949+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "worker_completed", "status": "completed", "evidence_count": 8, "grounding_issues": 0, "model": "qwen2.5:0.5b", "duration_ms": 2103}
+{"timestamp": "2026-10-20T05:56:58.760408+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "reviewer_completed", "risk_level": "low", "recommended_decision": "Accept", "model": "llama3.1:8b", "duration_ms": 14220}
+{"timestamp": "2026-10-20T05:56:58.840808+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "awaiting_human_review", "risk_level": "low"}
+{"timestamp": "2026-10-20T05:57:44.088016+00:00", "workflow_id": "12ee1286-4b39-42d0-bf5b-eb167eb0cf77", "event": "human_decision_recorded", "decision": "Accept", "reviewer": "vu", "agreed_with_reviewer_agent": true}

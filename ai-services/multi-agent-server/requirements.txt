@@ -1,2 +1,5 @@
-mcp
-requests
+flask==3.0.3
+flask-cors==4.0.1
+openai
+requests>=2.32,<3
+python-dotenv

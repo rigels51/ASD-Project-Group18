@@ -5,7 +5,6 @@ import os
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000/mcp")
 MCP_ENABLED = os.getenv("MCP_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
 
-# Tool boundary: this feature may only call its own tools on the shared server.
 ALLOWED_TOOLS = {
     "list_course_assessments",
     "get_student_grade_summary",

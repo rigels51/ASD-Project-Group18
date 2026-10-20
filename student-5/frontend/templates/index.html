@@ -30,6 +30,9 @@
           <button class="tab-btn" data-tab="rag" type="button">
             RAG Answers
           </button>
+          <button class="tab-btn" data-tab="multi-agent" type="button">
+            Multi-Agent
+          </button>
         </nav>
 
         <div class="tab-content">
@@ -57,6 +60,12 @@
             src="tabs/rag.html"
             title="RAG Answers"
           ></iframe>
+          <iframe
+            id="tab-frame-multi-agent"
+            class="tab-frame"
+            src="tabs/multi-agent.html"
+            title="Multi-Agent"
+          ></iframe>
         </div>
       </section>
     </main>
@@ -69,6 +78,7 @@
         "ai-mode": document.getElementById("tab-frame-ai-mode"),
         mcp: document.getElementById("tab-frame-mcp"),
         rag: document.getElementById("tab-frame-rag"),
+        "multi-agent": document.getElementById("tab-frame-multi-agent"),
       };
 
       function resizeFrame(frame) {
