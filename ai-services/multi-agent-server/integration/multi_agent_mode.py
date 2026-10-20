@@ -1,3 +1,21 @@
+"""Drop-in backend blueprint: connects ONE feature backend to the shared Multi-Agent server.
+
+Copy this file into your backend (e.g. student-1/enrolment-service/routes/multi_agent_mode.py),
+set DOMAIN, then register it:   app.register_blueprint(multi_agent_bp)
+
+DOMAIN values: students (S1), staff (S2), timetable (S3), course (S4), assessment (S5)
+
+Routes (JSON in, JSON out; form posts also accepted):
+  GET  /multi-agent/health
+  POST /multi-agent/run                      {"question": "..."}
+  POST /multi-agent/decision                 {"workflow_id", "decision", "reviewer", "comment", "corrected_output"}
+  GET  /multi-agent/workflow/<workflow_id>
+  GET  /multi-agent/history
+
+Env: MULTI_AGENT_SERVICE_URL (default http://localhost:5004), MULTI_AGENT_ENABLED (default true;
+set "false" in CI and in the baseline cloud deployment -> every route answers 503 "disabled").
+"""
+
 import os
 
 import requests
@@ -18,11 +36,11 @@ def _data() -> dict:
     return {k: str(v).strip() for k, v in (data or {}).items()}
 
 
-def _proxy(method: str, path: str, **kwargs):
+def _proxy(method: str, path: str, timeout: float, **kwargs):
     if not MULTI_AGENT_ENABLED:
         return jsonify({"status": "disabled", "error": "Multi-Agent is disabled (MULTI_AGENT_ENABLED=false)"}), 503
     try:
-        response = requests.request(method, f"{MULTI_AGENT_SERVICE_URL}{path}", **kwargs)
+        response = requests.request(method, f"{MULTI_AGENT_SERVICE_URL}{path}", timeout=timeout, **kwargs)
         return jsonify(response.json()), response.status_code
     except requests.RequestException:
         return jsonify({"status": "error",

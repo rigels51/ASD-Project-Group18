@@ -1,0 +1,13 @@
+# Ruff config for the pre-commit security scan (Release 2).
+# Only the flake8-bandit security rules ("S") are enforced.
+extend-exclude = [".venv", "venv", "**/#", "**/once", "**/chroma"]
+
+[lint]
+select = ["S"]
+ignore = [
+    "S104",  # bind 0.0.0.0: required so Flask apps inside Docker containers accept traffic from the host
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]   # asserts and dummy test credentials are fine in tests
+"**/test_*.py" = ["S101", "S105", "S106"]

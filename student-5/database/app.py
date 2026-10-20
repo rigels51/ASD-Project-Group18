@@ -1,3 +1,4 @@
+import os
 from flask import Flask, jsonify, request
 import sqlite3
 
@@ -306,4 +307,4 @@ def get_grades_by_course(course_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5022, debug=True)
+    app.run(host="0.0.0.0", port=5022, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
