@@ -153,3 +153,4 @@
 {"timestamp": "2026-10-20T13:34:23.420069+00:00", "workflow_id": "a9f0fcfe-19cd-4cc5-8bf7-d803f1391e2e", "event": "awaiting_human_review", "risk_level": "high"}
 {"timestamp": "2026-10-20T13:37:07.593679+00:00", "workflow_id": "42902daf-da02-4d3d-a4bd-bc6459cf61df", "event": "human_decision_recorded", "decision": "Accept", "reviewer": "Lazizbek", "agreed_with_reviewer_agent": false}
 {"timestamp": "2026-10-20T13:41:11.776732+00:00", "workflow_id": "36d7c013-4a3a-4755-bbf2-7015ee6977aa", "event": "human_decision_recorded", "decision": "Correct", "reviewer": "Lazizbek", "agreed_with_reviewer_agent": false}
+{"timestamp": "2026-10-20T13:42:39.679773+00:00", "workflow_id": "16995e80-0b52-465d-b7a5-37026b80db84", "event": "human_decision_recorded", "decision": "Partially Accept", "reviewer": "Lazizbek", "agreed_with_reviewer_agent": false}
