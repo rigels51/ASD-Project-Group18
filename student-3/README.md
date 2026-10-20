@@ -93,6 +93,28 @@ Timetable UI cannot call another feature's tools.
 
 **Feature flags:** `MCP_ENABLED` / `RAG_ENABLED` (default `true`). CI sets both to `false`; the routes then return `503 {"status": "disabled"}`.
 
+## Release 2 — shared Multi-Agent server (local only, not containerised)
+
+```
+frontend :8003 → backend :5003 (Docker) → shared Multi-Agent server localhost:5004 (domain "timetable")
+                                            → Planner → Worker (reads /api/timetable) → Reviewer → Human Review
+```
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/multi-agent/health` | Shared server status |
+| POST | `/multi-agent/run` | `{"question": "..."}` (1–500 chars) → workflow pending human review |
+| POST | `/multi-agent/decision` | `{"workflow_id", "decision", "reviewer", "comment", "corrected_output"}` |
+| GET | `/multi-agent/workflow/<id>` | Latest state of one workflow |
+| GET | `/multi-agent/history` | Last 10 Timetable workflows |
+
+`backend/multi_agent_mode.py` is the team's drop-in blueprint with `DOMAIN = "timetable"`.
+The **Multi-Agent** tab shows each agent's output, the reviewer's automatic checks and risk,
+and the human decision form (Accept / Partially Accept / Correct / Reject).
+Flag: `MULTI_AGENT_ENABLED` (default `true`; CI sets `false` → routes return 503).
+
+Start the shared server first: `cd ai-services/multi-agent-server && python app.py`.
+
 ## Validation
 Run `bash tests/validate.sh` against the running backend (containerised or
 local). Release 0 run: 16/16 checks passed, NFR met (~2.7ms avg response time
@@ -124,3 +146,6 @@ report disabled when flagged off.
 - [x] Release 1: Timetable domain on the shared RAG server (policy corpus, citations, confidence, abstention)
 - [x] Release 1: Shared agentic loop MCP and RAG validation modes (`agentic_loop/`)
 - [x] Release 1: CI updated with MCP/RAG flagged off
+- [x] Release 2: Timetable integrated with the shared Multi-Agent server (backend routes + Multi-Agent tab with human review)
+- [x] Release 2: Post-commit CI tests for `POST /timetable` and `GET /timetable/clashes` (`backend/tests/test_endpoints.py`)
+- [x] Release 2: Ruff security rules and detect-secrets clean for Timetable code; Flask debug mode now opt-in

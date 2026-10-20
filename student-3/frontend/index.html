@@ -43,6 +43,7 @@
                     <li><button type="button" data-tab="ask">Ask AI</button></li>
                     <li><button type="button" data-tab="mcp">MCP Tools</button></li>
                     <li><button type="button" data-tab="rag">Policy Q&amp;A</button></li>
+                    <li><button type="button" data-tab="multi-agent">Multi-Agent</button></li>
                 </ul>
             </div>
         </aside>
@@ -181,6 +182,27 @@
                 <div id="rag-result" class="ask-response" style="margin-top:14px;"></div>
             </section>
 
+            <section class="tab-panel" id="panel-multi-agent">
+                <div class="panel">
+                    <h3>Multi-Agent workflow</h3>
+                    <p class="note" style="margin:0 0 10px; color:var(--slate); font-size:13px;">Planner → Worker → Reviewer prepare an answer from the live timetable. Nothing is final until you record the human review decision.</p>
+                    <div class="field">
+                        <textarea id="ma_question" rows="3" maxlength="500" style="padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);">Summarise the timetable sessions for ASD101 and flag any room clashes.</textarea>
+                    </div>
+                    <button id="ma-run-btn" type="button" class="btn btn-primary" style="margin-top:10px;">Run agents</button>
+                </div>
+                <div id="ma-result" class="table-wrap" style="margin-top:14px;">
+                    <div class="empty-state">
+                        <h3>No workflow run yet</h3>
+                        <p>Frontend → timetable backend → shared Multi-Agent server → Planner → Worker → Reviewer → you.</p>
+                    </div>
+                </div>
+                <div class="panel" style="margin-top:14px;">
+                    <h3>Timetable workflow history</h3>
+                    <div id="ma-history"><p style="color:var(--slate); font-size:13px;">Open this tab to load history.</p></div>
+                </div>
+            </section>
+
         </main>
     </div>
 </div>
@@ -260,7 +282,7 @@ const tabButtons = document.querySelectorAll("#tab-list button");
 // initial empty state, so one role never sees output produced under another.
 const RESULT_PANEL_IDS = [
     "timetable-result", "create-result", "edit-result", "clash-result",
-    "ask-result", "mcp-result", "rag-result",
+    "ask-result", "mcp-result", "rag-result", "ma-result",
 ];
 const initialPanels = Object.fromEntries(RESULT_PANEL_IDS.map(id => {
     const el = document.getElementById(id);
@@ -299,7 +321,11 @@ function switchTab(tabName) {
     tabButtons.forEach(b => b.classList.toggle("is-active", b.dataset.tab === tabName));
     document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("is-active", p.id === `panel-${tabName}`));
 }
-tabButtons.forEach(b => b.addEventListener("click", () => { if (!b.classList.contains("is-hidden")) switchTab(b.dataset.tab); }));
+tabButtons.forEach(b => b.addEventListener("click", () => {
+    if (b.classList.contains("is-hidden")) return;
+    switchTab(b.dataset.tab);
+    if (b.dataset.tab === "multi-agent") loadMaHistory();
+}));
 
 applyRole("student");
 
@@ -546,6 +572,122 @@ document.getElementById("rag-ask-btn").addEventListener("click", async () => {
     } catch (err) {
         target.innerHTML = `<span class="pill clash">Unavailable</span><p style="margin-top:10px;">Could not reach the timetable backend.</p>`;
     }
+});
+
+// ---------- Release 2: Multi-Agent workflow (Planner -> Worker -> Reviewer -> Human Review) ----------
+const RISK_PILL = { low: "clear", medium: "type-lecture", high: "clash" };
+const DECISIONS = ["Accept", "Partially Accept", "Correct", "Reject"];
+
+async function maCall(path, body) {
+    try {
+        const res = await fetch(`${API_BASE}${path}`, body === undefined ? {} : {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        return await res.json();
+    } catch (err) {
+        return { status: "error", error: "Could not reach the timetable backend." };
+    }
+}
+
+function maStep(title, meta, bodyHtml) {
+    return `<div style="padding:14px 16px; border-bottom:1px solid var(--line);">
+        <strong>${title}</strong> <span class="mono" style="color:var(--slate); font-size:12px;">${meta}</span>
+        <div style="margin-top:8px;">${bodyHtml}</div></div>`;
+}
+
+function maPre(text) {
+    return `<pre class="mono" style="white-space:pre-wrap; margin:0; font-size:12.5px;">${esc(text)}</pre>`;
+}
+
+function renderWorkflow(wf) {
+    const target = document.getElementById("ma-result");
+    if (!wf.workflow_id || !wf.reviewer_result) {
+        const why = wf.error || (wf.planner_result && wf.planner_result.error) || wf.status;
+        target.innerHTML = `<div class="empty-state"><span class="pill clash">${esc(wf.status || "error")}</span><p style="margin-top:10px;">${esc(why)}</p></div>`;
+        return;
+    }
+    const plan = wf.planner_result, worker = wf.worker_result, review = wf.reviewer_result;
+    const hd = wf.human_decision || {};
+    const checks = (review.automatic_checks || []).map(c =>
+        `<span class="pill ${c.passed ? "clear" : "clash"}" style="margin:2px 4px 2px 0;">${esc(c.check)}</span>`).join("");
+    const sourceErrors = (worker.source_errors || []).map(e => `<p style="color:var(--slate); font-size:13px;">! ${esc(e)}</p>`).join("");
+
+    let human;
+    if (hd.decision) {
+        human = `<span class="pill ${hd.decision === "Reject" ? "clash" : "clear"}">${esc(hd.decision)}</span>
+            <span style="margin-left:6px;">by ${esc(hd.reviewer)}</span>
+            <p style="margin-top:8px;">${esc(hd.comment || "No comment")}</p>
+            ${hd.decision === "Correct" ? maPre(hd.final_output) : ""}`;
+    } else {
+        const options = DECISIONS.map(d => `<option ${d === review.recommended_decision ? "selected" : ""}>${d}</option>`).join("");
+        human = `<div class="field-row">
+                <div class="field"><label for="ma_decision">Decision</label><select id="ma_decision">${options}</select></div>
+                <div class="field"><label for="ma_reviewer">Reviewer</label><input id="ma_reviewer" type="text" placeholder="Your name"></div>
+            </div>
+            <div class="field"><label for="ma_comment">Comment (required unless Accept)</label><input id="ma_comment" type="text"></div>
+            <div class="field is-hidden" id="ma_corrected_wrap"><label for="ma_corrected">Corrected output</label>
+                <textarea id="ma_corrected" rows="3" style="padding:10px 12px; border:1px solid var(--line); border-radius:7px; font-family:inherit; font-size:14px; background:var(--paper); color:var(--ink);"></textarea></div>
+            <div class="field-error" id="ma-decision-error"></div>
+            <button id="ma-decide-btn" type="button" class="btn btn-primary" style="margin-top:10px;">Record decision</button>`;
+    }
+
+    target.innerHTML =
+        maStep("1 · Planner", esc(plan.model), maPre(plan.plan)) +
+        maStep("2 · Worker", `${esc(worker.model)} · ${esc(worker.evidence_count)} session record(s)`, maPre(worker.output) + sourceErrors) +
+        maStep("3 · Reviewer", esc(review.model),
+            `<span class="pill ${RISK_PILL[review.risk_level] || "clash"}">Risk: ${esc(review.risk_level)}</span>
+             <span style="margin-left:6px;">recommends <strong>${esc(review.recommended_decision)}</strong></span>
+             <div style="margin-top:8px;">${checks}</div>
+             <div style="margin-top:8px;">${maPre(review.review)}</div>`) +
+        maStep("4 · Human review", "", human) +
+        `<p class="mono" style="padding:10px 16px; color:var(--slate); font-size:12px;">workflow ${esc(wf.workflow_id)}</p>`;
+
+    const btn = document.getElementById("ma-decide-btn");
+    if (!btn) return;
+    const select = document.getElementById("ma_decision");
+    const toggleCorrected = () => document.getElementById("ma_corrected_wrap").classList.toggle("is-hidden", select.value !== "Correct");
+    select.addEventListener("change", toggleCorrected);
+    toggleCorrected();
+    btn.addEventListener("click", async () => {
+        const data = await maCall("/multi-agent/decision", {
+            workflow_id: wf.workflow_id,
+            decision: select.value,
+            reviewer: document.getElementById("ma_reviewer").value.trim(),
+            comment: document.getElementById("ma_comment").value.trim(),
+            corrected_output: document.getElementById("ma_corrected").value.trim(),
+        });
+        if (!data.workflow_id) {
+            document.getElementById("ma-decision-error").textContent = data.error || "Decision not recorded.";
+            return;
+        }
+        renderWorkflow(data);
+        loadMaHistory();
+    });
+}
+
+async function loadMaHistory() {
+    const target = document.getElementById("ma-history");
+    const data = await maCall("/multi-agent/history");
+    const list = data.workflows || [];
+    if (!list.length) {
+        target.innerHTML = `<p style="color:var(--slate); font-size:13px;">${esc(data.error || "No timetable workflows yet.")}</p>`;
+        return;
+    }
+    target.innerHTML = `<table><thead><tr><th>Time (UTC)</th><th>Request</th><th>Risk</th><th>Status</th></tr></thead><tbody>${
+        list.map(w => `<tr><td class="mono">${esc(w.timestamp.slice(0, 16).replace("T", " "))}</td><td>${esc(w.user_request)}</td>
+            <td><span class="pill ${RISK_PILL[w.risk_level] || "clash"}">${esc(w.risk_level || "—")}</span></td><td>${esc(w.status)}</td></tr>`).join("")
+    }</tbody></table>`;
+}
+
+document.getElementById("ma-run-btn").addEventListener("click", async () => {
+    const question = document.getElementById("ma_question").value.trim();
+    if (!question) return;
+    const target = document.getElementById("ma-result");
+    target.innerHTML = `<div class="empty-state"><p>Planner → Worker → Reviewer running… (up to a minute on local models)</p></div>`;
+    renderWorkflow(await maCall("/multi-agent/run", { question }));
+    loadMaHistory();
 });
 </script>
 
