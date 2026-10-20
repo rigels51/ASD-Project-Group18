@@ -9,6 +9,7 @@ load_dotenv()
 
 import mcp_client
 import rag_client
+from multi_agent_mode import multi_agent_bp
 
 DATABASE_NAME = "timetable.db"
 
@@ -17,10 +18,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
 
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(multi_agent_bp)  # Release 2: /multi-agent/*
 
 client = OpenAI(
     base_url=OLLAMA_BASE_URL,
-    api_key="ollama"
+    api_key="ollama"  # pragma: allowlist secret - fixed placeholder Ollama requires, not a credential
 )
 
 
@@ -355,4 +357,7 @@ def ask_local_agent():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True, port=5003)
+    # 0.0.0.0 is required so the port is reachable from outside the container.
+    # Debug mode (Werkzeug debugger = code execution from the browser) is opt-in only.
+    app.run(host="0.0.0.0", port=5003,  # noqa: S104
+            debug=os.getenv("FLASK_DEBUG", "false").strip().lower() == "true")

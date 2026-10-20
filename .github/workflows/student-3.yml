@@ -41,7 +41,7 @@ jobs:
       - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r student-3/backend/requirements.txt
+          pip install -r student-3/backend/requirements.txt pytest
 
       - name: Initialise database
         working-directory: student-3/backend
@@ -58,9 +58,35 @@ jobs:
           print(f'Database check passed: {count} records')
           "
 
-      - name: Unit tests - backend MCP/RAG routes (servers mocked)
+      - name: Release 2 post-commit endpoint tests - POST /timetable and GET /timetable/clashes
         working-directory: student-3/backend
-        run: python -m unittest discover -s tests -v
+        run: |
+          set -o pipefail
+          mkdir -p test-reports
+          python -m pytest tests/test_endpoints.py -v \
+            --junitxml=test-reports/endpoint-tests.xml | tee test-reports/endpoint-tests.txt
+          {
+            echo "## Student 3 - post-commit endpoint tests"
+            echo "Commit: \`${GITHUB_SHA::7}\` by ${GITHUB_ACTOR}"
+            echo ""
+            echo "| Endpoint function | Route | Tests |"
+            echo "|---|---|---|"
+            echo "| create_session | POST /timetable | $(grep -c 'TestCreateSession.*PASSED' test-reports/endpoint-tests.txt) passed |"
+            echo "| get_clashes | GET /timetable/clashes | $(grep -c 'TestClashDetection.*PASSED' test-reports/endpoint-tests.txt) passed |"
+            echo ""
+            echo "\`$(tail -1 test-reports/endpoint-tests.txt)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Unit tests - backend MCP, RAG and Multi-Agent routes (servers mocked)
+        working-directory: student-3/backend
+        run: python -m pytest tests/test_release1.py tests/test_multi_agent_routes.py -v --junitxml=test-reports/route-tests.xml
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: student-3-test-reports
+          path: student-3/backend/test-reports/
 
       - name: Unit tests - Timetable tools on the shared MCP server
         working-directory: ai-services/mcp-server
@@ -70,11 +96,12 @@ jobs:
         working-directory: ai-services/rag-server
         run: python -m unittest test_timetable_rag -v
 
-      - name: Start backend server (MCP and RAG disabled)
+      - name: Start backend server (MCP, RAG and Multi-Agent disabled)
         working-directory: student-3/backend
         env:
           MCP_ENABLED: "false"
           RAG_ENABLED: "false"
+          MULTI_AGENT_ENABLED: "false"
         run: |
           nohup python app.py > flask.log 2>&1 &
           sleep 3
@@ -95,7 +122,20 @@ jobs:
           code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:5003/rag/answer \
             -H "Content-Type: application/json" -d '{"question":"When do sessions clash?"}')
           test "$code" = "503" || { echo "Expected 503 from /rag/answer, got $code"; exit 1; }
-          echo "MCP and RAG are correctly feature-flagged off in CI"
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:5003/multi-agent/run \
+            -H "Content-Type: application/json" -d '{"question":"Summarise ASD101 sessions"}')
+          test "$code" = "503" || { echo "Expected 503 from /multi-agent/run, got $code"; exit 1; }
+          echo "MCP, RAG and Multi-Agent are correctly feature-flagged off in CI"
+
+      - name: Live check - create a clashing session, then detect it over HTTP
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://127.0.0.1:5003/timetable \
+            -d course_code=CI101 -d session_type=Lab -d day=Monday -d start_time=10:00 \
+            -d end_time=12:00 -d room=CB01.02.15 -d semester=2026-S2)
+          test "$code" = "201" || { echo "Expected 201 from POST /timetable, got $code"; exit 1; }
+          curl -sf http://127.0.0.1:5003/timetable/clashes | grep -q "CI101" \
+            || { echo "New overlapping session was not reported as a clash"; exit 1; }
+          echo "POST /timetable created the session and GET /timetable/clashes reported it"
 
       - name: Build backend Docker image
         run: docker build -t timetable-backend student-3/backend
