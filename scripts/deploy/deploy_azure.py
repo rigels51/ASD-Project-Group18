@@ -210,18 +210,20 @@ def app_exists(name):
                    check=False))
 
 
-def internal_url(app, domain):
-    """Internal-ingress address, reachable only from inside the environment.
+def database_url(app, domain):
+    """Address a backend uses for its database.
 
-    Azure now creates Consumption environments as "express", which rejects allowInsecure, so plain
-    http://<app> between apps is not available. HTTPS to <app>.internal.<domain> is - and keeps the
-    database traffic encrypted.
+    Azure creates Consumption environments as "express": allowInsecure is rejected, plain
+    http://<app> is redirected to https://<app>.internal.<domain>, and the environment certificate
+    does not cover that internal name (hostname mismatch). The public FQDN is covered, so databases
+    get external HTTPS ingress. Known limitation: database APIs are reachable from the internet
+    (see scripts/deploy/README.md - restricting them is the cloud endpoint-security bonus item).
     """
-    return f"https://{app}.internal.{domain}"
+    return public_url(app, domain)
 
 
 def env_vars(svc, domain):
-    values = {k: (internal_url(v.removeprefix("db:"), domain) if v.startswith("db:") else v)
+    values = {k: (database_url(v.removeprefix("db:"), domain) if v.startswith("db:") else v)
               for k, v in svc.get("env", {}).items()}
     if svc["kind"] == "backend":
         values.update(AI_OFF)
@@ -238,11 +240,15 @@ def deploy_app(svc, registry, tag, acr_user, acr_password, domain):
         if ev:
             args += ["--set-env-vars", *ev]
         az(*args, capture=True)
+        # Ingress is not changed by "update"; set it explicitly so an app created by an earlier
+        # version of this script (e.g. internal-only databases) converges to the current design.
+        az("containerapp", "ingress", "enable", "-g", RESOURCE_GROUP, "-n", name, "--type", "external",
+           "--target-port", str(svc["port"]), "-o", "none", capture=True)
         return
     log(f"create {name}")
     args = ["containerapp", "create", "-g", RESOURCE_GROUP, "-n", name, "--environment", ENVIRONMENT,
             "--image", image, "--target-port", str(svc["port"]),
-            "--ingress", "internal" if svc["kind"] == "database" else "external",
+            "--ingress", "external",
             "--min-replicas", "1", "--max-replicas", "1", "--cpu", "0.25", "--memory", "0.5Gi",
             "--registry-server", f"{registry}.azurecr.io", "--registry-username", acr_user]
     if ev:

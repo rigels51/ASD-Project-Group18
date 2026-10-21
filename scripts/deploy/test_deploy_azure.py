@@ -50,14 +50,14 @@ class ServiceMapTests(unittest.TestCase):
             exposed = re.findall(r"^EXPOSE\s+(\d+)", dockerfile.read_text(encoding="utf-8"), re.MULTILINE)
             self.assertIn(str(svc["port"]), exposed, f"{svc['name']}: target port vs EXPOSE {exposed}")
 
-    def test_backends_call_databases_over_internal_https(self):
+    def test_backends_call_databases_over_https(self):
         names = {s["name"] for s in d.SERVICES}
         for svc in (s for s in d.SERVICES if s["kind"] == "backend"):
             env = dict(item.split("=", 1) for item in d.env_vars(svc, DOMAIN))
             for key, value in env.items():
                 if not key.endswith("_URL"):
                     continue
-                match = re.fullmatch(rf"https://([a-z0-9-]+)\.internal\.{re.escape(DOMAIN)}", value)
+                match = re.fullmatch(rf"https://([a-z0-9-]+)\.{re.escape(DOMAIN)}", value)
                 self.assertIsNotNone(match, f"{svc['name']} {key}={value}")
                 self.assertIn(match.group(1), names)
                 self.assertEqual(next(s for s in d.SERVICES if s["name"] == match.group(1))["kind"], "database")
@@ -71,11 +71,12 @@ class ServiceMapTests(unittest.TestCase):
             for flag in cfg.CLOUD_AI_FLAGS:
                 self.assertEqual(env[flag], "false", f"{svc['name']} {flag}")
 
-    def test_databases_are_never_public(self):
+    def test_databases_use_https_ingress_not_plain_http(self):
         plan = run_plan()
         for svc in (s for s in d.SERVICES if s["kind"] == "database"):
             line = next(ln for ln in plan.splitlines() if f"containerapp create -g asd-group18-rg -n {svc['name']} " in ln)
-            self.assertIn("--ingress internal", line)
+            self.assertIn("--ingress external", line)
+            self.assertNotIn("--allow-insecure", line)
 
     def test_record_keys_match_the_cloud_review(self):
         frontends = {s["record"] for s in d.SERVICES if s["kind"] == "frontend"}

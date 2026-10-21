@@ -12,7 +12,7 @@ Multi-Agent server are not deployed, and every backend runs with `MCP_ENABLED`, 
 |---|---|
 | one service | one Container App with the same name, 1 replica (SQLite lives in the container) |
 | frontends, backends | public HTTPS ingress, `https://<app>.<environment-domain>` |
-| databases | internal ingress only, called as `http://<app>` inside the environment |
+| databases | HTTPS ingress, called by their backend at `https://<app>.<environment-domain>` (see Known limitation) |
 | `http://localhost:<port>` in frontend HTML/JS | rewritten in a build copy to the cloud URL (repo files untouched) |
 | images | built for `linux/amd64` with Docker, pushed to Azure Container Registry |
 
@@ -63,6 +63,16 @@ az ad sp create-for-rbac --name asd-group18-deploy --role contributor \
 Copy the whole JSON output into a repository secret named **`AZURE_CREDENTIALS`**
 (GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret; needs repo admin).
 The principal can only manage the `asd-group18-rg` resource group.
+
+## Known limitation - database APIs are publicly reachable
+
+Azure now creates Consumption environments as **express** environments. They reject `allowInsecure`,
+redirect plain `http://<app>` calls to `https://<app>.internal.<domain>`, and the environment
+certificate does not cover that internal name (`CERTIFICATE_VERIFY_FAILED: Hostname mismatch`).
+The only certificate-valid address is the public one, so each database gets HTTPS ingress and its
+backend calls it there. Traffic is encrypted, but the database APIs can be reached from the internet.
+Restricting them (IP allow-list to the environment's outbound IP, or a shared API key) is the
+cloud endpoint-security bonus item.
 
 ## Cost and teardown
 
