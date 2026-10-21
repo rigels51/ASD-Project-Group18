@@ -35,7 +35,7 @@
     <input id="apiBase" type="url" value="" placeholder="http://localhost:5031">
     <div class="ma-buttons"><button id="healthBtn" type="button" class="secondary-btn">Check Connection</button>
     <button id="historyBtn" type="button" class="secondary-btn">Load Recent History</button></div>
-    <p id="healthStatus" class="ma-hint" role="status">Check the connection before running a workflow.</p>
+    <p id="healthStatus" class="ma-hint" role="status">Checking Multi-Agent service status...</p>
   </section>
   <section class="content-card">
     <h3>Run Workflow</h3>
@@ -70,9 +70,10 @@
 (function(){
   'use strict';
   const $ = id => document.getElementById(id);
-  // The frontend container is served on a different port from the Student 4 backend.
-  // When using a remote frontend, adjust Backend URL to a reachable API address.
-  $('apiBase').value = window.location.protocol === 'file:' ? 'http://localhost:5031' : `${window.location.protocol}//${window.location.hostname}:5031`;
+  // Local development uses port 5031. The Azure deployment build rewrites this
+  // literal URL to the Student 4 backend Container App HTTPS address.
+  const DEFAULT_API_BASE = "http://localhost:5031";
+  $('apiBase').value = DEFAULT_API_BASE;
   let currentId = '';
   function base(){return $('apiBase').value.trim().replace(/\/$/,'');}
   function status(id,text,isError=false){$(id).textContent=text;$(id).classList.toggle('ma-warning',isError);}
@@ -86,6 +87,7 @@
     return result;
   }
   async function perform(btn,run,onError){btn.disabled=true;try{await run();}catch(err){status(onError,err.message,true);}finally{btn.disabled=false;}}
+  async function showHealth(){const data=await request('/multi-agent/health');status('healthStatus',`${data.service||'Multi-Agent'}: ${data.status||'unknown'}`);}
   function showWorkflow(result){
     currentId=result.workflow_id||currentId;
     $('workflowId').value=currentId;
@@ -94,7 +96,7 @@
     output('reviewer',result.reviewer_result?.review||result.reviewer_result||'Not available');
     output('workflow',{workflow_id:currentId,status:result.status,domain:result.domain,human_decision:result.human_decision,automatic_checks:result.reviewer_result?.automatic_checks});
   }
-  $('healthBtn').addEventListener('click',()=>perform($('healthBtn'),async()=>{const data=await request('/multi-agent/health');status('healthStatus',`${data.service||'Multi-Agent'}: ${data.status||'unknown'}`);},'healthStatus'));
+  $('healthBtn').addEventListener('click',()=>perform($('healthBtn'),showHealth,'healthStatus'));
   $('runBtn').addEventListener('click',()=>perform($('runBtn'),async()=>{
     const question=$('question').value.trim();if(!question||question.length>500)throw Error('Question must contain 1–500 characters.');
     status('runStatus','Running Planner, Worker and Reviewer...');
@@ -117,6 +119,7 @@
   $('historyBtn').addEventListener('click',()=>perform($('historyBtn'),async()=>{
     const data=await request('/multi-agent/history');output('history',data);status('healthStatus','History loaded.');
   },'healthStatus'));
+  showHealth().catch(err=>status('healthStatus',err.message,true));
 })();
 </script>
 </body>
