@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Agent Mode | Course Management</title>
+<link rel="stylesheet" href="../../css/styles.css">
+<style>
+  body{background:transparent;padding:2px 0 28px}
+  .ma-layout{max-width:1100px;margin:auto}
+  .ma-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .ma-wide{grid-column:1/-1}
+  .ma-info{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0}
+  .ma-status{font-weight:700;color:#192541}
+  .ma-output{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f4ef;border:1px solid #dfdcd4;border-radius:6px;padding:14px;font:12px/1.55 Consolas,monospace;max-height:350px;overflow:auto}
+  .ma-card-title{margin:0 0 10px}
+  .ma-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .ma-hint{color:#777d88;font-size:13px;line-height:1.6}
+  .ma-warning{color:#8f3b34}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  @media(max-width:700px){.ma-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="ma-layout">
+  <section class="section-heading">
+    <div><p class="section-label">RELEASE 2 · STUDENT 4</p>
+    <h2>Course Multi-Agent Workflow</h2>
+    <p>Planner → Worker → Reviewer → Human Review</p></div>
+    <span class="feature-badge">Course Domain</span>
+  </section>
+  <section class="content-card">
+    <div class="card-header"><div><h3>Service Connection</h3><p>Uses the Student 4 backend API (port 5031 locally).</p></div></div>
+    <label for="apiBase">Backend URL</label>
+    <input id="apiBase" type="url" value="" placeholder="http://localhost:5031">
+    <div class="ma-buttons"><button id="healthBtn" type="button" class="secondary-btn">Check Connection</button>
+    <button id="historyBtn" type="button" class="secondary-btn">Load Recent History</button></div>
+    <p id="healthStatus" class="ma-hint" role="status">Check the connection before running a workflow.</p>
+  </section>
+  <section class="content-card">
+    <h3>Run Workflow</h3>
+    <label for="question">Course management request</label>
+    <textarea id="question" rows="3" maxlength="500">Review the course management system and suggest improvements.</textarea>
+    <div class="ma-buttons"><button id="runBtn" type="button" class="primary-btn">Run Multi-Agent</button></div>
+    <p id="runStatus" class="ma-hint" role="status">A workflow may take several minutes while local models run.</p>
+  </section>
+  <section class="ma-grid">
+    <section class="content-card"><h3>Planner Agent</h3><pre id="planner" class="ma-output">No workflow yet.</pre></section>
+    <section class="content-card"><h3>Worker Agent</h3><pre id="worker" class="ma-output">No workflow yet.</pre></section>
+    <section class="content-card"><h3>Reviewer Agent</h3><pre id="reviewer" class="ma-output">No workflow yet.</pre></section>
+    <section class="content-card"><h3>Workflow Status</h3><pre id="workflow" class="ma-output">No workflow yet.</pre></section>
+  </section>
+  <section class="content-card">
+    <h3>Human Review</h3>
+    <p class="ma-hint">Check the agent output against the evidence before deciding. Decisions are recorded on the server.</p>
+    <div class="ma-grid">
+      <div class="field"><label for="workflowId">Workflow ID</label><input id="workflowId" placeholder="Workflow ID from the run result"></div>
+      <div class="field"><label for="reviewerName">Reviewer</label><input id="reviewerName" value="Student4"></div>
+      <div class="field"><label for="decision">Decision</label><select id="decision"><option>Accept</option><option>Partially Accept</option><option>Correct</option><option>Reject</option></select></div>
+      <div class="field"><label for="comment">Review comment</label><textarea id="comment" rows="3" placeholder="Reason for your decision"></textarea></div>
+      <div class="field ma-wide"><label for="correctedOutput">Corrected output (for Correct)</label><textarea id="correctedOutput" rows="3" placeholder="Provide a corrected response if needed"></textarea></div>
+    </div>
+    <div class="ma-buttons"><button id="decisionBtn" type="button" class="primary-btn">Submit Human Decision</button>
+    <button id="refreshBtn" type="button" class="secondary-btn">Refresh Workflow</button></div>
+    <p id="decisionStatus" class="ma-hint" role="status"></p>
+  </section>
+  <section class="content-card"><h3>Workflow History / Details</h3><pre id="history" class="ma-output">Click Load Recent History to view saved workflows.</pre></section>
+</div>
+<script>
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  // The frontend container is served on a different port from the Student 4 backend.
+  // When using a remote frontend, adjust Backend URL to a reachable API address.
+  $('apiBase').value = window.location.protocol === 'file:' ? 'http://localhost:5031' : `${window.location.protocol}//${window.location.hostname}:5031`;
+  let currentId = '';
+  function base(){return $('apiBase').value.trim().replace(/\/$/,'');}
+  function status(id,text,isError=false){$(id).textContent=text;$(id).classList.toggle('ma-warning',isError);}
+  function output(id,value){$(id).textContent=typeof value === 'string'?value:JSON.stringify(value,null,2);}
+  async function request(path,method='GET',data){
+    const options={method,headers:{'Accept':'application/json'}};
+    if(data!==undefined){options.headers['Content-Type']='application/json';options.body=JSON.stringify(data);}
+    const res=await fetch(base()+path,options);
+    const result=await res.json().catch(()=>({error:'Server returned non-JSON output'}));
+    if(!res.ok)throw Error(result.error||`HTTP ${res.status}`);
+    return result;
+  }
+  async function perform(btn,run,onError){btn.disabled=true;try{await run();}catch(err){status(onError,err.message,true);}finally{btn.disabled=false;}}
+  function showWorkflow(result){
+    currentId=result.workflow_id||currentId;
+    $('workflowId').value=currentId;
+    output('planner',result.planner_result?.plan||result.planner_result||'Not available');
+    output('worker',result.worker_result?.output||result.worker_result||'Not available');
+    output('reviewer',result.reviewer_result?.review||result.reviewer_result||'Not available');
+    output('workflow',{workflow_id:currentId,status:result.status,domain:result.domain,human_decision:result.human_decision,automatic_checks:result.reviewer_result?.automatic_checks});
+  }
+  $('healthBtn').addEventListener('click',()=>perform($('healthBtn'),async()=>{const data=await request('/multi-agent/health');status('healthStatus',`${data.service||'Multi-Agent'}: ${data.status||'unknown'}`);},'healthStatus'));
+  $('runBtn').addEventListener('click',()=>perform($('runBtn'),async()=>{
+    const question=$('question').value.trim();if(!question||question.length>500)throw Error('Question must contain 1–500 characters.');
+    status('runStatus','Running Planner, Worker and Reviewer...');
+    const result=await request('/multi-agent/run','POST',{question});showWorkflow(result);
+    status('runStatus',`Workflow ${result.workflow_id}: ${result.status}`);
+  },'runStatus'));
+  $('refreshBtn').addEventListener('click',()=>perform($('refreshBtn'),async()=>{
+    const id=$('workflowId').value.trim();if(!id)throw Error('Enter a Workflow ID first.');
+    const result=await request('/multi-agent/workflow/'+encodeURIComponent(id));showWorkflow(result);
+    status('decisionStatus',`Workflow status: ${result.status}`);
+  },'decisionStatus'));
+  $('decisionBtn').addEventListener('click',()=>perform($('decisionBtn'),async()=>{
+    const workflow_id=$('workflowId').value.trim();if(!workflow_id)throw Error('Run or select a workflow first.');
+    const decision=$('decision').value;const reviewer=$('reviewerName').value.trim();
+    if(!reviewer)throw Error('Reviewer name is required.');
+    if(decision==='Correct'&&!$('correctedOutput').value.trim())throw Error('Provide corrected output for Correct.');
+    const data=await request('/multi-agent/decision','POST',{workflow_id,decision,reviewer,comment:$('comment').value.trim(),corrected_output:$('correctedOutput').value.trim()});
+    showWorkflow(data);status('decisionStatus',`Decision recorded: ${data.human_decision?.decision||decision}; status: ${data.status}`);
+  },'decisionStatus'));
+  $('historyBtn').addEventListener('click',()=>perform($('historyBtn'),async()=>{
+    const data=await request('/multi-agent/history');output('history',data);status('healthStatus','History loaded.');
+  },'healthStatus'));
+})();
+</script>
+</body>
+</html>
