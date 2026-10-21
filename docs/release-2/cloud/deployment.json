@@ -1,8 +1,8 @@
 {
   "platform": "Azure Container Apps (australiaeast)",
-  "deployed_at": "2026-10-21T14:23:52+00:00",
-  "commit": "54130c0",
-  "workflow_run_url": "manual run of scripts/deploy/deploy_azure.py on Lazizbeks-MacBook-Air.local",
+  "deployed_at": "2026-10-21T15:09:45+00:00",
+  "commit": "d3c048b",
+  "workflow_run_url": "https://github.com/rigels51/ASD-Project-Group18/actions/runs/39620962050",
   "conclusion": "success",
   "ai_profile": "baseline",
   "ai_enabled": [],

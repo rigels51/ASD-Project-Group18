@@ -50,7 +50,9 @@ subscription id). If your subscription restricts regions, set `AZ_LOCATION` to a
 
 `cloud-deployment.yml` runs when any student CI workflow finishes successfully on `main`, or by hand
 (**Actions -> Cloud Deployment - Azure Container Apps -> Run workflow**). Its `ci-gate` job checks that
-the latest run of **every** student workflow on `main` is green before deploying.
+the latest run of **every** student workflow on `main` is green before deploying (for a workflow that
+never runs on `main`, its latest run on any branch). First successful automated deployment:
+https://github.com/rigels51/ASD-Project-Group18/actions/runs/39620962050 (13m 57s).
 
 One-time setup, by the subscription owner, after the first laptop deployment. It uses a
 **user-assigned managed identity** with a GitHub OIDC federated credential: GitHub Actions gets a
@@ -62,9 +64,12 @@ register applications in its directory - "Insufficient privileges".)
 RG=asd-group18-rg
 az provider register -n Microsoft.ManagedIdentity --wait
 az identity create -g $RG -n asd-group18-github -o none
-az identity federated-credential create -g $RG --identity-name asd-group18-github --name github-main \
+# GitHub now sends immutable owner/repo IDs in the token subject (AADSTS700213 if this is wrong).
+# The exact subject appears in the error message of a failed login; for this repository it is:
+az identity federated-credential create -g $RG --identity-name asd-group18-github --name github-main-immutable \
   --issuer https://token.actions.githubusercontent.com \
-  --subject repo:rigels51/ASD-Project-Group18:ref:refs/heads/main --audiences api://AzureADTokenExchange
+  --subject "repo:rigels51@204108526/ASD-Project-Group18@1341323360:ref:refs/heads/main" \
+  --audiences api://AzureADTokenExchange
 az role assignment create --assignee-object-id "$(az identity show -g $RG -n asd-group18-github --query principalId -o tsv)" \
   --assignee-principal-type ServicePrincipal --role Contributor \
   --scope "$(az group show -n $RG --query id -o tsv)"
