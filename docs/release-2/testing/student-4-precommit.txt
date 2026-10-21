@@ -1,0 +1,10 @@
+﻿# Student 4 - Yi Zhang - pre-commit security scan
+# date: 2026-10-22T02:16:31+08:00
+# commit: 2a17253
+# scope: student-4/ (31 tracked files)
+# hooks: ruff-security, detect-secrets, pip-audit (.pre-commit-config.yaml)
+# exit_code: 0
+
+Ruff security rules (flake8-bandit S)....................................Passed
+detect-secrets (no new credentials)......................................Passed
+pip-audit (known-vulnerable dependencies)................................Passed
