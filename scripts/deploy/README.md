@@ -52,17 +52,30 @@ subscription id). If your subscription restricts regions, set `AZ_LOCATION` to a
 (**Actions -> Cloud Deployment - Azure Container Apps -> Run workflow**). Its `ci-gate` job checks that
 the latest run of **every** student workflow on `main` is green before deploying.
 
-One-time setup, by the subscription owner, after the first laptop deployment:
+One-time setup, by the subscription owner, after the first laptop deployment. It uses a
+**user-assigned managed identity** with a GitHub OIDC federated credential: GitHub Actions gets a
+short-lived token for this repository's `main` branch only, and no password is stored anywhere.
+(A service principal from `az ad sp create-for-rbac` is not an option: UTS does not let students
+register applications in its directory - "Insufficient privileges".)
 
 ```bash
-SUB=$(az account show --query id -o tsv)
-az ad sp create-for-rbac --name asd-group18-deploy --role contributor \
-  --scopes /subscriptions/$SUB/resourceGroups/asd-group18-rg --json-auth
+RG=asd-group18-rg
+az provider register -n Microsoft.ManagedIdentity --wait
+az identity create -g $RG -n asd-group18-github -o none
+az identity federated-credential create -g $RG --identity-name asd-group18-github --name github-main \
+  --issuer https://token.actions.githubusercontent.com \
+  --subject repo:rigels51/ASD-Project-Group18:ref:refs/heads/main --audiences api://AzureADTokenExchange
+az role assignment create --assignee-object-id "$(az identity show -g $RG -n asd-group18-github --query principalId -o tsv)" \
+  --assignee-principal-type ServicePrincipal --role Contributor \
+  --scope "$(az group show -n $RG --query id -o tsv)"
+az identity show -g $RG -n asd-group18-github --query "{AZURE_CLIENT_ID:clientId, AZURE_TENANT_ID:tenantId}" -o table
+az account show --query "{AZURE_SUBSCRIPTION_ID:id}" -o table
 ```
 
-Copy the whole JSON output into a repository secret named **`AZURE_CREDENTIALS`**
-(GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret; needs repo admin).
-The principal can only manage the `asd-group18-rg` resource group.
+Add the three values as repository secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and
+`AZURE_SUBSCRIPTION_ID` (GitHub -> Settings -> Secrets and variables -> Actions; needs repo admin).
+The identity can only manage the `asd-group18-rg` resource group, and only workflow runs on `main`
+can use it.
 
 ## Known limitation - database APIs are publicly reachable
 
