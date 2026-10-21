@@ -50,18 +50,24 @@ class ServiceMapTests(unittest.TestCase):
             exposed = re.findall(r"^EXPOSE\s+(\d+)", dockerfile.read_text(encoding="utf-8"), re.MULTILINE)
             self.assertIn(str(svc["port"]), exposed, f"{svc['name']}: target port vs EXPOSE {exposed}")
 
-    def test_internal_calls_use_app_names_that_exist(self):
+    def test_backends_call_databases_over_internal_https(self):
         names = {s["name"] for s in d.SERVICES}
-        for svc in d.SERVICES:
-            for key, value in svc.get("env", {}).items():
-                host = value.removeprefix("http://")
-                self.assertIn(host, names, f"{svc['name']} {key}={value}")
-                target = next(s for s in d.SERVICES if s["name"] == host)
-                self.assertEqual(target["kind"], "database", f"{svc['name']} {key} should point at a database")
+        for svc in (s for s in d.SERVICES if s["kind"] == "backend"):
+            env = dict(item.split("=", 1) for item in d.env_vars(svc, DOMAIN))
+            for key, value in env.items():
+                if not key.endswith("_URL"):
+                    continue
+                match = re.fullmatch(rf"https://([a-z0-9-]+)\.internal\.{re.escape(DOMAIN)}", value)
+                self.assertIsNotNone(match, f"{svc['name']} {key}={value}")
+                self.assertIn(match.group(1), names)
+                self.assertEqual(next(s for s in d.SERVICES if s["name"] == match.group(1))["kind"], "database")
+
+    def test_no_allow_insecure_anywhere(self):
+        self.assertNotIn("--allow-insecure", run_plan())
 
     def test_every_backend_runs_with_ai_disabled(self):
         for svc in (s for s in d.SERVICES if s["kind"] == "backend"):
-            env = dict(item.split("=", 1) for item in d.env_vars(svc))
+            env = dict(item.split("=", 1) for item in d.env_vars(svc, DOMAIN))
             for flag in cfg.CLOUD_AI_FLAGS:
                 self.assertEqual(env[flag], "false", f"{svc['name']} {flag}")
 

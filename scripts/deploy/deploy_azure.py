@@ -56,19 +56,19 @@ SERVICES = [
 
     {"name": "student1-enrolment", "kind": "backend", "record": "student1-backend", "context": ".",
      "dockerfile": "student-1/enrolment-service/Dockerfile", "port": 5001,
-     "env": {"DATABASE_SERVICE_URL": "http://student1-database"}},
+     "env": {"DATABASE_SERVICE_URL": "db:student1-database"}},
     {"name": "student2-backend", "kind": "backend", "record": "student2-backend", "context": ".",
      "dockerfile": "student-2/backend-service/Dockerfile", "port": 5001,
-     "env": {"DATABASE_SERVICE_URL": "http://student2-database"}},
+     "env": {"DATABASE_SERVICE_URL": "db:student2-database"}},
     {"name": "timetable-backend", "kind": "backend", "record": "timetable-backend", "context": "student-3/backend",
      "port": 5003},
     {"name": "student4-enrolment", "kind": "backend", "record": "student4-backend", "context": ".",
      "dockerfile": "student-4/enrolment-service/Dockerfile", "port": 5001,
-     "env": {"DATABASE_SERVICE_URL": "http://student4-database", "STUDENT_SERVICE_URL": "http://student1-database"}},
+     "env": {"DATABASE_SERVICE_URL": "db:student4-database", "STUDENT_SERVICE_URL": "db:student1-database"}},
     {"name": "assessment-service", "kind": "backend", "record": "assessment-backend", "context": ".",
      "dockerfile": "student-5/backend/Dockerfile", "port": 5021,
-     "env": {"ASSESSMENT_DATABASE_SERVICE_URL": "http://assessment-database-service",
-             "STUDENT_SERVICE_URL": "http://student1-database", "COURSE_SERVICE_URL": "http://student4-database"}},
+     "env": {"ASSESSMENT_DATABASE_SERVICE_URL": "db:assessment-database-service",
+             "STUDENT_SERVICE_URL": "db:student1-database", "COURSE_SERVICE_URL": "db:student4-database"}},
 
     {"name": "homepage", "kind": "frontend", "record": "homepage", "context": ".",
      "dockerfile": "shared/frontend/Dockerfile", "port": 80, "rewrite": "shared/frontend"},
@@ -198,21 +198,39 @@ def build_and_push(build_dir, registry, tag, only):
              "-t", image_ref(registry, svc, tag), "-f", str(dockerfile), str(context), "--push"])
 
 
+def ensure_environment():
+    if DRY_RUN or not az("containerapp", "env", "show", "-g", RESOURCE_GROUP, "-n", ENVIRONMENT,
+                         "--query", "name", "-o", "tsv", check=False):
+        az("containerapp", "env", "create", "-g", RESOURCE_GROUP, "-n", ENVIRONMENT, "-l", LOCATION,
+           "-o", "none")
+
+
 def app_exists(name):
     return bool(az("containerapp", "show", "-g", RESOURCE_GROUP, "-n", name, "--query", "name", "-o", "tsv",
                    check=False))
 
 
-def env_vars(svc):
-    values = dict(svc.get("env", {}))
+def internal_url(app, domain):
+    """Internal-ingress address, reachable only from inside the environment.
+
+    Azure now creates Consumption environments as "express", which rejects allowInsecure, so plain
+    http://<app> between apps is not available. HTTPS to <app>.internal.<domain> is - and keeps the
+    database traffic encrypted.
+    """
+    return f"https://{app}.internal.{domain}"
+
+
+def env_vars(svc, domain):
+    values = {k: (internal_url(v.removeprefix("db:"), domain) if v.startswith("db:") else v)
+              for k, v in svc.get("env", {}).items()}
     if svc["kind"] == "backend":
         values.update(AI_OFF)
     return [f"{k}={v}" for k, v in values.items()]
 
 
-def deploy_app(svc, registry, tag, acr_user, acr_password):
+def deploy_app(svc, registry, tag, acr_user, acr_password, domain):
     name, image = svc["name"], image_ref(registry, svc, tag)
-    ev = env_vars(svc)
+    ev = env_vars(svc, domain)
     if not DRY_RUN and app_exists(name):
         log(f"update {name}")
         args = ["containerapp", "update", "-g", RESOURCE_GROUP, "-n", name, "--image", image,
@@ -227,8 +245,6 @@ def deploy_app(svc, registry, tag, acr_user, acr_password):
             "--ingress", "internal" if svc["kind"] == "database" else "external",
             "--min-replicas", "1", "--max-replicas", "1", "--cpu", "0.25", "--memory", "0.5Gi",
             "--registry-server", f"{registry}.azurecr.io", "--registry-username", acr_user]
-    if svc["kind"] == "database":
-        args += ["--allow-insecure", "true"]  # plain http://<db> calls stay inside the environment
     if ev:
         args += ["--env-vars", *ev]
     az(*args, "--registry-password", acr_password, capture=True, secret=True)
@@ -299,9 +315,7 @@ def deploy(args):
     if DRY_RUN or not az("acr", "show", "-n", registry, "--query", "name", "-o", "tsv", check=False):
         az("acr", "create", "-g", RESOURCE_GROUP, "-n", registry, "--sku", "Basic", "--admin-enabled", "true",
            "-l", LOCATION, "-o", "none")
-    if DRY_RUN or not az("containerapp", "env", "show", "-g", RESOURCE_GROUP, "-n", ENVIRONMENT,
-                         "--query", "name", "-o", "tsv", check=False):
-        az("containerapp", "env", "create", "-g", RESOURCE_GROUP, "-n", ENVIRONMENT, "-l", LOCATION, "-o", "none")
+    ensure_environment()
     domain = az("containerapp", "env", "show", "-g", RESOURCE_GROUP, "-n", ENVIRONMENT,
                 "--query", "properties.defaultDomain", "-o", "tsv") or "<env-default-domain>"
     log(f"environment domain: {domain}")
@@ -323,19 +337,22 @@ def deploy(args):
     acr_password = az("acr", "credential", "show", "-n", registry, "--query", "passwords[0].value", "-o", "tsv") or "***"
     for svc in SERVICES:
         if not only or svc["name"] in only:
-            deploy_app(svc, registry, tag, acr_user, acr_password)
+            deploy_app(svc, registry, tag, acr_user, acr_password, domain)
 
     log("6/6 smoke test")
     failures = []
     for svc in SERVICES:
-        if svc["kind"] == "database":
+        if svc["kind"] == "database" or (only and svc["name"] not in only):
             continue
         url = public_url(svc["name"], domain) + SMOKE_PATHS.get(svc["name"], "/")
         status = smoke(url)
         print(f"  {svc['name']:<28} {url} -> {status}", flush=True)
         if status not in (200, "dry-run"):
             failures.append(svc["name"])
-    write_record(domain, tag, ok=not failures)
+    if only:
+        log("partial deploy (--only): deployment.json not rewritten")
+    else:
+        write_record(domain, tag, ok=not failures)
     if failures:
         sys.exit(f"[deploy] smoke test failed for: {', '.join(failures)} "
                  f"(az containerapp logs show -g {RESOURCE_GROUP} -n <app> --tail 50)")
