@@ -7,7 +7,9 @@ name: Cloud Deployment - Azure Container Apps
 # so one red feature blocks the release instead of shipping half-tested code.
 #
 # Baseline cloud profile: AI-Mode, MCP, RAG and Multi-Agent are disabled by default.
-# One-time setup: repository secret AZURE_CREDENTIALS (see scripts/deploy/README.md).
+# Azure login: GitHub OIDC -> user-assigned managed identity (no stored password).
+# One-time setup: repository secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+# (see scripts/deploy/README.md).
 
 on:
   workflow_run:
@@ -24,6 +26,7 @@ on:
 permissions:
   contents: read
   actions: read
+  id-token: write   # OIDC token for azure/login
 
 concurrency:
   group: cloud-deployment
@@ -79,10 +82,12 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Azure login
+      - name: Azure login (OIDC, managed identity)
         uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
