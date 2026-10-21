@@ -6,13 +6,21 @@ on:
   push:
     branches:
       - Yi-Zhang
+      - Student4-Yi-Zhang-release2
+      - main
     paths:
       - 'student-4/**'
       - 'ai-services/mcp-server/**'
       - 'ai-services/rag-server/**'
       - 'ai-services/multi-agent-server/**'
+      - 'agentic_loop/config/review_config.py'
+      - 'agentic_loop/collectors/cloud_collector.py'
+      - 'agentic_loop/pipelines/cloud_pipeline.py'
+      - 'agentic_loop/tests/test_cloud_pipeline.py'
+      - 'scripts/deploy/**'
       - 'prompts/**'
       - 'docker-compose.yml'
+      - '.github/workflows/cloud-deployment.yml'
       - '.github/workflows/YiZhang.yml'
 
   pull_request:
@@ -23,8 +31,14 @@ on:
       - 'ai-services/mcp-server/**'
       - 'ai-services/rag-server/**'
       - 'ai-services/multi-agent-server/**'
+      - 'agentic_loop/config/review_config.py'
+      - 'agentic_loop/collectors/cloud_collector.py'
+      - 'agentic_loop/pipelines/cloud_pipeline.py'
+      - 'agentic_loop/tests/test_cloud_pipeline.py'
+      - 'scripts/deploy/**'
       - 'prompts/**'
       - 'docker-compose.yml'
+      - '.github/workflows/cloud-deployment.yml'
       - '.github/workflows/YiZhang.yml'
 
 
@@ -95,13 +109,20 @@ jobs:
           grep -q 'MULTI_AGENT_SERVICE_URL' docker-compose.yml
           grep -q 'MULTI_AGENT_ENABLED' docker-compose.yml
 
-      - name: Test Student 4 backend endpoints
+      - name: Test Student 4 CRUD and AI Mode endpoints
         env:
+          AI_MODE_ENABLED: "false"
           MULTI_AGENT_ENABLED: "false"
           MCP_ENABLED: "false"
           RAG_ENABLED: "false"
         run: |
           python -m unittest discover -s student-4/tests -p 'test_*.py' -v
+
+
+      - name: Test Student 4 Azure deployment review configuration
+        run: |
+          python -m unittest scripts.deploy.test_deploy_azure -v
+          python -m unittest agentic_loop.tests.test_cloud_pipeline -v
 
       - name: Build Student 4 frontend
         run: |
@@ -109,6 +130,8 @@ jobs:
             -f student-4/frontend-service/Dockerfile \
             -t student4-frontend \
             student-4/frontend-service
+          docker run --rm --entrypoint sh student4-frontend -c \
+            'test -f /usr/share/nginx/html/tabs/multi-agent.html && grep -q "http://localhost:5031" /usr/share/nginx/html/tabs/multi-agent.html && grep -q "/multi-agent/run" /usr/share/nginx/html/tabs/multi-agent.html'
 
 
       - name: Build Student 4 enrolment service
@@ -151,4 +174,6 @@ jobs:
           echo "RAG validation: PASS"
           echo "Multi-Agent integration: PASS"
           echo "GET /courses and POST /courses tests: PASS"
+          echo "AI Mode enabled and disabled tests: PASS"
+          echo "Azure deployment review tests: PASS"
           echo "Docker build validation: PASS"

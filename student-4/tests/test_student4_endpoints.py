@@ -66,5 +66,48 @@ class CourseEndpointTests(unittest.TestCase):
         )
 
 
+class AIModeEndpointTests(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app()
+        self.app.config.update(TESTING=True)
+        self.client = self.app.test_client()
+
+    def test_all_ai_routes_return_503_without_calling_dependencies_when_disabled(self):
+        routes = [
+            ("/ask", {"question": "Hello"}),
+            ("/ask-with-context", {"question": "What is ASD101?"}),
+            ("/pattern-selection", {"architecture_request": "Choose a pattern"}),
+            ("/architecture-review", {"architecture_request": "Review this design"}),
+            ("/adr-review", {"architecture_request": "Review this ADR"}),
+        ]
+
+        with (
+            patch("routes.ai_mode.AI_MODE_ENABLED", False),
+            patch("routes.ai_mode.create_chat_completion") as mock_chat,
+            patch("routes.ai_mode.call_architecture_agent") as mock_architecture,
+            patch("routes.ai_mode.get_courses") as mock_courses,
+            patch("routes.ai_mode.get_enrolments") as mock_enrolments,
+        ):
+            for path, data in routes:
+                with self.subTest(path=path):
+                    response = self.client.post(path, data=data)
+                    self.assertEqual(response.status_code, 503)
+                    self.assertIn(b"AI Mode is disabled", response.data)
+
+        mock_chat.assert_not_called()
+        mock_architecture.assert_not_called()
+        mock_courses.assert_not_called()
+        mock_enrolments.assert_not_called()
+
+    @patch("routes.ai_mode.create_chat_completion", return_value="AI is available")
+    def test_ai_route_still_works_when_enabled(self, mock_chat):
+        with patch("routes.ai_mode.AI_MODE_ENABLED", True):
+            response = self.client.post("/ask", data={"question": "Hello"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"AI is available", response.data)
+        mock_chat.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

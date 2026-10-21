@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, request
 
 from services.llm_client import (
@@ -15,6 +17,20 @@ from services.prompt_loader import load_prompt
 
 
 ai_mode_bp = Blueprint("ai_mode", __name__)
+
+AI_MODE_ENABLED = os.getenv(
+    "AI_MODE_ENABLED",
+    "true",
+).strip().lower() in {"1", "true", "yes", "on"}
+
+
+@ai_mode_bp.before_request
+def require_ai_mode_enabled():
+    """Keep every Student 4 AI route off when the feature flag is disabled."""
+    if not AI_MODE_ENABLED:
+        return "<p>AI Mode is disabled</p>", 503
+
+    return None
 
 
 # =========================================================
