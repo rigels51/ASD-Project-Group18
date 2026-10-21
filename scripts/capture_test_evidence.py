@@ -34,7 +34,14 @@ STUDENTS = {
 
 
 def _run(args):
-    return subprocess.run(args, cwd=ROOT, capture_output=True, text=True)  # noqa: S603 - fixed tools
+    return subprocess.run(
+        args,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )  # noqa: S603 - fixed tools
 
 
 def _now():
@@ -87,13 +94,18 @@ def ci(student: int, args) -> int:
                      "--run-url/--conclusion/--passed/--failed by hand.")
         listing = _run(["gh", "run", "list", "--workflow", info["workflow"], "--limit", "1",
                         "--json", "databaseId,conclusion,url,headSha,createdAt"])
+        if listing.returncode != 0:
+            sys.exit(f"Could not list runs for {info['workflow']}: {listing.stderr.strip()}")
         runs = json.loads(listing.stdout or "[]")
-        if listing.returncode != 0 or not runs:
+        if not runs:
             sys.exit(f"No runs found for {info['workflow']}: {listing.stderr.strip()}")
         run = runs[0]
         fields.update(run_url=run["url"], conclusion=run["conclusion"] or "in_progress",
                       commit=run["headSha"][:7], date=run["createdAt"])
-        log = _run(["gh", "run", "view", str(run["databaseId"]), "--log"]).stdout
+        log_result = _run(["gh", "run", "view", str(run["databaseId"]), "--log"])
+        if log_result.returncode != 0:
+            sys.exit(f"Could not retrieve logs for run {run['url']}: {log_result.stderr.strip()}")
+        log = log_result.stdout
         test_lines = [ln.split("\t")[-1] for ln in log.splitlines()
                       if re.search(r"(PASSED|FAILED|ERROR)\s*\[|\d+ (passed|failed)", ln)]
         log_tail = "\n".join(test_lines[-40:])

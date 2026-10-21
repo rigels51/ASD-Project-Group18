@@ -57,7 +57,7 @@ Students who haven't added evidence yet show up as `MISSING`, so you can run it 
 | Student | Workflow | Endpoints (fill in) |
 |---|---|---|
 | 1 Rigel | `RigelRivamonte.yml` | |
-| 2 Jeriko | `JerikoArceo.yml` | |
+| 2 Jeriko | `JerikoArceo.yml` | `GET /staff` (get_staff_route), `POST /staff` (add_staff) |
 | 3 Lazizbek | `student-3.yml` | |
 | 4 Yi | `YiZhang.yml` | |
 | 5 Vu | `student-5.yml` | `GET /assessments` (get_assessments_route), `POST /assessments` (create_assessment_route) |
