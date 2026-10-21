@@ -84,7 +84,7 @@ def detect_domain(user_request: str) -> str | None:
 def extract_filters(user_request: str) -> dict[str, list[str]]:
     return {
         "course_codes": sorted({c for c in COURSE_CODE.findall(user_request.upper())}),
-        "student_ids": sorted({f"STU-{re.sub(r'\D', '', s)}" for s in STUDENT_ID.findall(user_request)}),
+        "student_ids": sorted({"STU-" + re.sub(r"\D", "", s) for s in STUDENT_ID.findall(user_request)}),
     }
 
 

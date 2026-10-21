@@ -1,7 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -53,6 +53,111 @@ class AiModeRouteTests(unittest.TestCase):
             "/retrieve",
             {"query": "Arts department", "k": 3, "caller": "student-2"},
         )
+
+
+class MultiAgentRouteTests(unittest.TestCase):
+    def setUp(self):
+        self.client = create_app().test_client()
+
+    @patch("routes.multi_agent_mode.requests.request")
+    def test_run_forwards_staff_domain_and_question(self, request):
+        response_from_server = Mock()
+        response_from_server.json.return_value = {
+            "workflow_id": "workflow-123",
+            "status": "pending_human_review",
+        }
+        response_from_server.status_code = 200
+        request.return_value = response_from_server
+
+        response = self.client.post(
+            "/multi-agent/run",
+            json={"question": "Summarise staff in Arts"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["workflow_id"], "workflow-123")
+        request.assert_called_once_with(
+            "POST",
+            "http://localhost:5004/workflow",
+            timeout=240,
+            json={
+                "user_request": "Summarise staff in Arts",
+                "domain": "staff",
+                "caller": "staff-backend",
+            },
+        )
+
+    def test_run_rejects_empty_or_oversized_question(self):
+        empty = self.client.post("/multi-agent/run", json={"question": " "})
+        oversized = self.client.post(
+            "/multi-agent/run",
+            json={"question": "x" * 501},
+        )
+
+        self.assertEqual(empty.status_code, 400)
+        self.assertEqual(oversized.status_code, 400)
+
+    @patch("routes.multi_agent_mode.MULTI_AGENT_ENABLED", False)
+    @patch("routes.multi_agent_mode.requests.request")
+    def test_all_routes_report_disabled(self, request):
+        responses = (
+            self.client.get("/multi-agent/health"),
+            self.client.post("/multi-agent/run", json={"question": "staff"}),
+            self.client.post(
+                "/multi-agent/decision",
+                json={"workflow_id": "workflow-123", "decision": "Accept"},
+            ),
+            self.client.get("/multi-agent/workflow/workflow-123"),
+            self.client.get("/multi-agent/history"),
+        )
+
+        for response in responses:
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.json["status"], "disabled")
+            self.assertIn("disabled", response.json["error"])
+        request.assert_not_called()
+
+    @patch("routes.multi_agent_mode.requests.request")
+    def test_decision_is_forwarded_to_shared_server(self, request):
+        response_from_server = Mock()
+        response_from_server.json.return_value = {"status": "approved"}
+        response_from_server.status_code = 200
+        request.return_value = response_from_server
+
+        response = self.client.post(
+            "/multi-agent/decision",
+            json={
+                "workflow_id": "workflow-123",
+                "decision": "Accept",
+                "reviewer": "Jeriko",
+                "comment": "",
+                "corrected_output": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        request.assert_called_once_with(
+            "POST",
+            "http://localhost:5004/workflow/workflow-123/decision",
+            timeout=15,
+            json={
+                "decision": "Accept",
+                "reviewer": "Jeriko",
+                "comment": "",
+                "corrected_output": "",
+            },
+        )
+
+    @patch("routes.multi_agent_mode.requests.request")
+    def test_non_json_server_response_is_reported(self, request):
+        response_from_server = Mock()
+        response_from_server.json.side_effect = ValueError("invalid JSON")
+        request.return_value = response_from_server
+
+        response = self.client.get("/multi-agent/health")
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("invalid response", response.json["error"])
 
 
 if __name__ == "__main__":

@@ -168,6 +168,19 @@ tbody tr:hover{background:#fbfaf6;}
   background:#fbfaf7; border:1px solid var(--line); border-radius:7px; padding:14px;
   color:var(--ink-soft); font:12.5px/1.55 'IBM Plex Mono', monospace;
 }
+.multi-agent-history-header{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.multi-agent-history-header h3{font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--slate);}
+.multi-agent-history{padding-left:20px;}
+.multi-agent-history li{margin:6px 0;}
+.multi-agent-history-item{border:0; padding:0; background:none; color:var(--ink-soft); cursor:pointer; text-align:left;}
+.multi-agent-history-item:hover{text-decoration:underline;}
+.multi-agent-step{border:1px solid var(--line); border-radius:8px; padding:10px; margin:8px 0;}
+.multi-agent-step h4{margin:0 0 8px; color:var(--slate); font-size:12px; text-transform:uppercase; letter-spacing:0.06em;}
+.multi-agent-step pre{white-space:pre-wrap; overflow-wrap:anywhere; margin:8px 0 0; font:12.5px/1.55 'IBM Plex Mono', monospace;}
+.multi-agent-risk-low{color:#3f6c51;}
+.multi-agent-risk-medium{color:#a2632a;}
+.multi-agent-risk-high{color:#8a3c3c;}
+.multi-agent-decision-form{max-width:520px;}
 
 /* ---------- AI Mode ---------- */
 .ai-form-row{margin-bottom:10px;}

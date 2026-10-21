@@ -18,7 +18,7 @@ os.environ["MULTI_AGENT_LOG_DIR"] = _tmp
 import coordinator  # noqa: E402
 import evidence  # noqa: E402
 import llm  # noqa: E402
-from agents import worker_agent  # noqa: E402
+from agents import reviewer_agent, worker_agent  # noqa: E402
 from app import app  # noqa: E402
 
 ASSESSMENTS = [
@@ -26,6 +26,16 @@ ASSESSMENTS = [
      "due_date": "2026-09-05", "max_mark": 100, "weight": 20},
     {"assessment_id": 7, "course_id": "DBS101", "assessment_name": "Final Exam", "assessment_type": "Exam",
      "due_date": "2026-11-05", "max_mark": 100, "weight": 45},
+]
+STAFF = [
+    {"staff_id": 1, "given_name": "Nero", "family_name": "Garcia", "department": "Arts",
+     "employment_type": "Full-time"},
+    {"staff_id": 2, "given_name": "Tiffany", "family_name": "Day", "department": "Arts",
+     "employment_type": "Part-time"},
+    {"staff_id": 3, "given_name": "Jane", "family_name": "Remover", "department": "Arts",
+     "employment_type": "Full-time"},
+    {"staff_id": 4, "given_name": "Jet", "family_name": "Smith", "department": "Computer Science",
+     "employment_type": "Full-time"},
 ]
 
 
@@ -57,6 +67,12 @@ class BaseCase(unittest.TestCase):
 
 
 class WorkflowTests(BaseCase):
+    def test_student_id_filters_are_normalized(self):
+        self.assertEqual(
+            evidence.extract_filters("Show records for STU1001 and STU-1004"),
+            {"course_codes": [], "student_ids": ["STU-1001", "STU-1004"]},
+        )
+
     def test_agents_run_in_order_and_worker_uses_filtered_evidence(self):
         wf = coordinator.run_workflow("Summarise assessments for ASD101", "assessment")
         self.assertEqual(wf["status"], "pending_human_review")
@@ -76,7 +92,47 @@ class WorkflowTests(BaseCase):
         wf = coordinator.run_workflow("Assessments for ASD101", "assessment")
         self.assertIn("identifier not in evidence: MAT999", wf["worker_result"]["grounding_issues"])
         self.assertNotIn("MAT999 is due", wf["worker_result"]["output"].split("(Model answer")[0])
-        self.assertEqual(wf["reviewer_result"]["risk_level"], "medium")   # model said low; rules win
+        self.assertEqual(wf["reviewer_result"]["risk_level"], "high")   # unsupported claims require strict review
+
+    def test_staff_department_answer_uses_exact_matching_records(self):
+        with mock.patch.object(
+            evidence,
+            "fetch_evidence",
+            return_value={
+                "records": STAFF,
+                "sources": [{"label": "staff", "total": len(STAFF), "matched": len(STAFF)}],
+                "errors": [],
+            },
+        ):
+            wf = coordinator.run_workflow(
+                "Summarise the staff in the Arts department",
+                "staff",
+            )
+
+        output = wf["worker_result"]["output"]
+        self.assertIn("3 staff member(s) in Arts", output)
+        self.assertIn("Nero Garcia", output)
+        self.assertIn("Tiffany Day", output)
+        self.assertIn("Jane Remover", output)
+        self.assertNotIn("Jet Smith", output)
+        self.assertEqual(wf["worker_result"]["evidence_count"], 3)
+        self.assertEqual(wf["worker_result"]["model"], "deterministic (evidence-filtered)")
+        self.assertEqual(wf["reviewer_result"]["risk_level"], "low")
+
+    def test_unsupported_worker_claims_are_high_risk(self):
+        plan = {"status": "completed"}
+        worker = {
+            "status": "completed",
+            "evidence_count": 1,
+            "source_errors": [],
+            "grounding_issues": ["staff member is not in the selected evidence"],
+            "model": "qwen2.5:0.5b",
+            "evidence": STAFF[:1],
+            "output": "Unsupported staff claim.",
+        }
+
+        checks = reviewer_agent.automatic_checks(plan, worker)
+        self.assertEqual(reviewer_agent.rule_risk(checks), "high")
 
     def test_models_down_still_completes_with_fallbacks(self):
         self.chat.side_effect = lambda *a, **k: (None, "down")

@@ -7,8 +7,8 @@ and records every step in two append-only evidence files.
 | Agent | Model | Job |
 |---|---|---|
 | Planner | `qwen2.5:0.5b` | Picks the feature domain + evidence sources (rule-based, reproducible) and writes the plan |
-| Worker | `qwen2.5:0.5b` | Fetches only the evidence the plan named, answers from it; any ID not in the evidence is caught and the answer is replaced |
-| Reviewer | `llama3.1:8b` | 6 automatic checks + model review → risk `low/medium/high` and a recommended decision. The model can raise the risk, never lower it |
+| Worker | `qwen2.5:0.5b` | Fetches only the evidence the plan named and answers from it; unsupported identifiers are caught and replaced. Staff questions naming a department use exact record filtering and a deterministic member list |
+| Reviewer | `llama3.1:8b` | 6 automatic checks + model review → risk `low/medium/high` and a recommended decision. Rule-based high-risk checks (including unsupported claims) cannot be downgraded by the model |
 | Human | — | `Accept`, `Partially Accept`, `Correct` (with corrected output), or `Reject`. Nothing is final until this step |
 
 If Ollama is down, every agent falls back to a deterministic answer and says so, so the
