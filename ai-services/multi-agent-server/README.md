@@ -2,7 +2,8 @@
 
 One local, **non-containerised** server shared by all five features. It runs
 **Planner → Worker → Reviewer → Human Review** on live data from a feature's own API,
-and records every step in two append-only evidence files.
+and records every step in two append-only evidence files. When a feature specifies its
+domain, the planner rejects requests that clearly match a different domain.
 
 | Agent | Model | Job |
 |---|---|---|

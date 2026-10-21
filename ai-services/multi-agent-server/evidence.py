@@ -28,7 +28,7 @@ def _url(env: str, default: str) -> str:
 DOMAINS: dict[str, dict[str, Any]] = {
     "students": {
         "owner": "Student 1 - Student Records",
-        "keywords": ["student record", "gpa", "enrolled", "on leave", "graduated", "year level"],
+        "keywords": ["student", "students", "student record", "gpa", "enrolled", "on leave", "graduated", "year level"],
         "sources": [
             ("students", lambda: f"{_url('STUDENT1_DATABASE_URL', 'http://localhost:5002')}/students",
              ("student_id", "name", "course", "year_level", "gpa", "status")),

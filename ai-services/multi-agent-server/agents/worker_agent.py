@@ -12,34 +12,55 @@ PROMPT = (Path(__file__).resolve().parents[1] / "prompts" / "worker_prompt.txt")
 IDENTIFIER = re.compile(r"\b(?:STU-\d{3,4}|[A-Z]{2,4}\d{3})\b")
 
 
-def _staff_department_records(
+def _staff_filter_records(
     user_request: str, records: list[dict]
-) -> tuple[list[dict], str | None]:
-    """Apply an explicitly named department filter using the source records."""
+) -> tuple[list[dict], list[str]]:
+    """Apply department and employment-type filters named in the request."""
     departments = {
         str(record["department"])
         for record in records
         if record.get("department")
     }
-    request_lower = user_request.lower()
-    matches = sorted(
-        (
-            department
-            for department in departments
-            if re.search(
-                rf"(?<!\w){re.escape(department.lower())}(?!\w)",
-                request_lower,
-            )
-        ),
-        key=str.lower,
-    )
-    if not matches:
-        return records, None
-    selected = set(matches)
-    return [
-        record for record in records
-        if record.get("department") in selected
-    ], ", ".join(matches)
+    employment_types = {
+        str(record["employment_type"])
+        for record in records
+        if record.get("employment_type")
+    }
+    normalized_request = re.sub(r"[-_]+", " ", user_request.lower())
+
+    def find_values(values: set[str]) -> list[str]:
+        return sorted(
+            (
+                value
+                for value in values
+                if re.search(
+                    rf"(?<!\w){re.escape(re.sub(r'[-_]+', ' ', value.lower()))}(?!\w)",
+                    normalized_request,
+                )
+            ),
+            key=str.lower,
+        )
+
+    selected_departments = find_values(departments)
+    selected_employment_types = find_values(employment_types)
+    if not selected_departments and not selected_employment_types:
+        return records, []
+
+    filtered = records
+    if selected_departments:
+        filtered = [
+            record for record in filtered
+            if record.get("department") in selected_departments
+        ]
+    if selected_employment_types:
+        filtered = [
+            record for record in filtered
+            if record.get("employment_type") in selected_employment_types
+        ]
+
+    labels = [f"{value} department" for value in selected_departments]
+    labels.extend(f"{value} employment" for value in selected_employment_types)
+    return filtered, labels
 
 
 def grounding_issues(output: str, records: list[dict]) -> list[str]:
@@ -61,14 +82,14 @@ def generate_output(user_request: str, plan: dict[str, Any]) -> dict[str, Any]:
     domain = plan["domain"]
     retrieved = evidence.fetch_evidence(domain, plan.get("filters") or {})
     records = retrieved["records"]
-    department_filter = None
+    staff_filters = []
     if domain == "staff":
-        records, department_filter = _staff_department_records(user_request, records)
+        records, staff_filters = _staff_filter_records(user_request, records)
 
     if not records:
         reason = "; ".join(retrieved["errors"]) or "no records matched the request filters"
-        if department_filter is None and domain == "staff" and "department" in user_request.lower():
-            reason = "no staff records matched the requested department"
+        if staff_filters:
+            reason = f"no staff records matched the requested {' and '.join(staff_filters)}"
         return {
             "status": "no_evidence",
             "agent": "worker_agent",
@@ -82,17 +103,18 @@ def generate_output(user_request: str, plan: dict[str, Any]) -> dict[str, Any]:
             "grounding_issues": [],
         }
 
-    if department_filter:
+    if staff_filters:
         names = [
             f"{record.get('given_name', '')} {record.get('family_name', '')}".strip()
             for record in records
         ]
         lines = "\n".join(f"- {name}" for name in names)
         output = (
-            f"Output: {len(records)} staff member(s) in {department_filter}:\n"
+            f"Output: {len(records)} staff member(s) matching "
+            f"{' and '.join(staff_filters)}:\n"
             f"{lines}\n"
             "Evidence Used: staff service\n"
-            "Limitations: Exact department match against retrieved staff records."
+            "Limitations: Exact match against retrieved staff records."
         )
         return {
             "status": "completed",

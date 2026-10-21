@@ -86,6 +86,19 @@ class WorkflowTests(BaseCase):
         self.assertEqual(coordinator.run_workflow("List upcoming exam weights")["domain"], "assessment")
         self.assertEqual(coordinator.run_workflow("What is the weather?")["status"], "rejected_by_planner")
 
+    def test_rejects_student_question_from_staff_workflow(self):
+        with mock.patch.object(coordinator, "generate_output") as generate_output:
+            workflow = coordinator.run_workflow(
+                "How many students are enrolled?",
+                "staff",
+            )
+
+        self.assertEqual(workflow["status"], "rejected_by_planner")
+        self.assertIn("feature handles staff questions", workflow["planner_result"]["error"])
+        self.assertIn("about students", workflow["planner_result"]["error"])
+        self.assertEqual(workflow["participating_agents"], ["planner_agent"])
+        generate_output.assert_not_called()
+
     def test_hallucinated_identifier_is_replaced_and_raises_risk(self):
         self.chat.side_effect = lambda m, s, u, max_tokens=0: (
             ("Output: MAT999 is due.", None) if "Worker" in s else fake_chat(m, s, u))
@@ -110,7 +123,8 @@ class WorkflowTests(BaseCase):
             )
 
         output = wf["worker_result"]["output"]
-        self.assertIn("3 staff member(s) in Arts", output)
+        self.assertIn("3 staff member(s)", output)
+        self.assertIn("Arts department", output)
         self.assertIn("Nero Garcia", output)
         self.assertIn("Tiffany Day", output)
         self.assertIn("Jane Remover", output)
@@ -118,6 +132,30 @@ class WorkflowTests(BaseCase):
         self.assertEqual(wf["worker_result"]["evidence_count"], 3)
         self.assertEqual(wf["worker_result"]["model"], "deterministic (evidence-filtered)")
         self.assertEqual(wf["reviewer_result"]["risk_level"], "low")
+
+    def test_staff_full_time_question_lists_only_full_time_staff(self):
+        with mock.patch.object(
+            evidence,
+            "fetch_evidence",
+            return_value={
+                "records": STAFF,
+                "sources": [{"label": "staff", "total": len(STAFF), "matched": len(STAFF)}],
+                "errors": [],
+            },
+        ):
+            wf = coordinator.run_workflow(
+                "Which staff were full-time?",
+                "staff",
+            )
+
+        output = wf["worker_result"]["output"]
+        self.assertIn("3 staff member(s)", output)
+        self.assertIn("Nero Garcia", output)
+        self.assertIn("Jane Remover", output)
+        self.assertNotIn("Tiffany Day", output)
+        self.assertIn("Jet Smith", output)
+        self.assertEqual(wf["worker_result"]["evidence_count"], 3)
+        self.assertEqual(wf["worker_result"]["model"], "deterministic (evidence-filtered)")
 
     def test_unsupported_worker_claims_are_high_risk(self):
         plan = {"status": "completed"}
