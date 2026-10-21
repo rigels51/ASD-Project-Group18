@@ -234,17 +234,11 @@ def deploy_app(svc, registry, tag, acr_user, acr_password, domain):
     name, image = svc["name"], image_ref(registry, svc, tag)
     ev = env_vars(svc, domain)
     if not DRY_RUN and app_exists(name):
-        log(f"update {name}")
-        args = ["containerapp", "update", "-g", RESOURCE_GROUP, "-n", name, "--image", image,
-                "--min-replicas", "1", "--max-replicas", "1"]
-        if ev:
-            args += ["--set-env-vars", *ev]
-        az(*args, capture=True)
-        # Ingress is not changed by "update"; set it explicitly so an app created by an earlier
-        # version of this script (e.g. internal-only databases) converges to the current design.
-        az("containerapp", "ingress", "enable", "-g", RESOURCE_GROUP, "-n", name, "--type", "external",
-           "--target-port", str(svc["port"]), "-o", "none", capture=True)
-        return
+        # Express environments do not restart a running app on "containerapp update" (and
+        # "revision restart" fails), so a changed image or setting would never take effect.
+        # Recreate instead. Seed data is baked into each image, so a fresh database starts clean.
+        log(f"recreate {name} (express environments ignore in-place updates)")
+        az("containerapp", "delete", "-g", RESOURCE_GROUP, "-n", name, "--yes", "-o", "none")
     log(f"create {name}")
     args = ["containerapp", "create", "-g", RESOURCE_GROUP, "-n", name, "--environment", ENVIRONMENT,
             "--image", image, "--target-port", str(svc["port"]),
