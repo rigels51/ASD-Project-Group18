@@ -10,6 +10,7 @@ on:
       - 'student-4/**'
       - 'ai-services/mcp-server/**'
       - 'ai-services/rag-server/**'
+      - 'ai-services/multi-agent-server/**'
       - 'prompts/**'
       - 'docker-compose.yml'
       - '.github/workflows/YiZhang.yml'
@@ -21,6 +22,7 @@ on:
       - 'student-4/**'
       - 'ai-services/mcp-server/**'
       - 'ai-services/rag-server/**'
+      - 'ai-services/multi-agent-server/**'
       - 'prompts/**'
       - 'docker-compose.yml'
       - '.github/workflows/YiZhang.yml'
@@ -64,6 +66,7 @@ jobs:
           python -m py_compile student-4/enrolment-service/routes/ai_mode.py
           python -m py_compile student-4/enrolment-service/routes/mcp_mode.py
           python -m py_compile student-4/enrolment-service/routes/rag_mode.py
+          python -m py_compile student-4/enrolment-service/routes/multi_agent_mode.py
 
           python -m py_compile student-4/enrolment-service/services/database_api.py
           python -m py_compile student-4/enrolment-service/services/llm_client.py
@@ -85,6 +88,20 @@ jobs:
           python -m py_compile ai-services/rag-server/student4_rag.py
           python -m py_compile ai-services/rag-server/rag_http_server.py
 
+
+      - name: Validate Student 4 Multi-Agent integration
+        run: |
+          python -m py_compile student-4/enrolment-service/routes/multi_agent_mode.py
+          grep -q 'MULTI_AGENT_SERVICE_URL' docker-compose.yml
+          grep -q 'MULTI_AGENT_ENABLED' docker-compose.yml
+
+      - name: Test Student 4 backend endpoints
+        env:
+          MULTI_AGENT_ENABLED: "false"
+          MCP_ENABLED: "false"
+          RAG_ENABLED: "false"
+        run: |
+          python -m unittest discover -s student-4/tests -p 'test_*.py' -v
 
       - name: Build Student 4 frontend
         run: |
@@ -125,11 +142,13 @@ jobs:
           echo "Student 4 MCP and RAG configuration found."
 
 
-      - name: Student 4 Release 1 validation complete
+      - name: Student 4 Release 2 validation complete
         run: |
           echo "Student 4 Course and Enrollment validation passed."
           echo "Database validation: PASS"
           echo "Backend validation: PASS"
           echo "MCP validation: PASS"
           echo "RAG validation: PASS"
+          echo "Multi-Agent integration: PASS"
+          echo "GET /courses and POST /courses tests: PASS"
           echo "Docker build validation: PASS"
