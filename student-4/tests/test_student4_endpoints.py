@@ -1,4 +1,4 @@
-"""Student 4 release-2 tests: GET /courses and POST /courses.
+"""Student 4 release-2 endpoint and frontend integration tests.
 
 Runs against Flask's test client and mocks the downstream database HTTP
 service. No live Docker, Ollama, MCP, or RAG service is required.
@@ -107,6 +107,107 @@ class AIModeEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"AI is available", response.data)
         mock_chat.assert_called_once()
+
+
+class FeatureStatusEndpointTests(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app()
+        self.app.config.update(TESTING=True)
+        self.client = self.app.test_client()
+
+    def test_mcp_status_reports_enabled_without_contacting_mcp_server(self):
+        with (
+            patch("services.mcp_api.MCP_ENABLED", True),
+            patch("routes.mcp_mode.list_course_tools") as mock_tools,
+        ):
+            response = self.client.get("/mcp/status")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["status"], "enabled")
+        self.assertTrue(response.get_json()["enabled"])
+        mock_tools.assert_not_called()
+
+    def test_mcp_status_and_tool_result_report_disabled(self):
+        with (
+            patch("services.mcp_api.MCP_ENABLED", False),
+            patch("services.mcp_api._call_tool_async") as mock_tool,
+        ):
+            status = self.client.get("/mcp/status")
+            result = self.client.post("/mcp/run", data={"tool": "list_courses"})
+
+        self.assertEqual(status.status_code, 503)
+        self.assertEqual(status.get_json()["status"], "disabled")
+        self.assertFalse(status.get_json()["enabled"])
+        self.assertIn(b"MCP Mode is disabled", result.data)
+        self.assertEqual(result.status_code, 503)
+        mock_tool.assert_not_called()
+
+    def test_rag_status_reports_enabled_without_contacting_rag_server(self):
+        with (
+            patch("services.rag_api.RAG_ENABLED", True),
+            patch("routes.rag_mode.refresh_course_rag") as mock_refresh,
+        ):
+            response = self.client.get("/rag/status")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["status"], "enabled")
+        self.assertTrue(response.get_json()["enabled"])
+        mock_refresh.assert_not_called()
+
+    def test_rag_status_and_query_result_report_disabled(self):
+        with (
+            patch("services.rag_api.RAG_ENABLED", False),
+            patch("services.rag_api.requests.post") as mock_answer,
+        ):
+            status = self.client.get("/rag/status")
+            result = self.client.post("/rag/answer", data={"query": "What is ASD101?"})
+
+        self.assertEqual(status.status_code, 503)
+        self.assertEqual(status.get_json()["status"], "disabled")
+        self.assertFalse(status.get_json()["enabled"])
+        self.assertIn(b"RAG Mode is disabled", result.data)
+        self.assertEqual(result.status_code, 503)
+        mock_answer.assert_not_called()
+
+
+class FeatureStatusFrontendTests(unittest.TestCase):
+    FRONTEND = Path(__file__).resolve().parents[1] / "frontend-service" / "templates" / "tabs"
+
+    def assert_dynamic_status_ui(self, filename, mode):
+        text = (self.FRONTEND / filename).read_text(encoding="utf-8")
+        result_id = f"{mode}-result"
+        setter = f"set{mode.title()}Status"
+
+        self.assertIn(f'id="{mode}-status"', text)
+        self.assertIn('data-state="checking"', text)
+        self.assertIn(f'"http://localhost:5031/{mode}/status"', text)
+        self.assertIn('enabled: "Enabled"', text)
+        self.assertIn('disabled: "Disabled"', text)
+        self.assertIn('unavailable: "Unavailable"', text)
+        self.assertRegex(
+            text,
+            r'response\.status === 503\s*&&\s*payload\.status === "disabled"',
+        )
+        self.assertRegex(
+            text,
+            r'response\.ok\s*&&\s*payload\.status === "enabled"',
+        )
+        self.assertRegex(
+            text,
+            rf'(?s)catch \(error\).*?{setter}\("unavailable"\)',
+        )
+        self.assertIn('"htmx:beforeSwap"', text)
+        self.assertIn(f'detail.target?.id === "{result_id}"', text)
+        self.assertIn("detail.shouldSwap = true", text)
+        self.assertIn("detail.isError = false", text)
+        self.assertIn('"htmx:sendError"', text)
+        self.assertNotRegex(text, r'<span class="status-dot"></span>\s*Enabled')
+
+    def test_mcp_frontend_handles_all_feature_states_and_http_errors(self):
+        self.assert_dynamic_status_ui("mcp.html", "mcp")
+
+    def test_rag_frontend_handles_all_feature_states_and_http_errors(self):
+        self.assert_dynamic_status_ui("rag.html", "rag")
 
 
 if __name__ == "__main__":
