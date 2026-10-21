@@ -25,7 +25,12 @@ def automatic_checks(plan: dict, worker: dict) -> list[dict]:
 
 def rule_risk(checks: list[dict]) -> str:
     failed = {c["check"] for c in checks if not c["passed"]}
-    if failed & {"plan_completed", "worker_completed", "evidence_retrieved"}:
+    if failed & {
+        "plan_completed",
+        "worker_completed",
+        "evidence_retrieved",
+        "output_grounded",
+    }:
         return "high"
     if failed:
         return "medium"

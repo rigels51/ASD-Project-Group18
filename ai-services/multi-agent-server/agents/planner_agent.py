@@ -25,6 +25,19 @@ def plan_workflow(user_request: str, domain: str | None = None) -> dict[str, Any
     routed_by = "caller"
     if domain not in evidence.DOMAINS:
         domain, routed_by = evidence.detect_domain(user_request), "keywords"
+    else:
+        detected_domain = evidence.detect_domain(user_request)
+        if detected_domain and detected_domain != domain:
+            return {
+                "status": "rejected",
+                "agent": "planner_agent",
+                "model": "rule-based routing",
+                "domain": domain,
+                "error": (
+                    f"This feature handles {domain} questions; this request appears "
+                    f"to be about {detected_domain}."
+                ),
+            }
     if domain is None:
         return {
             "status": "rejected",
