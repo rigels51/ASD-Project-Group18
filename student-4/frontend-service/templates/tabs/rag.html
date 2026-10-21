@@ -168,7 +168,22 @@
       height: 7px;
       margin-right: 6px;
       border-radius: 50%;
+    }
+
+    .mode-status[data-state="checking"] .status-dot {
+      background: #b6872f;
+    }
+
+    .mode-status[data-state="enabled"] .status-dot {
       background: #4f8a61;
+    }
+
+    .mode-status[data-state="disabled"] .status-dot {
+      background: #b34d46;
+    }
+
+    .mode-status[data-state="unavailable"] .status-dot {
+      background: #777d88;
     }
 
     .error-box {
@@ -224,9 +239,14 @@
 
       </div>
 
-      <span class="feature-badge">
+      <span
+        id="rag-status"
+        class="feature-badge mode-status"
+        data-state="checking"
+        aria-live="polite"
+      >
         <span class="status-dot"></span>
-        Enabled
+        <span id="rag-status-text">Checking...</span>
       </span>
 
     </div>
@@ -409,6 +429,154 @@
 
 
 </main>
+
+<script>
+
+  const RAG_STATUS_URL =
+    "http://localhost:5031/rag/status";
+
+
+  function setRagStatus(state) {
+
+    const badge =
+      document.getElementById("rag-status");
+
+    const text =
+      document.getElementById("rag-status-text");
+
+    const labels = {
+      checking: "Checking...",
+      enabled: "Enabled",
+      disabled: "Disabled",
+      unavailable: "Unavailable"
+    };
+
+    badge.dataset.state = state;
+    text.textContent = labels[state];
+
+  }
+
+
+  function showRagAvailability(title, message) {
+
+    const result =
+      document.getElementById("rag-result");
+
+    result.innerHTML = `
+      <div class="error-box">
+        <strong class="availability-title"></strong>
+        <p class="availability-message"></p>
+      </div>
+    `;
+
+    result.querySelector(
+      ".availability-title"
+    ).textContent = title;
+
+    result.querySelector(
+      ".availability-message"
+    ).textContent = message;
+
+  }
+
+
+  async function checkRagStatus() {
+
+    setRagStatus("checking");
+
+    try {
+
+      const response = await fetch(
+        RAG_STATUS_URL,
+        {headers: {"Accept": "application/json"}}
+      );
+
+      const payload = await response.json().catch(
+        () => ({})
+      );
+
+      if (
+        response.status === 503 &&
+        payload.status === "disabled"
+      ) {
+        setRagStatus("disabled");
+        showRagAvailability(
+          "RAG Disabled",
+          payload.error || "RAG Mode is disabled."
+        );
+        return;
+      }
+
+      if (
+        response.ok &&
+        payload.status === "enabled"
+      ) {
+        setRagStatus("enabled");
+        return;
+      }
+
+      setRagStatus("unavailable");
+      showRagAvailability(
+        "RAG Unavailable",
+        "The RAG status endpoint returned an unexpected response."
+      );
+
+    } catch (error) {
+
+      setRagStatus("unavailable");
+      showRagAvailability(
+        "RAG Unavailable",
+        "The Student 4 backend could not be reached."
+      );
+
+    }
+
+  }
+
+
+  document.body.addEventListener(
+    "htmx:beforeSwap",
+    event => {
+
+      const detail = event.detail;
+
+      if (
+        detail.target?.id === "rag-result" &&
+        detail.xhr.status >= 400
+      ) {
+        detail.shouldSwap = true;
+        detail.isError = false;
+      }
+
+    }
+  );
+
+
+  document.body.addEventListener(
+    "htmx:sendError",
+    () => {
+      setRagStatus("unavailable");
+      showRagAvailability(
+        "RAG Unavailable",
+        "The Student 4 backend could not be reached."
+      );
+    }
+  );
+
+
+  document.body.addEventListener(
+    "htmx:afterRequest",
+    event => {
+      if (event.detail.xhr.status === 503) {
+        checkRagStatus();
+      }
+    }
+  );
+
+
+  checkRagStatus();
+
+</script>
 
 </body>
 

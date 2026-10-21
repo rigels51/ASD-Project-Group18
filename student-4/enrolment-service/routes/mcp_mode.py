@@ -1,8 +1,9 @@
 import html
 import json
 
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 
+from services import mcp_api
 from services.mcp_api import (
     list_course_tools,
     call_course_tool,
@@ -479,6 +480,21 @@ def render_enrolments(result):
 # =========================================================
 # New unified MCP endpoint
 # =========================================================
+
+@mcp_bp.get("/mcp/status")
+def mcp_status():
+    """Report the feature flag without contacting the shared MCP server."""
+    enabled = mcp_api.MCP_ENABLED
+    payload = {
+        "service": "MCP",
+        "status": "enabled" if enabled else "disabled",
+        "enabled": enabled,
+    }
+
+    if not enabled:
+        payload["error"] = "MCP Mode is disabled"
+
+    return jsonify(payload), 200 if enabled else 503
 
 @mcp_bp.post("/mcp/run")
 def mcp_run():
