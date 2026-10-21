@@ -43,6 +43,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r student-2/backend-service/requirements.txt
           pip install -r ai-services/mcp-server/requirements.txt
+          pip install pytest
 
 
       - name: Validate Python syntax
@@ -51,6 +52,7 @@ jobs:
           python -m py_compile student-2/database-service/init_db.py
           python -m py_compile student-2/backend-service/routes/normal_ui.py
           python -m py_compile student-2/backend-service/routes/ai_mode.py
+          python -m py_compile student-2/backend-service/routes/multi_agent_mode.py
           python -m py_compile student-2/backend-service/services/database_api.py
           python -m py_compile student-2/backend-service/services/llm_client.py
           python -m py_compile student-2/backend-service/views/html_formatters.py
@@ -60,8 +62,10 @@ jobs:
           python -m py_compile ai-services/rag-server/rag_http_server.py
 
 
-      - name: Run Release 1 behavior tests
+      - name: Run Release 1 behavior and Release 2 endpoint tests
         run: |
+          python -m pytest student-2/backend-service/tests/test_endpoints_ci.py -v
+          python -m unittest discover -s student-2/database-service/tests -p 'test_*.py' -v
           python -m unittest discover -s ai-services/mcp-server -p 'test_*.py' -v
           python -m unittest discover -s ai-services/rag-server -p 'test_*.py' -v
           python -m unittest discover -s student-2/backend-service/tests -p 'test_*.py' -v

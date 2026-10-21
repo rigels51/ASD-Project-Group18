@@ -5,7 +5,6 @@ app = Flask(__name__)
 
 DATABASE_NAME = "/app/data/staff.db"
 
-STAFF_COLUMNS = "staff_id, given_name, family_name, email, department, employment_type"
 REQUIRED_FIELDS = ("given_name", "family_name", "email", "department", "employment_type")
 
 
@@ -31,7 +30,9 @@ def health():
 @app.get("/staff")
 def get_staff():
     conn = get_db_connection()
-    staff = conn.execute(f"SELECT {STAFF_COLUMNS} FROM staff").fetchall()
+    staff = conn.execute(
+        "SELECT staff_id, given_name, family_name, email, department, employment_type FROM staff"
+    ).fetchall()
     conn.close()
     return jsonify([dict(row) for row in staff])
 
@@ -40,7 +41,10 @@ def get_staff():
 def get_staff_member(staff_id):
     conn = get_db_connection()
     staff_member = conn.execute(
-        f"SELECT {STAFF_COLUMNS} FROM staff WHERE staff_id = ?",
+        """
+        SELECT staff_id, given_name, family_name, email, department, employment_type
+        FROM staff WHERE staff_id = ?
+        """,
         (staff_id,),
     ).fetchone()
     conn.close()
@@ -60,7 +64,10 @@ def get_staff_by_department():
 
     conn = get_db_connection()
     staff = conn.execute(
-        f"SELECT {STAFF_COLUMNS} FROM staff WHERE department = ?",
+        """
+        SELECT staff_id, given_name, family_name, email, department, employment_type
+        FROM staff WHERE department = ?
+        """,
         (department,),
     ).fetchall()
     conn.close()
@@ -104,7 +111,10 @@ def create_staff():
         return jsonify({"error": "A staff member with that email already exists"}), 409
 
     staff_member = conn.execute(
-        f"SELECT {STAFF_COLUMNS} FROM staff WHERE staff_id = ?",
+        """
+        SELECT staff_id, given_name, family_name, email, department, employment_type
+        FROM staff WHERE staff_id = ?
+        """,
         (new_id,),
     ).fetchone()
     conn.close()
@@ -133,11 +143,18 @@ def update_staff(staff_id):
         conn.close()
         return jsonify({"error": "Staff member not found"}), 404
 
-    set_clause = ", ".join(f"{field} = ?" for field in fields)
     try:
         conn.execute(
-            f"UPDATE staff SET {set_clause} WHERE staff_id = ?",
-            (*fields.values(), staff_id),
+            """
+            UPDATE staff
+            SET given_name = COALESCE(?, given_name),
+                family_name = COALESCE(?, family_name),
+                email = COALESCE(?, email),
+                department = COALESCE(?, department),
+                employment_type = COALESCE(?, employment_type)
+            WHERE staff_id = ?
+            """,
+            (*(fields.get(field) for field in REQUIRED_FIELDS), staff_id),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -145,7 +162,10 @@ def update_staff(staff_id):
         return jsonify({"error": "A staff member with that email already exists"}), 409
 
     staff_member = conn.execute(
-        f"SELECT {STAFF_COLUMNS} FROM staff WHERE staff_id = ?",
+        """
+        SELECT staff_id, given_name, family_name, email, department, employment_type
+        FROM staff WHERE staff_id = ?
+        """,
         (staff_id,),
     ).fetchone()
     conn.close()
@@ -171,4 +191,4 @@ def delete_staff(staff_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=False)
