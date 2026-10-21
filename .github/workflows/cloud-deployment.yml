@@ -3,7 +3,8 @@ name: Cloud Deployment - Azure Container Apps
 # Deploys the integrated application after CI succeeds:
 #   - automatically, when any student's CI workflow finishes successfully on main
 #   - or manually from the Actions tab ("Run workflow"), by any team member
-# The ci-gate job then checks that the LATEST run of every student workflow on main is green,
+# The ci-gate job then checks that the latest run of every student workflow on main (or, for a
+# workflow that never runs on main, its latest run on any branch) is green,
 # so one red feature blocks the release instead of shipping half-tested code.
 #
 # Baseline cloud profile: AI-Mode, MCP, RAG and Multi-Agent are disabled by default.
@@ -50,25 +51,34 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          # Prefer the latest completed run on main. Some student workflows never run on main
+          # (e.g. JerikoArceo.yml runs on its own branches and on PRs into main), so fall back to
+          # that workflow's latest completed run on any branch and say so in the summary.
           {
             echo "## CI gate"
             echo ""
-            echo "| Workflow | Latest run on main | Conclusion |"
-            echo "|---|---|---|"
+            echo "| Workflow | Run | Branch | Rule | Conclusion |"
+            echo "|---|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
+          q='.[0] | select(. != null) | "\(.conclusion) \(.url) \(.headSha[0:7]) \(.headBranch)"'
           failed=0
           for wf in RigelRivamonte.yml JerikoArceo.yml student-3.yml YiZhang.yml student-5.yml; do
+            rule="latest on main"
             row=$(gh run list -R "$REPO" --workflow "$wf" --branch main --status completed --limit 1 \
-                  --json conclusion,url,headSha --jq '.[0] | "\(.conclusion) \(.url) \(.headSha[0:7])"' || true)
-            conclusion=${row%% *}
-            [ -z "$row" ] && conclusion="no-run" && row="no-run - -"
-            url=$(echo "$row" | cut -d' ' -f2); sha=$(echo "$row" | cut -d' ' -f3)
-            echo "$wf: $conclusion ($sha) $url"
-            echo "| $wf | [$sha]($url) | $conclusion |" >> "$GITHUB_STEP_SUMMARY"
+                  --json conclusion,url,headSha,headBranch --jq "$q" || true)
+            if [ -z "$row" ]; then
+              rule="no run on main - latest on any branch"
+              row=$(gh run list -R "$REPO" --workflow "$wf" --status completed --limit 1 \
+                    --json conclusion,url,headSha,headBranch --jq "$q" || true)
+            fi
+            [ -z "$row" ] && row="no-run - - -" && rule="never run"
+            read -r conclusion url sha branch <<< "$row"
+            echo "$wf: $conclusion ($sha on $branch, $rule) $url"
+            echo "| $wf | [$sha]($url) | $branch | $rule | $conclusion |" >> "$GITHUB_STEP_SUMMARY"
             [ "$conclusion" = "success" ] || failed=1
           done
           if [ "$failed" -ne 0 ]; then
-            echo "::error::Not every student workflow is green on main - deployment blocked."
+            echo "::error::Not every student workflow is green - deployment blocked."
             exit 1
           fi
 
