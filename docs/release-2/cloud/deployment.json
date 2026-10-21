@@ -1,0 +1,26 @@
+{
+  "platform": "Azure Container Apps (australiaeast)",
+  "deployed_at": "2026-10-21T14:23:52+00:00",
+  "commit": "54130c0",
+  "workflow_run_url": "manual run of scripts/deploy/deploy_azure.py on Lazizbeks-MacBook-Air.local",
+  "conclusion": "success",
+  "ai_profile": "baseline",
+  "ai_enabled": [],
+  "resource_group": "asd-group18-rg",
+  "environment": "asd-group18-env",
+  "frontends": {
+    "homepage": "https://homepage.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "student1-frontend": "https://student1-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "student2-frontend": "https://student2-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "timetable-frontend": "https://timetable-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "student4-frontend": "https://student4-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "assessment-frontend": "https://assessment-frontend-service.victoriouswater-56424206.australiaeast.azurecontainerapps.io"
+  },
+  "backends": {
+    "student1-backend": "https://student1-enrolment.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "student2-backend": "https://student2-backend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "timetable-backend": "https://timetable-backend.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "student4-backend": "https://student4-enrolment.victoriouswater-56424206.australiaeast.azurecontainerapps.io",
+    "assessment-backend": "https://assessment-service.victoriouswater-56424206.australiaeast.azurecontainerapps.io"
+  }
+}

@@ -1,14 +1,15 @@
 # Release 2 cloud deployment evidence (read by the agentic-loop Cloud Deployment Review)
 
-## After each cloud deployment (whoever ran it)
+## After each cloud deployment
 
-1. Copy `deployment.example.json` to `deployment.json` and replace every value with the real one:
-   the platform, the commit that was deployed, the `cloud-deployment.yml` run URL and its conclusion,
-   and the public URL of every frontend and backend.
-2. Keep `"ai_profile": "baseline"` and `"ai_enabled": []` for the required deployment
-   (AI-Mode, MCP, RAG and Multi-Agent disabled). For bonus marks, list the backends whose AI
-   routes are switched on in the cloud, e.g. `"ai_enabled": ["timetable-backend"]`.
-3. Commit `deployment.json`.
+`python3 scripts/deploy/deploy_azure.py deploy` (laptop) and `cloud-deployment.yml` (GitHub Actions)
+write `deployment.json` here automatically: platform, deployed commit, run URL, conclusion and the
+public URL of every frontend and backend. From GitHub Actions, download it from the run's
+`deployment-record` artifact. Commit it so the review has evidence. See `scripts/deploy/README.md`.
+
+`deployment.example.json` shows the format. The required deployment keeps `"ai_profile": "baseline"`
+and `"ai_enabled": []`. For bonus marks, list the backends whose AI routes are switched on in the
+cloud, e.g. `"ai_enabled": ["timetable-backend"]`.
 
 ## Run the review (one person, from the repository root, on the host)
 
