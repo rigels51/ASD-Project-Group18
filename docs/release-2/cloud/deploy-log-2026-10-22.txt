@@ -1,0 +1,85 @@
+[deploy] 1/6 Azure subscription
+  $ az account show --query id -o tsv --only-show-errors
+  $ az provider register -n Microsoft.App --wait --only-show-errors
+  $ az provider register -n Microsoft.OperationalInsights --wait --only-show-errors
+  $ az provider register -n Microsoft.ContainerRegistry --wait --only-show-errors
+[deploy] 2/6 resource group asd-group18-rg, registry asdg1822482c77, environment asd-group18-env (australiaeast)
+  $ az group create -n asd-group18-rg -l australiaeast -o none --only-show-errors
+  $ az acr show -n asdg1822482c77 --query name -o tsv --only-show-errors
+  $ az containerapp env show -g asd-group18-rg -n asd-group18-env --query name -o tsv --only-show-errors
+  $ az containerapp env show -g asd-group18-rg -n asd-group18-env --query properties.defaultDomain -o tsv --only-show-errors
+[deploy] environment domain: victoriouswater-56424206.australiaeast.azurecontainerapps.io
+[deploy] 3/6 build copy with cloud URLs
+[deploy] homepage: rewrote 5 localhost URL(s)
+[deploy] student1-frontend: rewrote 8 localhost URL(s)
+[deploy] student2-frontend: rewrote 8 localhost URL(s)
+[deploy] timetable-frontend: rewrote 2 localhost URL(s)
+[deploy] student4-frontend: rewrote 9 localhost URL(s)
+[deploy] assessment-frontend-service: rewrote 11 localhost URL(s)
+[deploy] 4/6 build skipped (--skip-build)
+[deploy] 5/6 container apps (databases first, then backends, then frontends)
+  $ az acr credential show -n asdg1822482c77 --query username -o tsv --only-show-errors
+  $ az acr credential show -n asdg1822482c77 --query passwords[0].value -o tsv --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student1-database --query name -o tsv --only-show-errors
+[deploy] recreate student1-database (express environments ignore in-place updates)
+  $ az containerapp delete -g asd-group18-rg -n student1-database --yes -o none --only-show-errors
+[deploy] create student1-database
+  $ az containerapp create -g asd-group18-rg -n student1-database --environment asd-group18-env --image asdg1822482c77.azurecr.io/student1-database:54130c0 --target-port 5002 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student2-database --query name -o tsv --only-show-errors
+[deploy] create student2-database
+  $ az containerapp create -g asd-group18-rg -n student2-database --environment asd-group18-env --image asdg1822482c77.azurecr.io/student2-database:54130c0 --target-port 5002 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student4-database --query name -o tsv --only-show-errors
+[deploy] create student4-database
+  $ az containerapp create -g asd-group18-rg -n student4-database --environment asd-group18-env --image asdg1822482c77.azurecr.io/student4-database:54130c0 --target-port 5002 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n assessment-database-service --query name -o tsv --only-show-errors
+[deploy] create assessment-database-service
+  $ az containerapp create -g asd-group18-rg -n assessment-database-service --environment asd-group18-env --image asdg1822482c77.azurecr.io/assessment-database-service:54130c0 --target-port 5022 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student1-enrolment --query name -o tsv --only-show-errors
+[deploy] recreate student1-enrolment (express environments ignore in-place updates)
+  $ az containerapp delete -g asd-group18-rg -n student1-enrolment --yes -o none --only-show-errors
+[deploy] create student1-enrolment
+  $ az containerapp create -g asd-group18-rg -n student1-enrolment --environment asd-group18-env --image asdg1822482c77.azurecr.io/student1-enrolment:54130c0 --target-port 5001 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --env-vars DATABASE_SERVICE_URL=https://student1-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io MCP_ENABLED=false RAG_ENABLED=false MULTI_AGENT_ENABLED=false FLASK_DEBUG=false --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student2-backend --query name -o tsv --only-show-errors
+[deploy] create student2-backend
+  $ az containerapp create -g asd-group18-rg -n student2-backend --environment asd-group18-env --image asdg1822482c77.azurecr.io/student2-backend:54130c0 --target-port 5001 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --env-vars DATABASE_SERVICE_URL=https://student2-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io MCP_ENABLED=false RAG_ENABLED=false MULTI_AGENT_ENABLED=false FLASK_DEBUG=false --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n timetable-backend --query name -o tsv --only-show-errors
+[deploy] create timetable-backend
+  $ az containerapp create -g asd-group18-rg -n timetable-backend --environment asd-group18-env --image asdg1822482c77.azurecr.io/timetable-backend:54130c0 --target-port 5003 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --env-vars MCP_ENABLED=false RAG_ENABLED=false MULTI_AGENT_ENABLED=false FLASK_DEBUG=false --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student4-enrolment --query name -o tsv --only-show-errors
+[deploy] create student4-enrolment
+  $ az containerapp create -g asd-group18-rg -n student4-enrolment --environment asd-group18-env --image asdg1822482c77.azurecr.io/student4-enrolment:54130c0 --target-port 5001 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --env-vars DATABASE_SERVICE_URL=https://student4-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io STUDENT_SERVICE_URL=https://student1-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io MCP_ENABLED=false RAG_ENABLED=false MULTI_AGENT_ENABLED=false FLASK_DEBUG=false --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n assessment-service --query name -o tsv --only-show-errors
+[deploy] create assessment-service
+  $ az containerapp create -g asd-group18-rg -n assessment-service --environment asd-group18-env --image asdg1822482c77.azurecr.io/assessment-service:54130c0 --target-port 5021 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --env-vars ASSESSMENT_DATABASE_SERVICE_URL=https://assessment-database-service.victoriouswater-56424206.australiaeast.azurecontainerapps.io STUDENT_SERVICE_URL=https://student1-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io COURSE_SERVICE_URL=https://student4-database.victoriouswater-56424206.australiaeast.azurecontainerapps.io MCP_ENABLED=false RAG_ENABLED=false MULTI_AGENT_ENABLED=false FLASK_DEBUG=false --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n homepage --query name -o tsv --only-show-errors
+[deploy] create homepage
+  $ az containerapp create -g asd-group18-rg -n homepage --environment asd-group18-env --image asdg1822482c77.azurecr.io/homepage:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student1-frontend --query name -o tsv --only-show-errors
+[deploy] create student1-frontend
+  $ az containerapp create -g asd-group18-rg -n student1-frontend --environment asd-group18-env --image asdg1822482c77.azurecr.io/student1-frontend:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student2-frontend --query name -o tsv --only-show-errors
+[deploy] create student2-frontend
+  $ az containerapp create -g asd-group18-rg -n student2-frontend --environment asd-group18-env --image asdg1822482c77.azurecr.io/student2-frontend:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n timetable-frontend --query name -o tsv --only-show-errors
+[deploy] create timetable-frontend
+  $ az containerapp create -g asd-group18-rg -n timetable-frontend --environment asd-group18-env --image asdg1822482c77.azurecr.io/timetable-frontend:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n student4-frontend --query name -o tsv --only-show-errors
+[deploy] create student4-frontend
+  $ az containerapp create -g asd-group18-rg -n student4-frontend --environment asd-group18-env --image asdg1822482c77.azurecr.io/student4-frontend:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+  $ az containerapp show -g asd-group18-rg -n assessment-frontend-service --query name -o tsv --only-show-errors
+[deploy] create assessment-frontend-service
+  $ az containerapp create -g asd-group18-rg -n assessment-frontend-service --environment asd-group18-env --image asdg1822482c77.azurecr.io/assessment-frontend-service:54130c0 --target-port 80 --ingress external --min-replicas 1 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --registry-server asdg1822482c77.azurecr.io --registry-username asdg1822482c77 --registry-password *** --only-show-errors
+[deploy] 6/6 smoke test
+  student1-enrolment           https://student1-enrolment.victoriouswater-56424206.australiaeast.azurecontainerapps.io/students -> 200
+  student2-backend             https://student2-backend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/staff -> 200
+  timetable-backend            https://timetable-backend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/timetable -> 200
+  student4-enrolment           https://student4-enrolment.victoriouswater-56424206.australiaeast.azurecontainerapps.io/courses -> 200
+  assessment-service           https://assessment-service.victoriouswater-56424206.australiaeast.azurecontainerapps.io/assessments -> 200
+  homepage                     https://homepage.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+  student1-frontend            https://student1-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+  student2-frontend            https://student2-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+  timetable-frontend           https://timetable-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+  student4-frontend            https://student4-frontend.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+  assessment-frontend-service  https://assessment-frontend-service.victoriouswater-56424206.australiaeast.azurecontainerapps.io/ -> 200
+[deploy] wrote docs/release-2/cloud/deployment.json
+[deploy] done - homepage: https://homepage.victoriouswater-56424206.australiaeast.azurecontainerapps.io
