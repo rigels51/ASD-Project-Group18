@@ -45,8 +45,6 @@ class StudentRecordsApiTest(unittest.TestCase):
         self.client = module.app.test_client()
 
     def tearDown(self):
-        # setUp may fail before self.client exists; suppress that one case rather than
-        # swallowing all exceptions silently.
         with contextlib.suppress(AttributeError):
             self.client.application.config["DATABASE_NAME"] = None
         self.temp_dir.cleanup()
