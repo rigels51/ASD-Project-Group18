@@ -71,6 +71,34 @@ class ServiceMapTests(unittest.TestCase):
             for flag in cfg.CLOUD_AI_FLAGS:
                 self.assertEqual(env[flag], "false", f"{svc['name']} {flag}")
 
+    def test_only_student4_disables_ai_mode_in_baseline_cloud_profile(self):
+        backends = {
+            svc["name"]: dict(item.split("=", 1) for item in d.env_vars(svc, DOMAIN))
+            for svc in d.SERVICES
+            if svc["kind"] == "backend"
+        }
+        self.assertEqual(backends["student4-enrolment"]["AI_MODE_ENABLED"], "false")
+        for name, env in backends.items():
+            if name != "student4-enrolment":
+                self.assertNotIn("AI_MODE_ENABLED", env, name)
+
+    def test_student4_cloud_review_matches_deployed_disabled_features(self):
+        service = cfg.CLOUD_SERVICES["student4-backend"]
+        self.assertEqual(service["read"], "/courses")
+        self.assertEqual(service["disabled_status"], 503)
+        probes = {(method, path, encoding) for method, path, encoding, _body in service["ai"]}
+        self.assertEqual(probes, {
+            ("POST", "/ask", "form"),
+            ("POST", "/mcp/run", "form"),
+            ("POST", "/rag/answer", "form"),
+            ("POST", "/multi-agent/run", "json"),
+        })
+
+        deployed = next(svc for svc in d.SERVICES if svc.get("record") == "student4-backend")
+        env = dict(item.split("=", 1) for item in d.env_vars(deployed, DOMAIN))
+        for flag in ("AI_MODE_ENABLED", "MCP_ENABLED", "RAG_ENABLED", "MULTI_AGENT_ENABLED"):
+            self.assertEqual(env[flag], "false")
+
     def test_databases_use_https_ingress_not_plain_http(self):
         plan = run_plan()
         for svc in (s for s in d.SERVICES if s["kind"] == "database"):

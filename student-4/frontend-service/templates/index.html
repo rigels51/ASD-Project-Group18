@@ -91,6 +91,8 @@
         RAG Mode
       </button>
 
+      <button class="top-tab" data-page="multi-agent" type="button">Multi-Agent Mode</button>
+
     </nav>
 
 
@@ -124,6 +126,8 @@
         title="RAG Mode"
       ></iframe>
 
+      <iframe id="multi-agent-page" class="page-frame" src="tabs/multi-agent.html" title="Multi-Agent Mode"></iframe>
+
     </section>
 
   </main>
@@ -155,7 +159,9 @@
       rag:
         document.getElementById(
           "rag-page"
-        )
+        ),
+
+      "multi-agent": document.getElementById("multi-agent-page")
 
     };
 
@@ -320,6 +326,12 @@
     else if (hash === "rag") {
 
       showPage("rag");
+
+    }
+
+    else if (hash === "multi-agent") {
+
+      showPage("multi-agent");
 
     }
 

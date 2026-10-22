@@ -2,8 +2,9 @@
 """Reusable deployment of the integrated Group 18 application to Azure Container Apps (Release 2).
 
 Baseline cloud profile: frontend, backend/API and database microservices only.
-AI-Mode, MCP, RAG and the Multi-Agent server are NOT deployed and every backend runs with
-MCP_ENABLED / RAG_ENABLED / MULTI_AGENT_ENABLED = false.
+AI-Mode, MCP, RAG and the Multi-Agent server are NOT deployed. Every backend runs with
+MCP_ENABLED / RAG_ENABLED / MULTI_AGENT_ENABLED = false, and Student 4 also runs with
+AI_MODE_ENABLED = false.
 
     python3 scripts/deploy/deploy_azure.py plan       # print every command, change nothing
     python3 scripts/deploy/deploy_azure.py deploy     # create/update everything, write deployment.json
@@ -64,7 +65,8 @@ SERVICES = [
      "port": 5003},
     {"name": "student4-enrolment", "kind": "backend", "record": "student4-backend", "context": ".",
      "dockerfile": "student-4/enrolment-service/Dockerfile", "port": 5001,
-     "env": {"DATABASE_SERVICE_URL": "db:student4-database", "STUDENT_SERVICE_URL": "db:student1-database"}},
+     "env": {"DATABASE_SERVICE_URL": "db:student4-database", "STUDENT_SERVICE_URL": "db:student1-database",
+             "AI_MODE_ENABLED": "false"}},
     {"name": "assessment-service", "kind": "backend", "record": "assessment-backend", "context": ".",
      "dockerfile": "student-5/backend/Dockerfile", "port": 5021,
      "env": {"ASSESSMENT_DATABASE_SERVICE_URL": "db:assessment-database-service",

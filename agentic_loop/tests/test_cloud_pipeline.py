@@ -39,6 +39,8 @@ jobs:
 """
 
 DISABLED = {
+    "/ask": {"student4-backend": (503, "<p>AI Mode is disabled</p>")},
+    "/mcp/run": {"student4-backend": (503, "<p>MCP Mode is disabled</p>")},
     "/rag/answer": {
         "student1-backend": (503, '{"status": "error", "error": "RAG Mode is disabled"}'),
         "student2-backend": (403, '{"status": "error", "error": "RAG mode is disabled."}'),
@@ -49,6 +51,7 @@ DISABLED = {
     "/mcp/call": {"timetable-backend": (503, '{"status": "disabled", "error": "MCP is disabled"}')},
     "/multi-agent/run": {
         "timetable-backend": (503, '{"status": "disabled", "error": "Multi-Agent is disabled"}'),
+        "student4-backend": (503, '{"status": "disabled", "error": "Multi-Agent is disabled"}'),
         "assessment-backend": (503, '{"status": "disabled", "error": "Multi-Agent is disabled"}'),
     },
 }
@@ -134,6 +137,8 @@ class CloudPipelineTests(unittest.TestCase):
         self.assertNotIn("| WARN |", report)
         self.assertIn("GET /timetable | PASS", report)
         self.assertIn("POST /rag/answer disabled | PASS", report)  # includes S2's 403 answer
+        for path in ("/ask", "/mcp/run", "/rag/answer", "/multi-agent/run"):
+            self.assertIn(f"POST {path} disabled | PASS", report)
         [entry] = self.decisions()
         self.assertEqual(entry["decision"], "Release")
         self.assertTrue(entry["agreed_with_loop"])
@@ -147,6 +152,27 @@ class CloudPipelineTests(unittest.TestCase):
         self.assertEqual(s1["data"], {"query": "Who is on leave?"})
         self.assertIsNone(s1["json"])
 
+        student4 = [c for c in fake.calls if "student4-backend" in c["url"]]
+        paths = ("/ask", "/mcp/run", "/rag/answer", "/multi-agent/run")
+        by_path = {path: next(c for c in student4 if c["url"].endswith(path)) for path in paths}
+        self.assertEqual(by_path["/ask"]["data"], {"question": "What is ASD101?"})
+        self.assertEqual(by_path["/mcp/run"]["data"], {"tool": "list_courses"})
+        self.assertEqual(by_path["/rag/answer"]["data"], {"query": "What is ASD101?"})
+        self.assertEqual(by_path["/multi-agent/run"]["json"],
+                         {"question": "Summarise ASD101 and its enrolments"})
+
+    def test_student4_requires_exact_503_and_disabled_message(self):
+        self.write_repo(record_data=record())
+        fake = FakeCloud(record(), {
+            ("student4-backend", "/ask"): (403, "AI Mode is disabled"),
+            ("student4-backend", "/mcp/run"): (503, "Connection refused"),
+        })
+        ok, report = self.run_review(fake=fake)
+        self.assertFalse(ok)
+        self.assertIn("POST /ask disabled | FAIL | HTTP 403", report)
+        self.assertIn("POST /mcp/run disabled | FAIL | HTTP 503", report)
+        self.assertIn("expected HTTP 503 with a response containing 'disabled'", report)
+
     def test_ai_route_answering_in_baseline_profile_fails(self):
         self.write_repo(record_data=record())
         fake = FakeCloud(record(), {("timetable-backend", "/rag/answer"): (200, '{"status": "success"}')})
@@ -156,7 +182,7 @@ class CloudPipelineTests(unittest.TestCase):
 
     def test_flag_left_on_with_server_unreachable_is_a_warning(self):
         self.write_repo(record_data=record())
-        fake = FakeCloud(record(), {("student4-backend", "/rag/answer"):
+        fake = FakeCloud(record(), {("student1-backend", "/rag/answer"):
                                     (503, '{"status": "error", "error": "Connection refused"}')})
         ok, report = self.run_review(fake=fake)
         self.assertTrue(ok)
