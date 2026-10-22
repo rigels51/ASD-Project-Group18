@@ -13,7 +13,6 @@ MULTI_AGENT_ENABLED = os.getenv(
     "true"
 ).strip().lower() in {"1", "true", "yes", "on"}
 
-# Planner -> Worker -> Reviewer run as three sequential model calls.
 MULTI_AGENT_TIMEOUT = float(os.getenv("MULTI_AGENT_TIMEOUT_SECONDS", "240"))
 
 DOMAIN = "students"
@@ -26,7 +25,6 @@ def _check_enabled():
 
 
 def run_student_workflow(question: str):
-    """Start a Planner -> Worker -> Reviewer workflow for the student records domain."""
     _check_enabled()
 
     response = requests.post(
@@ -39,7 +37,6 @@ def run_student_workflow(question: str):
 
 
 def decide_student_workflow(workflow_id: str, decision: str, reviewer: str, comment: str = "", corrected_output: str = ""):
-    """Record the human decision (Accept / Partially Accept / Correct / Reject) for a workflow."""
     _check_enabled()
 
     response = requests.post(
@@ -80,7 +77,6 @@ def list_student_workflows(limit: int = 10):
 
 
 def get_workflow_status():
-    """Server-wide counts: how many workflows ran, how many are pending human review, etc."""
     _check_enabled()
 
     response = requests.get(

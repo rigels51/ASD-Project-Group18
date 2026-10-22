@@ -8,7 +8,5 @@ __pycache__/
 /ai-services/rag-server/chroma/*
 !/ai-services/rag-server/chroma/.gitkeep
 
-# Multi-Agent server evidence logs: append-only, regenerated locally per student/run,
-# so committing them causes constant merge conflicts between branches.
 /ai-services/multi-agent-server/workflow_history.jsonl
 /ai-services/multi-agent-server/coordination_audit.jsonl

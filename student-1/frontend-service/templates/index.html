@@ -1224,7 +1224,6 @@
       chatBody.scrollTop = chatBody.scrollHeight;
     }
 
-    // Decision forms are rendered dynamically inside chat messages, so listen via delegation.
     chatBody.addEventListener("submit", async (event) => {
       const form = event.target.closest("[data-decision-form]");
       if (!form) return;
