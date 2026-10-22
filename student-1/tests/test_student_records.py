@@ -1,3 +1,4 @@
+import contextlib
 import importlib.util
 import os
 import sqlite3
@@ -44,10 +45,10 @@ class StudentRecordsApiTest(unittest.TestCase):
         self.client = module.app.test_client()
 
     def tearDown(self):
-        try:
+        # setUp may fail before self.client exists; suppress that one case rather than
+        # swallowing all exceptions silently.
+        with contextlib.suppress(AttributeError):
             self.client.application.config["DATABASE_NAME"] = None
-        except Exception:
-            pass
         self.temp_dir.cleanup()
 
     def test_get_students_returns_student_rows(self):
