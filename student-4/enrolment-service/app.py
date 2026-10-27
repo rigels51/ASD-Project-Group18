@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import sys
 
@@ -15,6 +16,7 @@ from routes.ai_mode import ai_mode_bp
 from routes.normal_ui import normal_ui_bp
 from routes.mcp_mode import mcp_bp
 from routes.rag_mode import rag_bp
+from routes.multi_agent_mode import multi_agent_bp
 
 
 def create_app():
@@ -22,10 +24,14 @@ def create_app():
 
     CORS(app)
 
+    # Existing features
     app.register_blueprint(normal_ui_bp)
     app.register_blueprint(ai_mode_bp)
     app.register_blueprint(mcp_bp)
     app.register_blueprint(rag_bp)
+
+    # Student 4 Multi-Agent Integration
+    app.register_blueprint(multi_agent_bp)
 
     return app
 
@@ -37,5 +43,5 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=5001,
-        debug=True
+        debug=False
     )

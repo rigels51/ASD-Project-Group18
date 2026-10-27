@@ -110,7 +110,22 @@
       height: 7px;
       margin-right: 6px;
       border-radius: 50%;
+    }
+
+    .mode-status[data-state="checking"] .status-dot {
+      background: #b6872f;
+    }
+
+    .mode-status[data-state="enabled"] .status-dot {
       background: #4f8a61;
+    }
+
+    .mode-status[data-state="disabled"] .status-dot {
+      background: #b34d46;
+    }
+
+    .mode-status[data-state="unavailable"] .status-dot {
+      background: #777d88;
     }
 
     .error-box {
@@ -157,9 +172,14 @@
         </p>
       </div>
 
-      <span class="feature-badge">
+      <span
+        id="mcp-status"
+        class="feature-badge mode-status"
+        data-state="checking"
+        aria-live="polite"
+      >
         <span class="status-dot"></span>
-        Enabled
+        <span id="mcp-status-text">Checking...</span>
       </span>
 
     </div>
@@ -302,6 +322,147 @@
 
 <script>
 
+  const MCP_STATUS_URL =
+    "http://localhost:5031/mcp/status";
+
+
+  function setMcpStatus(state) {
+
+    const badge =
+      document.getElementById("mcp-status");
+
+    const text =
+      document.getElementById("mcp-status-text");
+
+    const labels = {
+      checking: "Checking...",
+      enabled: "Enabled",
+      disabled: "Disabled",
+      unavailable: "Unavailable"
+    };
+
+    badge.dataset.state = state;
+    text.textContent = labels[state];
+
+  }
+
+
+  function showMcpAvailability(title, message) {
+
+    const result =
+      document.getElementById("mcp-result");
+
+    result.innerHTML = `
+      <div class="error-box">
+        <strong class="availability-title"></strong>
+        <p class="availability-message"></p>
+      </div>
+    `;
+
+    result.querySelector(
+      ".availability-title"
+    ).textContent = title;
+
+    result.querySelector(
+      ".availability-message"
+    ).textContent = message;
+
+  }
+
+
+  async function checkMcpStatus() {
+
+    setMcpStatus("checking");
+
+    try {
+
+      const response = await fetch(
+        MCP_STATUS_URL,
+        {headers: {"Accept": "application/json"}}
+      );
+
+      const payload = await response.json().catch(
+        () => ({})
+      );
+
+      if (
+        response.status === 503 &&
+        payload.status === "disabled"
+      ) {
+        setMcpStatus("disabled");
+        showMcpAvailability(
+          "MCP Disabled",
+          payload.error || "MCP Mode is disabled."
+        );
+        return;
+      }
+
+      if (
+        response.ok &&
+        payload.status === "enabled"
+      ) {
+        setMcpStatus("enabled");
+        return;
+      }
+
+      setMcpStatus("unavailable");
+      showMcpAvailability(
+        "MCP Unavailable",
+        "The MCP status endpoint returned an unexpected response."
+      );
+
+    } catch (error) {
+
+      setMcpStatus("unavailable");
+      showMcpAvailability(
+        "MCP Unavailable",
+        "The Student 4 backend could not be reached."
+      );
+
+    }
+
+  }
+
+
+  document.body.addEventListener(
+    "htmx:beforeSwap",
+    event => {
+
+      const detail = event.detail;
+
+      if (
+        detail.target?.id === "mcp-result" &&
+        detail.xhr.status >= 400
+      ) {
+        detail.shouldSwap = true;
+        detail.isError = false;
+      }
+
+    }
+  );
+
+
+  document.body.addEventListener(
+    "htmx:sendError",
+    () => {
+      setMcpStatus("unavailable");
+      showMcpAvailability(
+        "MCP Unavailable",
+        "The Student 4 backend could not be reached."
+      );
+    }
+  );
+
+
+  document.body.addEventListener(
+    "htmx:afterRequest",
+    event => {
+      if (event.detail.xhr.status === 503) {
+        checkMcpStatus();
+      }
+    }
+  );
+
   const toolDescriptions = {
 
     list_courses:
@@ -362,6 +523,7 @@
 
 
   updateToolForm();
+  checkMcpStatus();
 
 </script>
 

@@ -1,8 +1,9 @@
 import html
 import json
 
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 
+from services import rag_api
 from services.rag_api import (
     refresh_course_rag,
     retrieve_course_context,
@@ -559,6 +560,21 @@ def render_answer(result):
 # =========================================================
 # Routes
 # =========================================================
+
+@rag_bp.get("/rag/status")
+def rag_status():
+    """Report the feature flag without contacting the shared RAG server."""
+    enabled = rag_api.RAG_ENABLED
+    payload = {
+        "service": "RAG",
+        "status": "enabled" if enabled else "disabled",
+        "enabled": enabled,
+    }
+
+    if not enabled:
+        payload["error"] = "RAG Mode is disabled"
+
+    return jsonify(payload), 200 if enabled else 503
 
 @rag_bp.post("/rag/refresh")
 def rag_refresh():

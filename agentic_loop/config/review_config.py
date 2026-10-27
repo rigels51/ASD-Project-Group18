@@ -138,6 +138,7 @@ CLOUD_TIMEOUT_SECONDS = float(os.getenv("CLOUD_TIMEOUT_SECONDS", "15"))
 # shared deployment. "read" must return 200. Each "ai" probe is (method, path, encoding, body),
 # matching how that backend reads its input (form vs JSON). Baseline: every AI route must answer
 # that it is disabled, unless deployment.json lists the service under "ai_enabled" (bonus profile).
+# A service can set "disabled_status" when its baseline contract requires one exact HTTP status.
 CLOUD_SERVICES = {
     "student1-backend": {"owner": "S1 Rigel - Student Records", "read": "/students",
                          "ai": [("POST", "/rag/answer", "form", {"query": "Who is on leave?"})]},
@@ -148,7 +149,12 @@ CLOUD_SERVICES = {
                                  ("POST", "/mcp/call", "json", {"tool": "find_timetable_clashes", "arguments": {}}),
                                  ("POST", "/multi-agent/run", "json", {"question": "Summarise ASD101 sessions"})]},
     "student4-backend": {"owner": "S4 Yi - Course & Enrollment", "read": "/courses",
-                         "ai": [("POST", "/rag/answer", "form", {"query": "What is ASD101?"})]},
+                         "disabled_status": 503,
+                         "ai": [("POST", "/ask", "form", {"question": "What is ASD101?"}),
+                                ("POST", "/mcp/run", "form", {"tool": "list_courses"}),
+                                ("POST", "/rag/answer", "form", {"query": "What is ASD101?"}),
+                                ("POST", "/multi-agent/run", "json",
+                                 {"question": "Summarise ASD101 and its enrolments"})]},
     "assessment-backend": {"owner": "S5 Vu - Assessment & Grades", "read": "/assessments",
                            "ai": [("POST", "/rag/ask", "json", {"question": "What is the late penalty?"}),
                                   ("POST", "/multi-agent/run", "json", {"question": "Summarise ASD101 assessments"})]},

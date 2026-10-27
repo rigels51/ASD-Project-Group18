@@ -260,6 +260,21 @@
       color: var(--ink-soft); border-radius: 999px; padding: 6px 11px; cursor: pointer;
     }
     .chip:hover { border-color: var(--brass); color: var(--ink); }
+    .ma-decision-form { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; }
+    .ma-decision-options { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--ink-soft); }
+    .ma-decision-options label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+    .ma-decision-form input[type="text"], .ma-decision-form textarea {
+      width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px;
+      font-family: inherit; font-size: 12.5px; background: var(--paper); color: var(--ink);
+    }
+    .ma-decision-form textarea { resize: vertical; min-height: 36px; }
+    .ma-decision-form input:focus, .ma-decision-form textarea:focus { outline: 2px solid var(--brass); outline-offset: 1px; border-color: var(--brass); }
+    .ma-decision-form button {
+      align-self: flex-start; background: var(--ink); color: #fff; border: none; border-radius: 7px;
+      padding: 7px 14px; font-size: 12.5px; font-family: inherit; cursor: pointer;
+    }
+    .ma-decision-form button:hover { background: var(--ink-soft); }
+    .ma-decision-form .ma-decision-error { color: var(--former); font-size: 11.5px; }
     .chat-input-row { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--line); background: var(--paper-raised); }
     .chat-input-row input {
       flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
@@ -864,7 +879,12 @@
         { label: "Retrieve: Cybersecurity students", action: "retrieve", q: "Which students are enrolled in Cybersecurity?" },
         { label: "Answer: Who's on leave?", q: "Which students are currently on leave?" }
       ],
-      "multi-agent": []
+      "multi-agent": [
+        { label: "GPA summary", q: "Summarise GPA trends across enrolled students." },
+        { label: "Students on leave", q: "Which students are currently on leave?" },
+        { label: "Workflow status", action: "status" },
+        { label: "Ask an off-domain question", q: "Summarise the staff in the Arts department." }
+      ]
     };
 
     function renderSuggestions(mode) {
@@ -888,6 +908,11 @@
             chatSuggest.style.display = "none";
             addMessage(chip.dataset.q, "user");
             runRagRetrieve(chip.dataset.q);
+            return;
+          }
+          if (chip.dataset.action === "status") {
+            chatSuggest.style.display = "none";
+            runMultiAgentStatus();
             return;
           }
           askAI(chip.dataset.q);
@@ -914,6 +939,8 @@
         addMessage("MCP mode ready. Try a student ID (e.g. STU-1001), a course name, a status, or \"count\".");
       } else if (mode === "rag") {
         addMessage("RAG mode ready. Ask a question about the student records for a grounded answer with citations.");
+      } else if (mode === "multi-agent") {
+        addMessage("Multi-Agent mode ready. Ask a question about student records — the Planner → Worker → Reviewer agents will prepare an answer, then fill in the decision form (Accept / Partially Accept / Correct / Reject + reason) that appears under the result. Type \"status\" for the shared server's workflow status.");
       } else {
         addMessage(`(${MODE_LABELS[mode]} mode switched - placeholder text)`); // just placeholder text
       }
@@ -981,8 +1008,12 @@
       }
 
       if (chatMode === "multi-agent") {
-        // Not implemented yet - reply with a placeholder instead of calling the backend.
-        addMessage("Multi-Agent mode is not implemented yet, so this question wasn't sent anywhere.");
+        const trimmed = question.trim();
+        if (/^(workflow\s+)?status$/i.test(trimmed)) {
+          await runMultiAgentStatus();
+        } else {
+          await runMultiAgentQuery(question);
+        }
         return;
       }
 
@@ -1070,10 +1101,10 @@
       }
     }
 
-    function renderToolResult(toolName, data) {
+    function renderToolResult(toolName, data, label = "RAG Tool") {
       const resultContainer = document.createElement("div");
       resultContainer.className = "msg ai";
-      resultContainer.innerHTML = `<div class="chat-hint">RAG Tool: ${escapeHtml(toolName)}</div><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+      resultContainer.innerHTML = `<div class="chat-hint">${escapeHtml(label)}: ${escapeHtml(toolName)}</div><pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
       chatBody.appendChild(resultContainer);
       chatBody.scrollTop = chatBody.scrollHeight;
     }
@@ -1143,6 +1174,180 @@
       } catch (error) {
         pending.remove();
         addMessage("The RAG server is unavailable right now — make sure it's running locally on port 5050.", "ai error");
+      }
+    }
+
+    function renderMultiAgentResult(data) {
+      const resultContainer = document.createElement("div");
+      resultContainer.className = "msg ai";
+
+      if (data.status === "rejected_by_planner") {
+        const reason = (data.planner_result && data.planner_result.error) || "The planner could not plan this request.";
+        resultContainer.innerHTML = `<div class="chat-hint">Multi-Agent: rejected by planner</div><pre>${escapeHtml(reason)}</pre>`;
+      } else {
+        const risk = (data.reviewer_result && data.reviewer_result.risk_level) || "unknown";
+        const recommended = (data.reviewer_result && data.reviewer_result.recommended_decision) || "Accept";
+        const answer = (data.worker_result && data.worker_result.output) || "(no output)";
+        const workflowId = data.workflow_id || "";
+        const decision = data.human_decision || {};
+
+        let footer = "";
+        if (decision.required && decision.status === "pending") {
+          const savedReviewer = escapeHtml(localStorage.getItem("multiAgentReviewerName") || "");
+          footer = `
+            <form class="ma-decision-form" data-decision-form data-workflow-id="${escapeHtml(workflowId)}">
+              <div class="chat-hint" style="padding:0;">Human review required — reviewer recommends: ${escapeHtml(recommended)}</div>
+              <div class="ma-decision-options">
+                ${["Accept", "Partially Accept", "Correct", "Reject"].map((option) =>
+                  `<label><input type="radio" name="decision" value="${option}" ${option === recommended ? "checked" : ""}> ${option}</label>`
+                ).join("")}
+              </div>
+              <input type="text" name="reviewer" placeholder="Your name" value="${savedReviewer}" required>
+              <textarea name="comment" placeholder="Comment (required unless Accept)" rows="2"></textarea>
+              <textarea name="corrected_output" placeholder="Corrected output (only for Correct)" rows="2"></textarea>
+              <div class="ma-decision-error" style="display:none;"></div>
+              <button type="submit">Record decision</button>
+            </form>
+          `;
+        } else if (decision.status) {
+          footer = `<div class="chat-hint">Decision recorded: ${escapeHtml(decision.status)}${decision.decision ? ` (${escapeHtml(decision.decision)} by ${escapeHtml(decision.reviewer || "—")})` : ""}</div>`;
+        }
+
+        resultContainer.innerHTML = `
+          <div class="chat-hint">Multi-Agent workflow ${escapeHtml(workflowId)} · risk: ${escapeHtml(risk)}</div>
+          <pre>${escapeHtml(answer)}</pre>
+          ${footer}
+        `;
+      }
+
+      chatBody.appendChild(resultContainer);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    chatBody.addEventListener("submit", async (event) => {
+      const form = event.target.closest("[data-decision-form]");
+      if (!form) return;
+      event.preventDefault();
+
+      const workflowId = form.dataset.workflowId;
+      const formData = new FormData(form);
+      const decision = formData.get("decision");
+      const reviewer = (formData.get("reviewer") || "").trim();
+      const comment = (formData.get("comment") || "").trim();
+      const correctedOutput = (formData.get("corrected_output") || "").trim();
+      const errorBox = form.querySelector(".ma-decision-error");
+
+      if (!reviewer) {
+        errorBox.textContent = "Your name is required.";
+        errorBox.style.display = "block";
+        return;
+      }
+      if (decision !== "Accept" && !comment) {
+        errorBox.textContent = `A comment explaining the "${decision}" decision is required.`;
+        errorBox.style.display = "block";
+        return;
+      }
+      if (decision === "Correct" && !correctedOutput) {
+        errorBox.textContent = "Corrected output is required for a \"Correct\" decision.";
+        errorBox.style.display = "block";
+        return;
+      }
+
+      localStorage.setItem("multiAgentReviewerName", reviewer);
+      const submitButton = form.querySelector("button[type=submit]");
+      submitButton.disabled = true;
+      try {
+        await runMultiAgentDecision(workflowId, decision, comment, reviewer, correctedOutput);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    async function runMultiAgentQuery(question) {
+      const pending = addMessage("Running the shared Multi-Agent workflow (Planner → Worker → Reviewer)…", "ai pending");
+      document.getElementById("chat-send").disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/multi-agent/run`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ question }).toString()
+        });
+        const data = await response.json();
+        pending.remove();
+
+        if (!response.ok && data.status !== "pending_human_review" && data.status !== "rejected_by_planner") {
+          addMessage(`Multi-Agent workflow failed: ${data.error || "unknown error"}`, "ai error");
+          return;
+        }
+
+        renderMultiAgentResult(data);
+      } catch (error) {
+        pending.remove();
+        addMessage("The Multi-Agent server is unavailable right now — make sure it's running locally on port 5004.", "ai error");
+      } finally {
+        document.getElementById("chat-send").disabled = false;
+      }
+    }
+
+    async function runMultiAgentDecision(workflowId, decision, comment, reviewer = "student1-chat", correctedOutput = "") {
+      const pending = addMessage(`Recording "${decision}" for workflow ${workflowId}…`, "ai pending");
+      document.getElementById("chat-send").disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/multi-agent/decision`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            workflow_id: workflowId,
+            decision,
+            reviewer: reviewer || "student1-chat",
+            comment: comment || "",
+            corrected_output: correctedOutput || "",
+          }).toString()
+        });
+        const data = await response.json();
+        pending.remove();
+
+        if (!response.ok) {
+          addMessage(`Could not record the decision: ${data.error || "unknown error"}`, "ai error");
+          return;
+        }
+
+        renderMultiAgentResult(data);
+      } catch (error) {
+        pending.remove();
+        addMessage("The Multi-Agent server is unavailable right now — make sure it's running locally on port 5004.", "ai error");
+      } finally {
+        document.getElementById("chat-send").disabled = false;
+      }
+    }
+
+    async function runMultiAgentStatus() {
+      if (!modeEnabled["multi-agent"]) {
+        addMessage("Multi-Agent Mode is OFF. Enable it above to use it.", "ai error");
+        return;
+      }
+
+      const pending = addMessage("Checking the shared Multi-Agent server's workflow status…", "ai pending");
+      document.getElementById("chat-send").disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/multi-agent/status`);
+        const data = await response.json();
+        pending.remove();
+
+        if (!response.ok) {
+          addMessage(`Could not get workflow status: ${data.error || "unknown error"}`, "ai error");
+          return;
+        }
+
+        renderToolResult("workflow_status", data, "Multi-Agent Tool");
+      } catch (error) {
+        pending.remove();
+        addMessage("The Multi-Agent server is unavailable right now — make sure it's running locally on port 5004.", "ai error");
+      } finally {
+        document.getElementById("chat-send").disabled = false;
       }
     }
 

@@ -7,3 +7,6 @@ __pycache__/
 *.db
 /ai-services/rag-server/chroma/*
 !/ai-services/rag-server/chroma/.gitkeep
+
+/ai-services/multi-agent-server/workflow_history.jsonl
+/ai-services/multi-agent-server/coordination_audit.jsonl

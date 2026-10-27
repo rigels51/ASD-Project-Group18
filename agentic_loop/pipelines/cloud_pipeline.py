@@ -60,8 +60,8 @@ def _workflow_row(wf):
 
 def _record_row(record):
     if not record["present"]:
-        return ("MISSING", f"no deployment record - after deploying, copy "
-                           f"docs/release-2/cloud/deployment.example.json to {record['path']} and fill it in")
+        return ("MISSING", f"no deployment record - run: python3 scripts/deploy/deploy_azure.py deploy "
+                           f"(it writes {record['path']})")
     if not record.get("valid"):
         return ("FAIL", record.get("error") or f"missing fields: {', '.join(record['missing_fields'])}")
     detail = (f"{record['platform']}, commit {record['commit']}, {record['deployed_at']}, "
@@ -176,6 +176,7 @@ def run(use_ai=True, decision=None, reviewer=None, comment=None, interactive=Tru
             rows.append((svc["owner"], f"GET {svc['read']}", "PASS" if read["ok"] else "FAIL", _probe_detail(read)))
             for method, path, encoding, body in svc["ai"]:
                 ai = collector.probe_ai(base, method, path, encoding, body, CLOUD_TIMEOUT_SECONDS)
+                expected_disabled_status = svc.get("disabled_status")
                 if not ai["reachable"]:
                     rows.append((svc["owner"], f"{method} {path} disabled", "FAIL", _probe_detail(ai)))
                 elif name in ai_enabled:
@@ -183,6 +184,13 @@ def run(use_ai=True, decision=None, reviewer=None, comment=None, interactive=Tru
                                  "PASS" if ai["answered"] else "WARN",
                                  f"{_probe_detail(ai)} - declared enabled; "
                                  + ("answered" if ai["answered"] else "did not answer")))
+                elif expected_disabled_status is not None:
+                    strict_disabled = ai["status"] == expected_disabled_status and ai["disabled"]
+                    detail = f"{_probe_detail(ai)}, response says disabled" if strict_disabled else (
+                        f"{_probe_detail(ai)} - expected HTTP {expected_disabled_status} with a response "
+                        "containing 'disabled'")
+                    rows.append((svc["owner"], f"{method} {path} disabled",
+                                 "PASS" if strict_disabled else "FAIL", detail))
                 elif ai["disabled"]:
                     rows.append((svc["owner"], f"{method} {path} disabled", "PASS",
                                  f"{_probe_detail(ai)}, response says disabled"))
